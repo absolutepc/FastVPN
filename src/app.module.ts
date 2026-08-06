@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
 import { BotModule } from './bot/bot.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { XrayModule } from './modules/xray/xray.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    XrayModule,
     SubscriptionsModule,
     BotModule,
   ],

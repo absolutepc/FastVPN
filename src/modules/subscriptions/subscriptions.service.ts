@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { XrayService } from '../xray/xray.service';
 import { PlanType, SubscriptionStatus } from '@prisma/client';
 import { randomUUID, randomBytes } from 'crypto';
 
@@ -10,7 +11,10 @@ const REFERRAL_BONUS_DAYS = 7;
 export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly xray: XrayService,
+  ) {}
 
   async createSubscription(params: {
     userId: string;
@@ -18,6 +22,14 @@ export class SubscriptionsService {
     days: number;
     isTrial?: boolean;
   }) {
+    // Premium capacity check
+    if (params.plan === PlanType.PREMIUM) {
+      const can = await this.xray.canAcceptPremium();
+      if (!can) {
+        throw new Error('PREMIUM_FULL');
+      }
+    }
+
     const startsAt = new Date();
     const expiresAt = new Date(startsAt);
     expiresAt.setDate(expiresAt.getDate() + params.days);
@@ -39,7 +51,11 @@ export class SubscriptionsService {
       `Subscription created: user=${params.userId} plan=${params.plan} days=${params.days} trial=${!!params.isTrial}`,
     );
 
-    // TODO: добавить UUID на ноды через Xray API
+    // Синхронизация с Xray
+    await this.xray.addUserToPlanNodes({
+      uuid: sub.uuid,
+      plan: sub.plan,
+    });
 
     return sub;
   }
@@ -57,7 +73,6 @@ export class SubscriptionsService {
     });
   }
 
-  /** Проверка по subToken (для /sub/:token) */
   async getValidSubscriptionByToken(subToken: string) {
     const now = new Date();
     return this.prisma.subscription.findFirst({
@@ -76,11 +91,13 @@ export class SubscriptionsService {
       where: { id: subscriptionId },
     });
 
+    const wasExpired = sub.expiresAt <= new Date() || sub.status === SubscriptionStatus.EXPIRED;
+
     const base = sub.expiresAt > new Date() ? sub.expiresAt : new Date();
     const newExpires = new Date(base);
     newExpires.setDate(newExpires.getDate() + days);
 
-    return this.prisma.subscription.update({
+    const updated = await this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
         expiresAt: newExpires,
@@ -90,6 +107,16 @@ export class SubscriptionsService {
             : SubscriptionStatus.ACTIVE,
       },
     });
+
+    // Если подписка была мертва — снова добавить на ноды
+    if (wasExpired) {
+      await this.xray.addUserToPlanNodes({
+        uuid: updated.uuid,
+        plan: updated.plan,
+      });
+    }
+
+    return updated;
   }
 
   async processReferralBonus(inviteeId: string, referrerId: string) {
@@ -127,37 +154,36 @@ export class SubscriptionsService {
     return { inviteeTrial: !inviteeActive, referrerBonus: true };
   }
 
-  /** Пометить истёкшие подписки как EXPIRED */
   async expireOverdueSubscriptions() {
     const now = new Date();
 
-    const result = await this.prisma.subscription.updateMany({
+    const overdue = await this.prisma.subscription.findMany({
       where: {
         status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
         expiresAt: { lte: now },
       },
-      data: {
-        status: SubscriptionStatus.EXPIRED,
-      },
     });
 
-    if (result.count > 0) {
-      this.logger.log(`Expired ${result.count} subscription(s)`);
-      // TODO: удалить UUID с нод через Xray API
+    if (overdue.length === 0) return 0;
+
+    await this.prisma.subscription.updateMany({
+      where: { id: { in: overdue.map((s) => s.id) } },
+      data: { status: SubscriptionStatus.EXPIRED },
+    });
+
+    // Удаляем с нод
+    for (const sub of overdue) {
+      await this.xray.removeUserFromPlanNodes({
+        uuid: sub.uuid,
+        plan: sub.plan,
+      });
     }
 
-    return result.count;
+    this.logger.log(`Expired ${overdue.length} subscription(s)`);
+    return overdue.length;
   }
 
-  /**
-   * Собрать список VLESS-ссылок для subscription.
-   * Пока — заглушка из активных нод нужного типа.
-   * Позже: реальные Reality-параметры + UUID пользователя.
-   */
-  async buildSubscriptionLinks(sub: {
-    uuid: string;
-    plan: PlanType;
-  }): Promise<string[]> {
+  async buildSubscriptionLinks(sub: { uuid: string; plan: PlanType }): Promise<string[]> {
     const nodes = await this.prisma.node.findMany({
       where: {
         isActive: true,
@@ -166,7 +192,6 @@ export class SubscriptionsService {
     });
 
     if (nodes.length === 0) {
-      // Fallback-заглушка, пока ноды не добавлены
       return [
         `vless://${sub.uuid}@example.com:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.cloudflare.com&fp=chrome&pbk=PLACEHOLDER&sid=0000000000000000&type=tcp#AccessOne-Stub`,
       ];

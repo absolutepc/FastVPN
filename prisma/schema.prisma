@@ -93,6 +93,7 @@ model Node {
   port        Int      @default(443)
   apiHost     String?
   apiPort     Int      @default(10085)
+  inboundTag  String   @default("vless-reality")
   type        NodeType
   maxUsers    Int?
   isActive    Boolean  @default(true)

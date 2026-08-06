@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlanType {
+  STANDARD
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  TRIAL
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  CANCELLED
+  REFUNDED
+}
+
+enum NodeType {
+  STANDARD
+  PREMIUM
+}
+
+model User {
+  id            String         @id @default(cuid())
+  telegramId    BigInt         @unique
+  username      String?
+  firstName     String?
+  lastName      String?
+  referralCode  String         @unique
+  referredById  String?
+  referredBy    User?          @relation("Referrals", fields: [referredById], references: [id])
+  referrals     User[]         @relation("Referrals")
+  subscriptions Subscription[]
+  payments      Payment[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("users")
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id])
+  plan        PlanType
+  status      SubscriptionStatus @default(ACTIVE)
+  uuid        String             @unique
+  subToken    String             @unique
+  startsAt    DateTime           @default(now())
+  expiresAt   DateTime
+  isTrial     Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([status, expiresAt])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id])
+  yookassaPaymentId String?       @unique
+  amount            Int
+  currency          String        @default("RUB")
+  plan              PlanType
+  status            PaymentStatus @default(PENDING)
+  description       String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([userId])
+  @@map("payments")
+}
+
+model Node {
+  id          String   @id @default(cuid())
+  name        String
+  host        String
+  port        Int      @default(443)
+  apiHost     String?
+  apiPort     Int      @default(10085)
+  type        NodeType
+  maxUsers    Int?
+  isActive    Boolean  @default(true)
+  publicKey   String
+  shortId     String
+  sni         String
+  fingerprint String   @default("chrome")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("nodes")
+}
+
+model PromoCode {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  discountPercent Int?
+  discountAmount  Int?
+  maxUses         Int?
+  usedCount       Int       @default(0)
+  validUntil      DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  @@map("promo_codes")
+}

@@ -5,8 +5,19 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionsService } from '../modules/subscriptions/subscriptions.service';
 import { randomBytes } from 'crypto';
 
-interface SessionData {
-  // позже: текущий шаг, выбранный тариф и т.д.
+export type AdminAction =
+  | 'add_days'
+  | 'block'
+  | 'unblock'
+  | 'promo'
+  | 'broadcast'
+  | 'add_node'
+  | null;
+
+export interface SessionData {
+  adminAction?: AdminAction;
+  adminStep?: number;
+  adminData?: Record<string, string>;
 }
 
 export type BotContext = Context & SessionFlavor<SessionData>;
@@ -23,7 +34,7 @@ export class BotService implements OnModuleInit {
   ) {
     const token = this.config.getOrThrow<string>('BOT_TOKEN');
     this.bot = new Bot<BotContext>(token);
-    this.bot.use(session({ initial: () => ({}) }));
+    this.bot.use(session({ initial: (): SessionData => ({}) }));
   }
 
   async onModuleInit() {
@@ -49,11 +60,12 @@ export class BotService implements OnModuleInit {
     };
   }
 
-  /**
-   * Найти или создать пользователя.
-   * Если новый и пришёл по рефералке — выдаём trial + бонус пригласившему.
-   * Возвращает { user, isNew, referralProcessed }
-   */
+  clearAdminSession(ctx: BotContext) {
+    ctx.session.adminAction = null;
+    ctx.session.adminStep = 0;
+    ctx.session.adminData = {};
+  }
+
   async findOrCreateUser(ctx: BotContext, referralCode?: string) {
     const tgId = BigInt(ctx.from!.id);
 
@@ -65,7 +77,6 @@ export class BotService implements OnModuleInit {
       return { user, isNew: false, referralProcessed: false };
     }
 
-    // Новый пользователь
     let referredById: string | undefined;
     let referrerTelegramId: bigint | undefined;
 
@@ -100,7 +111,6 @@ export class BotService implements OnModuleInit {
       const result = await this.subscriptions.processReferralBonus(user.id, referredById);
       referralProcessed = true;
 
-      // Уведомляем пригласившего
       if (result.referrerBonus && referrerTelegramId) {
         try {
           await this.bot.api.sendMessage(
@@ -119,5 +129,13 @@ export class BotService implements OnModuleInit {
 
   async getActiveSubscription(userId: string) {
     return this.subscriptions.getActiveSubscription(userId);
+  }
+
+  get subscriptionsService() {
+    return this.subscriptions;
+  }
+
+  get prismaService() {
+    return this.prisma;
   }
 }

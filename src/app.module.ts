@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
 import { BotModule } from './bot/bot.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
@@ -10,6 +11,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     SubscriptionsModule,
     BotModule,

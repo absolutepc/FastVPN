@@ -41,6 +41,7 @@ model User {
   referredById  String?
   referredBy    User?          @relation("Referrals", fields: [referredById], references: [id])
   referrals     User[]         @relation("Referrals")
+  isBlocked     Boolean        @default(false)
   subscriptions Subscription[]
   payments      Payment[]
   createdAt     DateTime       @default(now())

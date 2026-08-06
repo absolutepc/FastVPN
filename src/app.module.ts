@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { BotModule } from './bot/bot.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { XrayModule } from './modules/xray/xray.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { XrayModule } from './modules/xray/xray.module';
     PrismaModule,
     XrayModule,
     SubscriptionsModule,
+    PaymentsModule,
     BotModule,
   ],
 })

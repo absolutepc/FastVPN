@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { BotService, BotContext } from './bot.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionsService } from '../modules/subscriptions/subscriptions.service';
+import { XrayService } from '../modules/xray/xray.service';
 import { PlanType, SubscriptionStatus, NodeType } from '@prisma/client';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class AdminUpdate implements OnModuleInit {
     private readonly botService: BotService,
     private readonly prisma: PrismaService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly xray: XrayService,
     private readonly config: ConfigService,
   ) {
     const raw = this.config.get<string>('ADMIN_IDS') || '';
@@ -149,7 +151,6 @@ export class AdminUpdate implements OnModuleInit {
       });
     });
 
-    // --- Начислить дни ---
     bot.callbackQuery('admin:add_days', async (ctx) => {
       if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
@@ -167,7 +168,6 @@ export class AdminUpdate implements OnModuleInit {
       );
     });
 
-    // --- Блок ---
     bot.callbackQuery('admin:block', async (ctx) => {
       if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
@@ -200,7 +200,6 @@ export class AdminUpdate implements OnModuleInit {
       );
     });
 
-    // --- Промокод ---
     bot.callbackQuery('admin:promo', async (ctx) => {
       if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
@@ -209,10 +208,8 @@ export class AdminUpdate implements OnModuleInit {
       ctx.session.adminData = {};
       await ctx.editMessageText(
         '🎟 <b>Создать промокод</b>\n\n' +
-          'Формат (одним сообщением):\n' +
-          '<code>CODE скидка% макс_использований</code>\n\n' +
-          'Пример: <code>SALE20 20 100</code>\n' +
-          '(код SALE20, скидка 20%, до 100 использований)',
+          'Формат: <code>CODE скидка% макс_использований</code>\n' +
+          'Пример: <code>SALE20 20 100</code>',
         {
           parse_mode: 'HTML',
           reply_markup: {
@@ -222,24 +219,19 @@ export class AdminUpdate implements OnModuleInit {
       );
     });
 
-    // --- Рассылка ---
     bot.callbackQuery('admin:broadcast', async (ctx) => {
       if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
       ctx.session.adminAction = 'broadcast';
       ctx.session.adminStep = 1;
-      await ctx.editMessageText(
-        '📢 <b>Рассылка</b>\n\nОтправьте текст сообщения (HTML разрешён):',
-        {
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [[{ text: '« Отмена', callback_data: 'admin:manage' }]],
-          },
+      await ctx.editMessageText('📢 <b>Рассылка</b>\n\nОтправьте текст (HTML):', {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [[{ text: '« Отмена', callback_data: 'admin:manage' }]],
         },
-      );
+      });
     });
 
-    // --- Добавить сервер ---
     bot.callbackQuery('admin:add_node', async (ctx) => {
       if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
@@ -248,11 +240,8 @@ export class AdminUpdate implements OnModuleInit {
       ctx.session.adminData = {};
       await ctx.editMessageText(
         '➕ <b>Добавить сервер</b>\n\n' +
-          'Отправьте данные <b>одним сообщением</b> через | :\n\n' +
           '<code>name|host|port|type|publicKey|shortId|sni</code>\n\n' +
-          'type: <code>standard</code> или <code>premium</code>\n\n' +
-          'Пример:\n' +
-          '<code>NL-1|1.2.3.4|443|standard|pbk_here|sid123|www.cloudflare.com</code>',
+          'Пример:\n<code>NL-1|1.2.3.4|443|standard|pbk|sid|www.cloudflare.com</code>',
         {
           parse_mode: 'HTML',
           reply_markup: {
@@ -262,13 +251,11 @@ export class AdminUpdate implements OnModuleInit {
       );
     });
 
-    // --- Удалить сервер ---
     bot.callbackQuery('admin:del_node', async (ctx) => {
       if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
 
       const nodes = await this.prisma.node.findMany({ orderBy: { createdAt: 'desc' } });
-
       if (nodes.length === 0) {
         return ctx.editMessageText('Нет серверов.', {
           reply_markup: {
@@ -285,7 +272,7 @@ export class AdminUpdate implements OnModuleInit {
       ]);
       buttons.push([{ text: '« Назад', callback_data: 'admin:manage' }]);
 
-      await ctx.editMessageText('➖ Выберите сервер для удаления:', {
+      await ctx.editMessageText('➖ Выберите сервер:', {
         reply_markup: { inline_keyboard: buttons },
       });
     });
@@ -319,32 +306,30 @@ export class AdminUpdate implements OnModuleInit {
 
       const nodes = await this.prisma.node.findMany({ orderBy: { name: 'asc' } });
       if (nodes.length === 0) {
-        return ctx.editMessageText('Нет серверов для мониторинга.', {
+        return ctx.editMessageText('Нет серверов.', {
           reply_markup: {
             inline_keyboard: [[{ text: '« Назад', callback_data: 'admin:menu' }]],
           },
         });
       }
 
-      const lines = nodes.map(
-        (n) =>
-          `${n.isActive ? '🟢' : '🔴'} <b>${n.name}</b> (${n.type})\n` +
-          `   ${n.host}:${n.port} · max: ${n.maxUsers ?? '∞'}`,
-      );
+      const lines: string[] = [];
+      for (const n of nodes) {
+        const alive = await this.xray.pingNode(n);
+        lines.push(
+          `${alive ? '🟢' : '🔴'} <b>${n.name}</b> (${n.type})\n` +
+            `   ${n.host}:${n.port} · API: ${alive ? 'ok' : 'fail'} · max: ${n.maxUsers ?? '∞'}`,
+        );
+      }
 
-      await ctx.editMessageText(
-        `📡 <b>Серверы</b>\n\n${lines.join('\n\n')}\n\n` +
-          `<i>CPU/RAM/Ping/Xray — после агента мониторинга</i>`,
-        {
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [[{ text: '« Назад', callback_data: 'admin:menu' }]],
-          },
+      await ctx.editMessageText(`📡 <b>Серверы</b>\n\n${lines.join('\n\n')}`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [[{ text: '« Назад', callback_data: 'admin:menu' }]],
         },
-      );
+      });
     });
 
-    // --- Обработка текстовых ответов админа ---
     bot.on('message:text', async (ctx, next) => {
       if (!this.isAdmin(ctx.from?.id)) return next();
       if (!ctx.session.adminAction) return next();
@@ -376,7 +361,7 @@ export class AdminUpdate implements OnModuleInit {
         }
       } catch (e) {
         this.logger.error('Admin action error', e);
-        await ctx.reply('Ошибка. Попробуйте снова или нажмите /admin');
+        await ctx.reply('Ошибка. /admin');
         this.botService.clearAdminSession(ctx);
       }
     });
@@ -387,26 +372,19 @@ export class AdminUpdate implements OnModuleInit {
   private async handleAddDays(ctx: BotContext, text: string, step: number) {
     if (step === 1) {
       const tgId = text.replace(/\D/g, '');
-      if (!tgId) {
-        return ctx.reply('Некорректный telegram_id. Попробуйте ещё раз:');
-      }
+      if (!tgId) return ctx.reply('Некорректный telegram_id');
 
       const user = await this.prisma.user.findUnique({
         where: { telegramId: BigInt(tgId) },
       });
-
-      if (!user) {
-        return ctx.reply('Пользователь не найден. Введите другой id:');
-      }
+      if (!user) return ctx.reply('Пользователь не найден');
 
       ctx.session.adminData = { telegramId: tgId, userId: user.id };
       ctx.session.adminStep = 2;
 
       return ctx.reply(
         `Пользователь: <b>${user.username || user.firstName || tgId}</b>\n\n` +
-          `Отправьте: <code>дни план</code>\n` +
-          `План: <code>standard</code> или <code>premium</code>\n\n` +
-          `Пример: <code>30 standard</code>`,
+          `Отправьте: <code>дни план</code>\nПример: <code>30 standard</code>`,
         { parse_mode: 'HTML' },
       );
     }
@@ -417,18 +395,16 @@ export class AdminUpdate implements OnModuleInit {
       const planStr = parts[1] || 'standard';
 
       if (!days || days < 1 || days > 3650) {
-        return ctx.reply('Количество дней: число от 1 до 3650');
+        return ctx.reply('Дни: 1–3650');
       }
 
       const plan = planStr === 'premium' ? PlanType.PREMIUM : PlanType.STANDARD;
       const userId = ctx.session.adminData!.userId;
-
       const active = await this.subscriptions.getActiveSubscription(userId);
 
       if (active && active.plan === plan) {
         await this.subscriptions.extendSubscription(active.id, days);
       } else {
-        // новая подписка или смена плана
         await this.subscriptions.createSubscription({
           userId,
           plan,
@@ -443,21 +419,17 @@ export class AdminUpdate implements OnModuleInit {
       try {
         await this.botService.bot.api.sendMessage(
           Number(tgId),
-          `✅ Вам начислено <b>${days} дн.</b> (${plan === PlanType.PREMIUM ? 'Премиум' : 'Стандарт'}).\n` +
-            `Откройте «📱 Мои устройства».`,
+          `✅ Вам начислено <b>${days} дн.</b> (${plan === PlanType.PREMIUM ? 'Премиум' : 'Стандарт'}).`,
           { parse_mode: 'HTML' },
         );
       } catch {
-        /* user blocked bot */
+        /* ignore */
       }
 
-      return ctx.reply(
-        `✅ Начислено <b>${days}</b> дн. (${plan}) пользователю <code>${tgId}</code>`,
-        {
-          parse_mode: 'HTML',
-          reply_markup: this.manageKeyboard(),
-        },
-      );
+      return ctx.reply(`✅ Начислено <b>${days}</b> дн. (${plan}) → <code>${tgId}</code>`, {
+        parse_mode: 'HTML',
+        reply_markup: this.manageKeyboard(),
+      });
     }
   }
 
@@ -468,7 +440,6 @@ export class AdminUpdate implements OnModuleInit {
     const user = await this.prisma.user.findUnique({
       where: { telegramId: BigInt(tgId) },
     });
-
     if (!user) return ctx.reply('Пользователь не найден');
 
     await this.prisma.user.update({
@@ -477,7 +448,13 @@ export class AdminUpdate implements OnModuleInit {
     });
 
     if (block) {
-      // истекаем активные подписки
+      const subs = await this.prisma.subscription.findMany({
+        where: {
+          userId: user.id,
+          status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
+        },
+      });
+
       await this.prisma.subscription.updateMany({
         where: {
           userId: user.id,
@@ -485,15 +462,21 @@ export class AdminUpdate implements OnModuleInit {
         },
         data: { status: SubscriptionStatus.CANCELLED },
       });
-      // TODO: remove UUID from Xray nodes
+
+      for (const sub of subs) {
+        await this.xray.removeUserFromPlanNodes({
+          uuid: sub.uuid,
+          plan: sub.plan,
+        });
+      }
     }
 
     this.botService.clearAdminSession(ctx);
 
     return ctx.reply(
       block
-        ? `🚫 Пользователь <code>${tgId}</code> заблокирован.`
-        : `✅ Пользователь <code>${tgId}</code> разблокирован.`,
+        ? `🚫 <code>${tgId}</code> заблокирован, доступ с нод снят.`
+        : `✅ <code>${tgId}</code> разблокирован.`,
       {
         parse_mode: 'HTML',
         reply_markup: this.manageKeyboard(),
@@ -503,44 +486,33 @@ export class AdminUpdate implements OnModuleInit {
 
   private async handlePromo(ctx: BotContext, text: string) {
     const parts = text.trim().split(/\s+/);
-    if (parts.length < 2) {
-      return ctx.reply('Формат: CODE скидка% [макс_использований]');
-    }
+    if (parts.length < 2) return ctx.reply('Формат: CODE скидка% [лимит]');
 
     const code = parts[0].toUpperCase();
     const discountPercent = parseInt(parts[1], 10);
     const maxUses = parts[2] ? parseInt(parts[2], 10) : null;
 
     if (!discountPercent || discountPercent < 1 || discountPercent > 100) {
-      return ctx.reply('Скидка: число от 1 до 100');
+      return ctx.reply('Скидка: 1–100');
     }
 
-    const existing = await this.prisma.promoCode.findUnique({ where: { code } });
-    if (existing) return ctx.reply('Такой код уже существует');
+    if (await this.prisma.promoCode.findUnique({ where: { code } })) {
+      return ctx.reply('Код уже существует');
+    }
 
     await this.prisma.promoCode.create({
-      data: {
-        code,
-        discountPercent,
-        maxUses,
-      },
+      data: { code, discountPercent, maxUses },
     });
 
     this.botService.clearAdminSession(ctx);
-
-    return ctx.reply(
-      `✅ Промокод <b>${code}</b> создан\nСкидка: ${discountPercent}%` +
-        (maxUses ? `\nЛимит: ${maxUses}` : ''),
-      {
-        parse_mode: 'HTML',
-        reply_markup: this.manageKeyboard(),
-      },
-    );
+    return ctx.reply(`✅ Промокод <b>${code}</b> · ${discountPercent}%`, {
+      parse_mode: 'HTML',
+      reply_markup: this.manageKeyboard(),
+    });
   }
 
   private async handleBroadcast(ctx: BotContext, text: string) {
     this.botService.clearAdminSession(ctx);
-
     const users = await this.prisma.user.findMany({
       where: { isBlocked: false },
       select: { telegramId: true },
@@ -548,8 +520,7 @@ export class AdminUpdate implements OnModuleInit {
 
     let ok = 0;
     let fail = 0;
-
-    await ctx.reply(`Отправка ${users.length} пользователям...`);
+    await ctx.reply(`Отправка ${users.length}...`);
 
     for (const u of users) {
       try {
@@ -557,14 +528,13 @@ export class AdminUpdate implements OnModuleInit {
           parse_mode: 'HTML',
         });
         ok++;
-        // антифлуд
         await new Promise((r) => setTimeout(r, 50));
       } catch {
         fail++;
       }
     }
 
-    return ctx.reply(`📢 Готово.\n✅ ${ok}  ❌ ${fail}`, {
+    return ctx.reply(`📢 ✅ ${ok}  ❌ ${fail}`, {
       reply_markup: this.manageKeyboard(),
     });
   }
@@ -572,9 +542,7 @@ export class AdminUpdate implements OnModuleInit {
   private async handleAddNode(ctx: BotContext, text: string) {
     const parts = text.split('|').map((p) => p.trim());
     if (parts.length < 7) {
-      return ctx.reply(
-        'Нужно 7 полей: name|host|port|type|publicKey|shortId|sni',
-      );
+      return ctx.reply('Нужно: name|host|port|type|publicKey|shortId|sni');
     }
 
     const [name, host, portStr, typeStr, publicKey, shortId, sni] = parts;
@@ -598,15 +566,10 @@ export class AdminUpdate implements OnModuleInit {
     });
 
     this.botService.clearAdminSession(ctx);
-
     return ctx.reply(
-      `✅ Сервер <b>${node.name}</b> добавлен\n` +
-        `${node.host}:${node.port} · ${node.type}` +
+      `✅ <b>${node.name}</b> · ${node.host}:${node.port} · ${node.type}` +
         (maxUsers ? ` · max ${maxUsers}` : ''),
-      {
-        parse_mode: 'HTML',
-        reply_markup: this.manageKeyboard(),
-      },
+      { parse_mode: 'HTML', reply_markup: this.manageKeyboard() },
     );
   }
 }

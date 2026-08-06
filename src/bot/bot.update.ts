@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { BotService } from './bot.service';
 import { ConfigService } from '@nestjs/config';
+import { PaymentsService } from '../modules/payments/payments.service';
+import { PlanType } from '@prisma/client';
 
 @Injectable()
 export class BotUpdate implements OnModuleInit {
@@ -9,12 +11,12 @@ export class BotUpdate implements OnModuleInit {
   constructor(
     private readonly botService: BotService,
     private readonly config: ConfigService,
+    private readonly payments: PaymentsService,
   ) {}
 
   onModuleInit() {
     const bot = this.botService.bot;
 
-    // /start (с возможным реферальным кодом)
     bot.command('start', async (ctx) => {
       const payload = ctx.match?.trim() || undefined;
 
@@ -45,7 +47,6 @@ export class BotUpdate implements OnModuleInit {
       });
     });
 
-    // Главное меню
     bot.hears('🛡 Купить', async (ctx) => {
       await ctx.reply(
         `Выберите тариф:\n\n` +
@@ -120,12 +121,22 @@ export class BotUpdate implements OnModuleInit {
         return ctx.reply('Нет активной подписки для продления.\nНажмите «🛡 Купить».');
       }
 
-      // Пока без ЮKassa — заглушка
+      const planKey = sub.plan === 'PREMIUM' ? 'premium' : 'standard';
+      const price = sub.plan === 'PREMIUM' ? 600 : 300;
+
       await ctx.reply(
-        `Текущий тариф: <b>${sub.plan === 'PREMIUM' ? 'Премиум' : 'Стандарт'}</b>\n` +
+        `Продление: <b>${sub.plan === 'PREMIUM' ? 'Премиум' : 'Стандарт'}</b>\n` +
           `Действует до: ${sub.expiresAt.toLocaleDateString('ru-RU')}\n\n` +
-          `Оплата через ЮKassa будет подключена позже.`,
-        { parse_mode: 'HTML' },
+          `Стоимость: <b>${price} ₽</b> / 30 дней`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: `Оплатить ${price} ₽`, callback_data: `buy:${planKey}` }],
+              [{ text: '« Назад', callback_data: 'back:main' }],
+            ],
+          },
+        },
       );
     });
 
@@ -155,18 +166,52 @@ export class BotUpdate implements OnModuleInit {
       );
     });
 
-    // Выбор тарифа
+    // Покупка / оплата
     bot.callbackQuery(/^buy:(standard|premium)$/, async (ctx) => {
-      const plan = ctx.match![1];
       await ctx.answerCallbackQuery();
-      await ctx.editMessageText(
-        `Тариф: <b>${plan === 'premium' ? 'Премиум' : 'Стандарт'}</b>\n\n` +
-          `Оплата через ЮKassa скоро будет подключена.`,
-        { parse_mode: 'HTML' },
-      );
+      const planKey = ctx.match![1];
+      const plan = planKey === 'premium' ? PlanType.PREMIUM : PlanType.STANDARD;
+      const { user } = await this.botService.findOrCreateUser(ctx);
+
+      if (user.isBlocked) {
+        return ctx.editMessageText('Доступ ограничен.');
+      }
+
+      try {
+        const result = await this.payments.createPayment({
+          userId: user.id,
+          plan,
+        });
+
+        if (!result.confirmationUrl) {
+          return ctx.editMessageText('Не удалось создать ссылку на оплату. Попробуйте позже.');
+        }
+
+        const planName = plan === PlanType.PREMIUM ? 'Премиум' : 'Стандарт';
+
+        await ctx.editMessageText(
+          `💳 Тариф: <b>${planName}</b>\n` +
+            `Сумма: <b>${result.amount} ₽</b>\n` +
+            `Срок: 30 дней\n\n` +
+            `Нажмите кнопку ниже для оплаты:`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: 'Оплатить', url: result.confirmationUrl }],
+                [{ text: '« Назад', callback_data: 'back:main' }],
+              ],
+            },
+          },
+        );
+      } catch (e) {
+        this.logger.error('Create payment error', e);
+        await ctx.editMessageText(
+          'Ошибка создания платежа. Проверьте настройки ЮKassa или попробуйте позже.',
+        );
+      }
     });
 
-    // Приложения (заглушки с инструкцией)
     bot.callbackQuery(/^app:(happ|v2raytun|hiddify|qr|copy)$/, async (ctx) => {
       await ctx.answerCallbackQuery();
       const app = ctx.match![1];

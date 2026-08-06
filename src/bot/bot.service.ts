@@ -2,13 +2,14 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Bot, Context, session, SessionFlavor } from 'grammy';
 import { PrismaService } from '../prisma/prisma.service';
+import { SubscriptionsService } from '../modules/subscriptions/subscriptions.service';
 import { randomBytes } from 'crypto';
 
 interface SessionData {
-  // пока пусто, позже: текущий шаг, выбранный тариф и т.д.
+  // позже: текущий шаг, выбранный тариф и т.д.
 }
 
-type BotContext = Context & SessionFlavor<SessionData>;
+export type BotContext = Context & SessionFlavor<SessionData>;
 
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -18,28 +19,24 @@ export class BotService implements OnModuleInit {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly subscriptions: SubscriptionsService,
   ) {
     const token = this.config.getOrThrow<string>('BOT_TOKEN');
     this.bot = new Bot<BotContext>(token);
-
     this.bot.use(session({ initial: () => ({}) }));
   }
 
   async onModuleInit() {
-    // Регистрация хендлеров происходит в BotUpdate
-    // Запуск бота
     this.bot.start({
       onStart: (info) => {
         this.logger.log(`Bot @${info.username} started`);
       },
     });
 
-    // Graceful shutdown
     process.once('SIGINT', () => this.bot.stop());
     process.once('SIGTERM', () => this.bot.stop());
   }
 
-  /** Главное меню */
   getMainKeyboard() {
     return {
       keyboard: [
@@ -52,7 +49,11 @@ export class BotService implements OnModuleInit {
     };
   }
 
-  /** Создать или найти пользователя */
+  /**
+   * Найти или создать пользователя.
+   * Если новый и пришёл по рефералке — выдаём trial + бонус пригласившему.
+   * Возвращает { user, isNew, referralProcessed }
+   */
   async findOrCreateUser(ctx: BotContext, referralCode?: string) {
     const tgId = BigInt(ctx.from!.id);
 
@@ -60,21 +61,25 @@ export class BotService implements OnModuleInit {
       where: { telegramId: tgId },
     });
 
-    if (user) return user;
+    if (user) {
+      return { user, isNew: false, referralProcessed: false };
+    }
 
     // Новый пользователь
     let referredById: string | undefined;
+    let referrerTelegramId: bigint | undefined;
 
     if (referralCode) {
       const referrer = await this.prisma.user.findUnique({
         where: { referralCode },
       });
-      if (referrer && referrer.telegramId !== tgId) {
+      if (referrer && referrer.telegramId !== tgId && !referrer.isBlocked) {
         referredById = referrer.id;
+        referrerTelegramId = referrer.telegramId;
       }
     }
 
-    const newReferralCode = randomBytes(4).toString('hex'); // 8 символов
+    const newReferralCode = randomBytes(4).toString('hex');
 
     user = await this.prisma.user.create({
       data: {
@@ -87,10 +92,32 @@ export class BotService implements OnModuleInit {
       },
     });
 
-    this.logger.log(`New user created: ${tgId} (ref: ${referralCode ?? 'none'})`);
+    this.logger.log(`New user: ${tgId} (ref: ${referralCode ?? 'none'})`);
 
-    // TODO: если есть referredById — выдать trial приглашённому + бонус пригласившему
+    let referralProcessed = false;
 
-    return user;
+    if (referredById) {
+      const result = await this.subscriptions.processReferralBonus(user.id, referredById);
+      referralProcessed = true;
+
+      // Уведомляем пригласившего
+      if (result.referrerBonus && referrerTelegramId) {
+        try {
+          await this.bot.api.sendMessage(
+            Number(referrerTelegramId),
+            `🎉 Друг присоединился по вашей ссылке!\n\nВам начислено <b>+7 дней</b> (Стандарт).`,
+            { parse_mode: 'HTML' },
+          );
+        } catch (e) {
+          this.logger.warn(`Could not notify referrer ${referrerTelegramId}`, e);
+        }
+      }
+    }
+
+    return { user, isNew: true, referralProcessed };
+  }
+
+  async getActiveSubscription(userId: string) {
+    return this.subscriptions.getActiveSubscription(userId);
   }
 }

@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Node, NodeType, PlanType } from '@prisma/client';
 
+type VlessFlow = '' | 'xtls-rprx-vision';
+
 @Injectable()
 export class XrayService {
   private readonly logger = new Logger(XrayService.name);
@@ -64,7 +66,7 @@ export class XrayService {
   async addUserToPlanNodes(params: {
     uuid: string;
     plan: PlanType;
-    flow?: string;
+    flow?: VlessFlow;
   }): Promise<{ ok: number; fail: number }> {
     if (params.plan === PlanType.PREMIUM) {
       const allowed = await this.canAcceptPremium();
@@ -77,9 +79,10 @@ export class XrayService {
     const nodes = await this.getNodesForPlan(params.plan);
     let ok = 0;
     let fail = 0;
+    const flow: VlessFlow = params.flow ?? 'xtls-rprx-vision';
 
     for (const node of nodes) {
-      const success = await this.addUserToNode(node, params.uuid, params.flow ?? 'xtls-rprx-vision');
+      const success = await this.addUserToNode(node, params.uuid, flow);
       if (success) ok++;
       else fail++;
     }
@@ -88,7 +91,11 @@ export class XrayService {
     return { ok, fail };
   }
 
-  async addUserToNode(node: Node, uuid: string, flow = 'xtls-rprx-vision'): Promise<boolean> {
+  async addUserToNode(
+    node: Node,
+    uuid: string,
+    flow: VlessFlow = 'xtls-rprx-vision',
+  ): Promise<boolean> {
     const api = await this.getClient(node);
     if (!api) return false;
 

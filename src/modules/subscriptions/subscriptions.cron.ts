@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { SubscriptionsService } from './subscriptions.service';
 
 @Injectable()
@@ -9,7 +9,7 @@ export class SubscriptionsCron {
   constructor(private readonly subscriptions: SubscriptionsService) {}
 
   /** Каждые 2 минуты помечаем истёкшие подписки */
-  @Cron(CronExpression.EVERY_2_MINUTES)
+  @Cron('*/2 * * * *')
   async handleExpired() {
     try {
       const count = await this.subscriptions.expireOverdueSubscriptions();

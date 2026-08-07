@@ -7,7 +7,7 @@ import {
   ForbiddenException,
   Header,
 } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { SubscriptionsService } from './subscriptions.service';
 
 @Controller('sub')

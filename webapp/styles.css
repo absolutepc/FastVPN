@@ -37,7 +37,6 @@ body {
 
 .screen.hidden { display: none !important; }
 
-/* ===== Top bar ===== */
 .top {
   display: flex;
   align-items: center;
@@ -81,9 +80,7 @@ body {
   font-size: 1.05rem;
   font-weight: 700;
 }
-.page-head.center h2 { text-align: center; }
 
-/* ===== Hello ===== */
 .hello h1 {
   font-size: 1.4rem;
   font-weight: 700;
@@ -97,7 +94,6 @@ body {
 }
 .hello-sub.on { color: var(--gold); }
 
-/* ===== Status card (shield) ===== */
 .status-card {
   position: relative;
   background: linear-gradient(165deg, #14110a 0%, #0a0a0a 55%, #080808 100%);
@@ -200,9 +196,7 @@ body {
   font-weight: 600;
   cursor: pointer;
 }
-.btn-outline-gold:active { opacity: 0.85; }
 
-/* ===== Stats row ===== */
 .stats-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -245,35 +239,47 @@ body {
   border-radius: 99px;
 }
 
-/* ===== Banner (taller ~2x) ===== */
+/* ===== Banner ===== */
 .banner {
+  position: relative;
   width: 100%;
   min-height: 120px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   text-align: left;
   padding: 28px 18px;
   border-radius: 18px;
   border: 1px solid rgba(212, 175, 55, 0.3);
-  background:
-    radial-gradient(ellipse 60% 80% at 90% 50%, rgba(212, 175, 55, 0.12), transparent 55%),
-    linear-gradient(105deg, #1a160c 0%, #0d0d0d 70%);
+  background: linear-gradient(105deg, #1a160c 0%, #0d0d0d 55%, #0a0907 100%);
   color: var(--text);
   cursor: pointer;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
 }
+
+/* diamond — без бордера */
 .banner-ico {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  background: rgba(212, 175, 55, 0.12);
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.banner-body {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 0;
+  max-width: 58%;
 }
 .banner-title {
   font-weight: 700;
@@ -285,15 +291,37 @@ body {
   color: var(--muted);
   line-height: 1.4;
 }
+
+/* серверные стойки справа, у стрелки */
+.banner-art {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 130px;
+  height: 96px;
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: 1;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 25%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 25%);
+}
+.server-rack {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.25));
+}
+
 .banner-chev {
+  position: relative;
+  z-index: 2;
   margin-left: auto;
   color: var(--gold);
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
-/* ===== Buttons ===== */
 .btn-gold {
   width: 100%;
   display: flex;
@@ -336,7 +364,6 @@ body {
   color: var(--muted);
 }
 
-/* ===== Servers ===== */
 .smart-card {
   width: 100%;
   display: flex;
@@ -403,7 +430,6 @@ body {
 }
 .srv-item.active-srv {
   border-color: rgba(212, 175, 55, 0.4);
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.1);
 }
 .srv-flag { font-size: 1.4rem; }
 .srv-info { flex: 1; }
@@ -444,9 +470,7 @@ body {
   color: var(--gold-l);
   line-height: 1.45;
 }
-.muted-box { margin-top: 4px; }
 
-/* ===== Devices ===== */
 .dev-summary {
   display: flex;
   justify-content: space-between;
@@ -523,7 +547,6 @@ body {
   background: rgba(34, 197, 94, 0.12);
 }
 
-/* ===== Subscription ===== */
 .sub-card {
   background: var(--card);
   border: 1px solid rgba(212, 175, 55, 0.25);
@@ -610,7 +633,6 @@ body {
 .plan-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
 .plan-price { font-weight: 800; color: var(--gold); font-size: 1.05rem; }
 
-/* ===== Profile ===== */
 .prof-head {
   display: flex;
   align-items: center;
@@ -700,7 +722,6 @@ body {
 }
 .input:focus { border-color: var(--gold); }
 
-/* ===== Tab bar ===== */
 .tabbar {
   position: fixed;
   left: 50%;

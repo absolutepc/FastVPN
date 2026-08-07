@@ -10,228 +10,316 @@
 <body>
   <div id="app">
 
-    <!-- ===== HOME ===== -->
+    <!-- ========== HOME ========== -->
     <section id="screen-home" class="screen">
-      <header class="header">
-        <div class="header-logo">
-          <span class="shield-icon">🛡</span>
+      <header class="top">
+        <button type="button" class="top-btn" id="btn-menu" aria-label="Меню">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div class="brand">
+          <svg class="brand-shield" width="20" height="22" viewBox="0 0 24 26" fill="none">
+            <path d="M12 1L3 5v6c0 5.5 3.8 10.6 9 12 5.2-1.4 9-6.5 9-12V5L12 1z" stroke="url(#g1)" stroke-width="1.6" fill="rgba(212,175,55,0.15)"/>
+            <path d="M9 12.5l2 2 4-4" stroke="#f0d78c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs><linearGradient id="g1" x1="3" y1="1" x2="21" y2="25"><stop stop-color="#f0d78c"/><stop offset="1" stop-color="#a8892a"/></linearGradient></defs>
+          </svg>
           <span>4STEPS VPN</span>
         </div>
+        <button type="button" class="top-btn" aria-label="Уведомления">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
+        </button>
       </header>
 
-      <div class="greeting">
+      <div class="hello">
         <h1>Привет, <span id="greet-name">—</span> 👋</h1>
-        <p id="greet-status" class="greet-status">Загрузка…</p>
+        <p id="greet-status" class="hello-sub">Загрузка…</p>
       </div>
 
-      <div class="hero-card" id="hero-card">
-        <div class="hero-glow"></div>
-        <div class="hero-shield">
-          <div class="hero-ring"></div>
-          <div class="hero-ring r2"></div>
-          <div class="hero-icon" id="hero-icon">✓</div>
+      <div class="status-card">
+        <div class="status-dot" id="status-dot"></div>
+        <div class="shield-wrap">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+          <div class="shield-core">
+            <svg width="48" height="52" viewBox="0 0 48 52" fill="none">
+              <path d="M24 2L6 9v12.5c0 11.2 7.6 21.5 18 24.5 10.4-3 18-13.3 18-24.5V9L24 2z" fill="url(#sg)" stroke="url(#ss)" stroke-width="1.5"/>
+              <path d="M17 26l5 5 10-10" stroke="#0a0a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs>
+                <linearGradient id="sg" x1="6" y1="2" x2="42" y2="46"><stop stop-color="#f0d78c"/><stop offset="1" stop-color="#b8962e"/></linearGradient>
+                <linearGradient id="ss" x1="6" y1="2" x2="42" y2="46"><stop stop-color="#ffe9a0"/><stop offset="1" stop-color="#8a7020"/></linearGradient>
+              </defs>
+            </svg>
+          </div>
         </div>
-        <div class="hero-title" id="hero-title">Подписка не активна</div>
-        <div class="hero-sub" id="hero-sub">Оформите тариф, чтобы начать</div>
-        <button type="button" class="btn-pill" id="btn-details">Детали подключения</button>
+        <div class="status-title" id="hero-title">Подписка не активна</div>
+        <div class="status-sub" id="hero-sub">Оформите тариф, чтобы начать</div>
+        <div class="server-chip" id="server-chip" hidden>
+          <span class="chip-dot"></span>
+          <span id="server-chip-text">Premium</span>
+        </div>
+        <button type="button" class="btn-outline-gold" id="btn-details">
+          Детали подключения
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
       </div>
 
-      <div class="mini-stats">
-        <div class="mini-stat">
-          <div class="mini-icon">👑</div>
-          <div class="mini-num" id="stat-days">—</div>
-          <div class="mini-label">дней осталось</div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-ico">👑</div>
+          <div class="stat-val" id="stat-days">—</div>
+          <div class="stat-lbl">дней осталось</div>
+          <div class="stat-bar"><i id="stat-days-bar"></i></div>
         </div>
-        <div class="mini-stat">
-          <div class="mini-icon">📱</div>
-          <div class="mini-num" id="stat-devices">0 из 1</div>
-          <div class="mini-label">устройств</div>
+        <div class="stat-card">
+          <div class="stat-ico">📱</div>
+          <div class="stat-val" id="stat-devices">0 из 1</div>
+          <div class="stat-lbl">использовано</div>
         </div>
-        <div class="mini-stat">
-          <div class="mini-icon">⚡</div>
-          <div class="mini-num" id="stat-plan-short">—</div>
-          <div class="mini-label">тариф</div>
+        <div class="stat-card">
+          <div class="stat-ico">⚡</div>
+          <div class="stat-val" id="stat-net">—</div>
+          <div class="stat-lbl" id="stat-net-lbl">тариф</div>
         </div>
       </div>
 
-      <button type="button" class="promo-banner" id="btn-go-buy">
-        <div class="promo-text">
-          <div class="promo-title">💎 Премиум без компромиссов</div>
-          <div class="promo-desc">Выделенные серверы · до 50 человек</div>
+      <button type="button" class="banner" id="btn-go-sub">
+        <div class="banner-ico">💎</div>
+        <div class="banner-body">
+          <div class="banner-title">Премиум-опыт без компромиссов</div>
+          <div class="banner-desc">Высокая скорость и стабильность на выделенных серверах</div>
         </div>
-        <span class="promo-arrow">›</span>
+        <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
       </button>
     </section>
 
-    <!-- ===== CONNECT / LINK ===== -->
-    <section id="screen-connect" class="screen hidden">
-      <header class="sub-header">
-        <button type="button" class="icon-btn" data-back="home">←</button>
+    <!-- ========== SERVERS (connection / apps) ========== -->
+    <section id="screen-servers" class="screen hidden">
+      <header class="page-head">
+        <button type="button" class="top-btn" data-back="home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
         <h2>Подключение</h2>
-        <div class="spacer"></div>
+        <div class="top-btn-ph"></div>
       </header>
 
-      <p class="hint">Скопируйте ссылку и импортируйте в приложение</p>
-
-      <div class="card">
-        <div class="card-label">Subscription-ссылка</div>
-        <div class="link-box"><code id="sub-url">—</code></div>
-        <button type="button" class="btn-gold" id="btn-copy-sub">Скопировать ссылку</button>
-      </div>
-
-      <div class="card">
-        <div class="card-label">Приложения</div>
-        <div class="app-list">
-          <a class="app-item" href="https://apps.apple.com/app/happ-proxy-utility/id6504287215" target="_blank" rel="noopener">
-            <span>🍏 Happ</span><span class="chev">›</span>
-          </a>
-          <a class="app-item" href="https://apps.apple.com/app/v2raytun/id6476628951" target="_blank" rel="noopener">
-            <span>📱 v2RayTun</span><span class="chev">›</span>
-          </a>
-          <a class="app-item" href="https://hiddify.com/" target="_blank" rel="noopener">
-            <span>🤖 Hiddify</span><span class="chev">›</span>
-          </a>
+      <button type="button" class="smart-card" id="btn-copy-sub-top">
+        <div class="smart-ico">⚡</div>
+        <div class="smart-body">
+          <div class="smart-title">Subscription-ссылка</div>
+          <div class="smart-desc" id="smart-desc">Скопировать и вставить в клиент</div>
         </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+
+      <div class="seg">
+        <button type="button" class="seg-btn active">Клиенты</button>
+        <button type="button" class="seg-btn">Инструкция</button>
       </div>
+
+      <div class="srv-list">
+        <a class="srv-item active-srv" href="https://apps.apple.com/app/happ-proxy-utility/id6504287215" target="_blank" rel="noopener">
+          <div class="srv-flag">🍏</div>
+          <div class="srv-info">
+            <div class="srv-name">Happ <span class="tag-rec">Рекомендуется</span></div>
+            <div class="srv-meta">iOS / Android</div>
+          </div>
+          <div class="srv-check">✓</div>
+        </a>
+        <a class="srv-item" href="https://apps.apple.com/app/v2raytun/id6476628951" target="_blank" rel="noopener">
+          <div class="srv-flag">📱</div>
+          <div class="srv-info">
+            <div class="srv-name">v2RayTun</div>
+            <div class="srv-meta">iOS / Android</div>
+          </div>
+        </a>
+        <a class="srv-item" href="https://hiddify.com/" target="_blank" rel="noopener">
+          <div class="srv-flag">🤖</div>
+          <div class="srv-info">
+            <div class="srv-name">Hiddify</div>
+            <div class="srv-meta">Все платформы</div>
+          </div>
+        </a>
+      </div>
+
+      <div class="link-box muted-box">
+        <code id="sub-url">—</code>
+      </div>
+      <button type="button" class="btn-gold" id="btn-copy-sub">Скопировать ссылку</button>
     </section>
 
-    <!-- ===== SUBSCRIPTION ===== -->
-    <section id="screen-sub" class="screen hidden">
-      <header class="sub-header">
-        <button type="button" class="icon-btn" data-back="home">←</button>
-        <h2>Подписка</h2>
-        <div class="spacer"></div>
+    <!-- ========== DEVICES ========== -->
+    <section id="screen-devices" class="screen hidden">
+      <header class="page-head">
+        <button type="button" class="top-btn" data-back="home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Устройства</h2>
+        <div class="top-btn-ph"></div>
       </header>
 
-      <div class="sub-hero card">
-        <div class="sub-hero-top">
-          <div class="crown">👑</div>
+      <div class="dev-summary">
+        <div class="dev-summary-left">
+          <span class="dev-phone-ico">📱</span>
           <div>
-            <div class="sub-plan-name" id="sub-plan-name">Нет подписки</div>
-            <div class="sub-plan-desc" id="sub-plan-desc">Выберите тариф</div>
+            <div class="dev-sum-label">Использовано устройств</div>
+            <div class="dev-sum-val" id="dev-count">0 из 1</div>
           </div>
-          <span class="badge-current" id="sub-badge" hidden>Текущий</span>
+        </div>
+        <div class="dev-avail" id="dev-avail">Доступно ещё 1</div>
+      </div>
+      <div class="progress thin"><div class="progress-bar" id="dev-bar" style="width:0%"></div></div>
+
+      <div class="dev-list" id="dev-list">
+        <div class="dev-empty" id="dev-empty">Нет активной подписки.<br/>После оплаты здесь появится ваше устройство.</div>
+      </div>
+
+      <button type="button" class="btn-dashed" id="btn-add-device">
+        + Привязать устройство
+        <span>Импортируйте ссылку в клиент</span>
+      </button>
+    </section>
+
+    <!-- ========== SUBSCRIPTION ========== -->
+    <section id="screen-sub" class="screen hidden">
+      <header class="page-head">
+        <button type="button" class="top-btn" data-back="home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2>Подписка</h2>
+        <div class="top-btn-ph"></div>
+      </header>
+
+      <div class="sub-card">
+        <div class="sub-top">
+          <div class="sub-crown">👑</div>
+          <div class="sub-top-text">
+            <div class="sub-name" id="sub-plan-name">Нет подписки</div>
+            <div class="sub-desc" id="sub-plan-desc">Выберите тариф ниже</div>
+          </div>
+          <span class="badge" id="sub-badge" hidden>Текущий</span>
         </div>
 
-        <div class="days-block">
-          <div class="days-label">Осталось времени</div>
-          <div class="days-num" id="days-num">—</div>
-          <div class="days-until" id="days-until"></div>
+        <div class="sub-days">
+          <div class="sub-days-lbl">Осталось времени</div>
+          <div class="sub-days-num" id="days-num">—</div>
+          <div class="sub-days-until" id="days-until"></div>
           <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
         </div>
 
-        <ul class="feature-list" id="feature-list">
+        <ul class="feats" id="feature-list">
           <li>1 устройство</li>
           <li>Серверы по тарифу</li>
-          <li>Все клиенты (Happ, Hiddify…)</li>
+          <li>Happ, v2RayTun, Hiddify</li>
+          <li>Без логов</li>
         </ul>
 
         <button type="button" class="btn-gold" id="btn-renew">Продлить подписку ›</button>
       </div>
 
-      <div class="card plans-mini">
-        <div class="card-label">Тарифы</div>
-        <button type="button" class="plan-row" data-plan="STANDARD">
-          <div>
-            <div class="plan-row-name">Стандарт</div>
-            <div class="plan-row-meta">Обычные серверы</div>
+      <div class="plans">
+        <button type="button" class="plan" data-plan="STANDARD">
+          <div class="plan-left">
+            <div class="plan-name">Стандарт</div>
+            <div class="plan-meta">Обычные серверы · 1 устройство</div>
           </div>
-          <div class="plan-row-price">300 ₽</div>
+          <div class="plan-price">300 ₽</div>
         </button>
-        <button type="button" class="plan-row plan-row-prem" data-plan="PREMIUM">
-          <div>
-            <div class="plan-row-name">Премиум</div>
-            <div class="plan-row-meta">До 50 чел. · быстрее</div>
+        <button type="button" class="plan plan-prem" data-plan="PREMIUM">
+          <div class="plan-left">
+            <div class="plan-name">Премиум <span class="tag-rec">Топ</span></div>
+            <div class="plan-meta">До 50 чел. · быстрее и стабильнее</div>
           </div>
-          <div class="plan-row-price">600 ₽</div>
+          <div class="plan-price">600 ₽</div>
         </button>
       </div>
     </section>
 
-    <!-- ===== PROFILE ===== -->
+    <!-- ========== PROFILE ========== -->
     <section id="screen-profile" class="screen hidden">
-      <header class="sub-header">
-        <div class="spacer"></div>
+      <header class="page-head center">
+        <div class="top-btn-ph"></div>
         <h2>Профиль</h2>
-        <div class="spacer"></div>
+        <div class="top-btn-ph"></div>
       </header>
 
-      <div class="profile-head card">
+      <div class="prof-head">
         <div class="avatar" id="avatar">?</div>
         <div>
-          <div class="profile-name" id="user-name">—</div>
-          <div class="profile-meta" id="user-meta"></div>
+          <div class="prof-name" id="user-name">—</div>
+          <div class="prof-meta" id="user-meta">ID: —</div>
         </div>
       </div>
 
-      <div class="profile-stats">
+      <div class="prof-stats">
         <div class="ps">
-          <div class="ps-num" id="ps-plan">—</div>
-          <div class="ps-label">Тариф</div>
+          <div class="ps-n" id="ps-plan">—</div>
+          <div class="ps-l">Подписка</div>
         </div>
         <div class="ps">
-          <div class="ps-num">1</div>
-          <div class="ps-label">Устройств</div>
+          <div class="ps-n">1</div>
+          <div class="ps-l">Устройств</div>
         </div>
         <div class="ps">
-          <div class="ps-num" id="ps-ref">—</div>
-          <div class="ps-label">Реферал</div>
+          <div class="ps-n" id="ps-ref">0</div>
+          <div class="ps-l">Приглашено</div>
         </div>
       </div>
 
-      <div class="menu card">
-        <button type="button" class="menu-item" id="menu-promo">
-          <span>🎁 Промокод</span><span class="chev">›</span>
-        </button>
-        <button type="button" class="menu-item" id="menu-ref">
-          <span>👥 Пригласить друга</span><span class="chev">›</span>
-        </button>
-        <a class="menu-item" id="menu-support" href="https://t.me/" target="_blank">
-          <span>💬 Поддержка</span><span class="chev">›</span>
-        </a>
+      <div class="menu">
+        <button type="button" class="mi" id="menu-promo"><span>🎁  Промокоды</span><span class="chev">›</span></button>
+        <button type="button" class="mi" id="menu-ref"><span>👥  Пригласить друга</span><span class="chev">›</span></button>
+        <a class="mi" id="menu-support" href="https://t.me/" target="_blank"><span>💬  Поддержка</span><span class="chev">›</span></a>
       </div>
     </section>
 
-    <!-- ===== PROMO ===== -->
+    <!-- ========== PROMO ========== -->
     <section id="screen-promo" class="screen hidden">
-      <header class="sub-header">
-        <button type="button" class="icon-btn" data-back="profile">←</button>
+      <header class="page-head">
+        <button type="button" class="top-btn" data-back="profile">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
         <h2>Промокод</h2>
-        <div class="spacer"></div>
+        <div class="top-btn-ph"></div>
       </header>
       <p class="hint">Введите код, если он у вас есть</p>
-      <input type="text" class="input" id="promo-input" placeholder="PROMO2026" />
+      <input type="text" class="input" id="promo-input" placeholder="PROMO2026" autocomplete="off" />
       <button type="button" class="btn-gold" id="btn-apply-promo">Применить</button>
     </section>
 
-    <!-- ===== REFERRAL ===== -->
+    <!-- ========== REFERRAL ========== -->
     <section id="screen-ref" class="screen hidden">
-      <header class="sub-header">
-        <button type="button" class="icon-btn" data-back="profile">←</button>
+      <header class="page-head">
+        <button type="button" class="top-btn" data-back="profile">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
         <h2>Пригласить друга</h2>
-        <div class="spacer"></div>
+        <div class="top-btn-ph"></div>
       </header>
-      <p class="hint">Друг — 7 дней Стандарт.<br />Вы — +7 дней (только Стандарт).</p>
+      <p class="hint">Друг получит <b>7 дней Стандарт</b>.<br/>Вы — <b>+7 дней</b> (только Стандарт).</p>
       <div class="link-box"><code id="ref-link">—</code></div>
       <button type="button" class="btn-gold" id="btn-copy-ref">Скопировать ссылку</button>
     </section>
 
-    <!-- BOTTOM NAV -->
+    <!-- TAB BAR -->
     <nav class="tabbar" id="tabbar">
       <button type="button" class="tab active" data-tab="home">
-        <span class="tab-icon">⌂</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
         <span>Главная</span>
       </button>
-      <button type="button" class="tab" data-tab="connect">
-        <span class="tab-icon">🔗</span>
-        <span>Ссылка</span>
+      <button type="button" class="tab" data-tab="servers">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+        <span>Серверы</span>
+      </button>
+      <button type="button" class="tab" data-tab="devices">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+        <span>Устройства</span>
       </button>
       <button type="button" class="tab" data-tab="sub">
-        <span class="tab-icon">👑</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 6.5L22 9.5l-5 4.5L18.5 22 12 18.5 5.5 22 7 14 2 9.5l7-1L12 2z"/></svg>
         <span>Подписка</span>
       </button>
       <button type="button" class="tab" data-tab="profile">
-        <span class="tab-icon">👤</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
         <span>Профиль</span>
       </button>
     </nav>

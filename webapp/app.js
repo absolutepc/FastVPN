@@ -39,8 +39,7 @@
   }
 
   function daysLeft(iso) {
-    const ms = new Date(iso) - Date.now();
-    return Math.max(0, Math.ceil(ms / 86400000));
+    return Math.max(0, Math.ceil((new Date(iso) - Date.now()) / 86400000));
   }
 
   function formatDate(iso) {
@@ -55,18 +54,21 @@
     }
   }
 
+  function pluralDays(n) {
+    const a = n % 10, b = n % 100;
+    if (a === 1 && b !== 11) return n + ' день';
+    if (a >= 2 && a <= 4 && (b < 10 || b >= 20)) return n + ' дня';
+    return n + ' дней';
+  }
+
   function showScreen(name) {
-    const main = ['home', 'connect', 'sub', 'profile'];
+    const main = ['home', 'servers', 'devices', 'sub', 'profile'];
     const all = [...main, 'promo', 'ref'];
     all.forEach((s) => $(`screen-${s}`)?.classList.toggle('hidden', s !== name));
-
     document.querySelectorAll('.tab').forEach((t) => {
       t.classList.toggle('active', t.dataset.tab === name);
     });
-
-    const tabbar = $('tabbar');
-    tabbar.style.display = main.includes(name) ? 'flex' : 'none';
-
+    $('tabbar').style.display = main.includes(name) ? 'flex' : 'none';
     window.scrollTo(0, 0);
   }
 
@@ -76,8 +78,9 @@
     $('greet-name').textContent = name;
     $('user-name').textContent = name;
     $('avatar').textContent = (name[0] || '?').toUpperCase();
-    $('user-meta').textContent = data.user?.username ? `@${data.user.username}` : '';
-    $('ps-ref').textContent = data.user?.referralCode ? '✓' : '—';
+    $('user-meta').textContent = data.user?.username
+      ? `@${data.user.username}`
+      : `ID: ${data.user?.id?.slice?.(-6) || '—'}`;
     $('ref-link').textContent = data.referralLink || '—';
 
     const sub = data.subscription;
@@ -86,40 +89,57 @@
       const left = daysLeft(sub.expiresAt);
 
       $('greet-status').textContent = 'Ваш доступ активен';
-      $('greet-status').className = 'greet-status on';
-      $('hero-icon').textContent = '✓';
+      $('greet-status').className = 'hello-sub on';
+      $('status-dot').className = 'status-dot on';
       $('hero-title').textContent = 'Подписка активна';
-      $('hero-sub').textContent = sub.isTrial ? `${planName} · пробный период` : `${planName} · вы в безопасности`;
+      $('hero-sub').textContent = sub.isTrial ? 'Пробный период · вы в безопасности' : 'Вы в безопасности';
+      $('server-chip').hidden = false;
+      $('server-chip-text').textContent = planName;
 
       $('stat-days').textContent = String(left);
+      $('stat-days-bar').style.width = Math.min(100, Math.round((left / 30) * 100)) + '%';
       $('stat-devices').textContent = '1 из 1';
-      $('stat-plan-short').textContent = planName;
+      $('stat-net').textContent = planName;
+      $('stat-net-lbl').textContent = 'тариф';
 
       $('sub-url').textContent = sub.subUrl;
+      $('smart-desc').textContent = 'Нажмите, чтобы скопировать';
 
       $('sub-plan-name').textContent = planName;
-      $('sub-plan-desc').textContent = sub.plan === 'PREMIUM'
-        ? 'Максимум возможностей'
-        : 'Базовый доступ';
+      $('sub-plan-desc').textContent =
+        sub.plan === 'PREMIUM' ? 'Максимум возможностей для вашего комфорта' : 'Базовый доступ';
       $('sub-badge').hidden = false;
-      $('days-num').textContent = `${left} ${left === 1 ? 'день' : left < 5 ? 'дня' : 'дней'}`;
-      $('days-until').textContent = `До ${formatDate(sub.expiresAt)}`;
-      const pct = Math.min(100, Math.round((left / 30) * 100));
-      $('progress-bar').style.width = `${pct}%`;
+      $('days-num').textContent = pluralDays(left);
+      $('days-until').textContent = 'До ' + formatDate(sub.expiresAt);
+      $('progress-bar').style.width = Math.min(100, Math.round((left / 30) * 100)) + '%';
 
-      $('ps-plan').textContent = planName;
+      $('ps-plan').textContent = '1';
+      $('dev-count').textContent = '1 из 1';
+      $('dev-avail').textContent = 'Лимит тарифа';
+      $('dev-bar').style.width = '100%';
+      $('dev-empty').style.display = 'none';
+      $('dev-list').innerHTML =
+        '<div class="dev-item">' +
+        '<div class="dev-item-ico">📱</div>' +
+        '<div><div class="dev-item-name">Ваше устройство</div>' +
+        '<div class="dev-item-meta">Подписка · ' + planName + '</div></div>' +
+        '<span class="dev-online">Онлайн</span></div>';
     } else {
       $('greet-status').textContent = 'Подписка не оформлена';
-      $('greet-status').className = 'greet-status';
-      $('hero-icon').textContent = '!';
+      $('greet-status').className = 'hello-sub';
+      $('status-dot').className = 'status-dot';
       $('hero-title').textContent = 'Подписка не активна';
       $('hero-sub').textContent = 'Оформите тариф, чтобы начать';
+      $('server-chip').hidden = true;
 
       $('stat-days').textContent = '0';
+      $('stat-days-bar').style.width = '0%';
       $('stat-devices').textContent = '0 из 1';
-      $('stat-plan-short').textContent = '—';
+      $('stat-net').textContent = '—';
+      $('stat-net-lbl').textContent = 'тариф';
 
       $('sub-url').textContent = 'Нет активной подписки';
+      $('smart-desc').textContent = 'Сначала оформите подписку';
 
       $('sub-plan-name').textContent = 'Нет подписки';
       $('sub-plan-desc').textContent = 'Выберите тариф ниже';
@@ -127,7 +147,13 @@
       $('days-num').textContent = '—';
       $('days-until').textContent = '';
       $('progress-bar').style.width = '0%';
-      $('ps-plan').textContent = '—';
+      $('ps-plan').textContent = '0';
+
+      $('dev-count').textContent = '0 из 1';
+      $('dev-avail').textContent = 'Доступно ещё 1';
+      $('dev-bar').style.width = '0%';
+      $('dev-list').innerHTML =
+        '<div class="dev-empty" id="dev-empty">Нет активной подписки.<br/>После оплаты здесь появится ваше устройство.</div>';
     }
   }
 
@@ -147,7 +173,7 @@
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `Ошибка ${res.status}`);
+        throw new Error(err.message || 'Ошибка ' + res.status);
       }
       render(await res.json());
       showScreen('home');
@@ -160,8 +186,7 @@
   async function buy(plan) {
     const initData = getInitData();
     if (!initData) return toast('Нет авторизации');
-    const buttons = document.querySelectorAll('[data-plan]');
-    buttons.forEach((b) => (b.disabled = true));
+    document.querySelectorAll('[data-plan]').forEach((b) => (b.disabled = true));
     try {
       const res = await fetch(`${API_BASE}/api/webapp/payment`, {
         method: 'POST',
@@ -177,48 +202,45 @@
     } catch (e) {
       toast(e.message || 'Ошибка');
     } finally {
-      buttons.forEach((b) => (b.disabled = false));
+      document.querySelectorAll('[data-plan]').forEach((b) => (b.disabled = false));
     }
   }
 
-  // Tabs
+  function copySub() {
+    const url = cabinet?.subscription?.subUrl;
+    if (url) copyText(url);
+    else {
+      toast('Сначала оформите подписку');
+      showScreen('sub');
+    }
+  }
+
   document.querySelectorAll('.tab').forEach((t) => {
     t.onclick = () => showScreen(t.dataset.tab);
   });
-
   document.querySelectorAll('[data-back]').forEach((b) => {
     b.onclick = () => showScreen(b.dataset.back);
   });
 
-  $('btn-details').onclick = () => {
-    if (!cabinet?.subscription) {
-      toast('Сначала оформите подписку');
-      showScreen('sub');
-      return;
-    }
-    showScreen('connect');
+  $('btn-details').onclick = () => showScreen('servers');
+  $('btn-go-sub').onclick = () => showScreen('sub');
+  $('btn-renew').onclick = () => {
+    const el = document.querySelector('.plans');
+    el?.scrollIntoView({ behavior: 'smooth' });
   };
+  $('btn-copy-sub').onclick = copySub;
+  $('btn-copy-sub-top').onclick = copySub;
+  $('btn-add-device').onclick = () => showScreen('servers');
 
-  $('btn-go-buy').onclick = () => showScreen('sub');
-  $('btn-renew').onclick = () => showScreen('sub');
-
-  document.querySelectorAll('.plan-row').forEach((row) => {
+  document.querySelectorAll('.plan').forEach((row) => {
     row.onclick = () => buy(row.dataset.plan);
   });
 
-  $('btn-copy-sub').onclick = () => {
-    const url = cabinet?.subscription?.subUrl;
-    if (url) copyText(url);
-    else toast('Нет активной подписки');
-  };
-
   $('menu-promo').onclick = () => showScreen('promo');
   $('menu-ref').onclick = () => showScreen('ref');
-
   $('btn-copy-ref').onclick = () => {
     if (cabinet?.referralLink) copyText(cabinet.referralLink);
   };
-
   $('btn-apply-promo').onclick = () => {
     if (!$('promo-input').value.trim()) return toast('Введите промокод');
     toast('Промокоды скоро будут доступны');

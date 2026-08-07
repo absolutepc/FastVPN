@@ -30,7 +30,7 @@ export class BotUpdate implements OnModuleInit {
       }
 
       let welcome =
-        `👋 Добро пожаловать в <b>Access One</b>!\n\n` +
+        `👋 Добро пожаловать в <b>4StepsVPN</b>!\n\n` +
         `Простой доступ к интернету без сложных настроек.`;
 
       if (isNew && referralProcessed) {
@@ -166,7 +166,6 @@ export class BotUpdate implements OnModuleInit {
       );
     });
 
-    // Покупка / оплата
     bot.callbackQuery(/^buy:(standard|premium)$/, async (ctx) => {
       await ctx.answerCallbackQuery();
       const planKey = ctx.match![1];

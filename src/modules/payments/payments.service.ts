@@ -6,7 +6,7 @@ import { PlanType, PaymentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 const PLAN_PRICES: Record<PlanType, number> = {
-  STANDARD: 30000, // копейки
+  STANDARD: 30000,
   PREMIUM: 60000,
 };
 
@@ -34,7 +34,6 @@ export class PaymentsService {
     return PLAN_PRICES[plan];
   }
 
-  /** Создать платёж в ЮKassa и запись в БД */
   async createPayment(params: { userId: string; plan: PlanType; description?: string }) {
     if (!this.shopId || !this.secretKey) {
       throw new Error('YooKassa is not configured');
@@ -53,7 +52,7 @@ export class PaymentsService {
         status: PaymentStatus.PENDING,
         description:
           params.description ||
-          `Access One — ${params.plan === PlanType.PREMIUM ? 'Премиум' : 'Стандарт'} 30 дн.`,
+          `4StepsVPN — ${params.plan === PlanType.PREMIUM ? 'Премиум' : 'Стандарт'} 30 дн.`,
       },
     });
 
@@ -113,7 +112,6 @@ export class PaymentsService {
     };
   }
 
-  /** Обработка webhook payment.succeeded */
   async handleSucceeded(yookassaPaymentId: string, metadata?: Record<string, string>) {
     const payment = await this.prisma.payment.findFirst({
       where: {
@@ -130,7 +128,6 @@ export class PaymentsService {
     }
 
     if (payment.status === PaymentStatus.SUCCEEDED) {
-      // уже обработан (идемпотентность)
       return payment;
     }
 
@@ -142,7 +139,6 @@ export class PaymentsService {
       },
     });
 
-    // Активируем / продлеваем подписку
     const active = await this.subscriptions.getActiveSubscription(payment.userId);
 
     if (active && active.plan === payment.plan) {
@@ -158,7 +154,6 @@ export class PaymentsService {
       } catch (e) {
         if (e instanceof Error && e.message === 'PREMIUM_FULL') {
           this.logger.error('Premium full on payment success — manual resolve needed');
-          // платёж успешен, но мест нет — админу разбираться
         } else {
           throw e;
         }

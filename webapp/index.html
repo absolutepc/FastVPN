@@ -9,119 +9,237 @@
 </head>
 <body>
   <div id="app">
-    <!-- ===== PROFILE (home) ===== -->
+
+    <!-- ===== HOME ===== -->
     <section id="screen-home" class="screen">
-      <header class="topbar">
-        <div class="logo">4Steps<span>VPN</span></div>
+      <header class="header">
+        <div class="header-logo">
+          <span class="shield-icon">🛡</span>
+          <span>4STEPS VPN</span>
+        </div>
       </header>
 
-      <div class="profile-card">
-        <div class="avatar" id="avatar">?</div>
-        <div class="profile-info">
-          <div class="profile-name" id="user-name">—</div>
-          <div class="profile-sub" id="user-username"></div>
+      <div class="greeting">
+        <h1>Привет, <span id="greet-name">—</span> 👋</h1>
+        <p id="greet-status" class="greet-status">Загрузка…</p>
+      </div>
+
+      <div class="hero-card" id="hero-card">
+        <div class="hero-glow"></div>
+        <div class="hero-shield">
+          <div class="hero-ring"></div>
+          <div class="hero-ring r2"></div>
+          <div class="hero-icon" id="hero-icon">✓</div>
+        </div>
+        <div class="hero-title" id="hero-title">Подписка не активна</div>
+        <div class="hero-sub" id="hero-sub">Оформите тариф, чтобы начать</div>
+        <button type="button" class="btn-pill" id="btn-details">Детали подключения</button>
+      </div>
+
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-icon">👑</div>
+          <div class="mini-num" id="stat-days">—</div>
+          <div class="mini-label">дней осталось</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-icon">📱</div>
+          <div class="mini-num" id="stat-devices">0 из 1</div>
+          <div class="mini-label">устройств</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-icon">⚡</div>
+          <div class="mini-num" id="stat-plan-short">—</div>
+          <div class="mini-label">тариф</div>
         </div>
       </div>
 
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-label">Подписка</div>
-          <div class="stat-value" id="stat-plan">—</div>
+      <button type="button" class="promo-banner" id="btn-go-buy">
+        <div class="promo-text">
+          <div class="promo-title">💎 Премиум без компромиссов</div>
+          <div class="promo-desc">Выделенные серверы · до 50 человек</div>
         </div>
-        <div class="stat">
-          <div class="stat-label">Срок</div>
-          <div class="stat-value" id="stat-expires">—</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Статус</div>
-          <div class="stat-value" id="stat-status">—</div>
-        </div>
-      </div>
-
-      <div id="sub-block" class="sub-block hidden">
-        <div class="sub-label">Subscription-ссылка</div>
-        <div class="sub-url-box"><code id="sub-url"></code></div>
-        <button type="button" class="btn primary" id="btn-copy-sub">Скопировать ссылку</button>
-        <div class="app-row">
-          <a class="chip" href="https://apps.apple.com/app/happ-proxy-utility/id6504287215" target="_blank" rel="noopener">🍏 Happ</a>
-          <a class="chip" href="https://apps.apple.com/app/v2raytun/id6476628951" target="_blank" rel="noopener">📱 v2RayTun</a>
-          <a class="chip" href="https://hiddify.com/" target="_blank" rel="noopener">🤖 Hiddify</a>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button type="button" class="btn primary lg" id="btn-buy">🛡 Купить</button>
-        <button type="button" class="btn outline" id="btn-renew">💳 Продлить</button>
-        <button type="button" class="btn outline" id="btn-promo">🎁 Промокод</button>
-      </div>
-
-      <button type="button" class="btn ghost" id="btn-ref">👥 Пригласить друга</button>
-      <a class="btn ghost support" id="btn-support" href="https://t.me/" target="_blank">💬 Поддержка</a>
+        <span class="promo-arrow">›</span>
+      </button>
     </section>
 
-    <!-- ===== BUY / PLANS ===== -->
-    <section id="screen-buy" class="screen hidden">
-      <header class="topbar">
-        <button type="button" class="back" id="back-from-buy" aria-label="Назад">←</button>
-        <div class="topbar-title">Тарифы</div>
-        <div class="topbar-spacer"></div>
+    <!-- ===== CONNECT / LINK ===== -->
+    <section id="screen-connect" class="screen hidden">
+      <header class="sub-header">
+        <button type="button" class="icon-btn" data-back="home">←</button>
+        <h2>Подключение</h2>
+        <div class="spacer"></div>
       </header>
 
-      <div class="plan-card" data-plan="STANDARD">
-        <div class="plan-title">Стандарт</div>
-        <div class="plan-price">300 ₽ <span>/ 30 дней</span></div>
-        <ul class="plan-features">
-          <li>Обычные серверы</li>
-          <li>1 устройство</li>
-          <li>Все приложения (Happ, Hiddify…)</li>
-        </ul>
-        <button type="button" class="btn primary plan-buy">Оплатить 300 ₽</button>
+      <p class="hint">Скопируйте ссылку и импортируйте в приложение</p>
+
+      <div class="card">
+        <div class="card-label">Subscription-ссылка</div>
+        <div class="link-box"><code id="sub-url">—</code></div>
+        <button type="button" class="btn-gold" id="btn-copy-sub">Скопировать ссылку</button>
       </div>
 
-      <div class="plan-card premium" data-plan="PREMIUM">
-        <div class="plan-badge">Рекомендуем</div>
-        <div class="plan-title">Премиум</div>
-        <div class="plan-price">600 ₽ <span>/ 30 дней</span></div>
-        <ul class="plan-features">
-          <li>Выделенные серверы</li>
-          <li>Макс. 50 человек на сервер</li>
-          <li>Стабильнее и быстрее</li>
+      <div class="card">
+        <div class="card-label">Приложения</div>
+        <div class="app-list">
+          <a class="app-item" href="https://apps.apple.com/app/happ-proxy-utility/id6504287215" target="_blank" rel="noopener">
+            <span>🍏 Happ</span><span class="chev">›</span>
+          </a>
+          <a class="app-item" href="https://apps.apple.com/app/v2raytun/id6476628951" target="_blank" rel="noopener">
+            <span>📱 v2RayTun</span><span class="chev">›</span>
+          </a>
+          <a class="app-item" href="https://hiddify.com/" target="_blank" rel="noopener">
+            <span>🤖 Hiddify</span><span class="chev">›</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SUBSCRIPTION ===== -->
+    <section id="screen-sub" class="screen hidden">
+      <header class="sub-header">
+        <button type="button" class="icon-btn" data-back="home">←</button>
+        <h2>Подписка</h2>
+        <div class="spacer"></div>
+      </header>
+
+      <div class="sub-hero card">
+        <div class="sub-hero-top">
+          <div class="crown">👑</div>
+          <div>
+            <div class="sub-plan-name" id="sub-plan-name">Нет подписки</div>
+            <div class="sub-plan-desc" id="sub-plan-desc">Выберите тариф</div>
+          </div>
+          <span class="badge-current" id="sub-badge" hidden>Текущий</span>
+        </div>
+
+        <div class="days-block">
+          <div class="days-label">Осталось времени</div>
+          <div class="days-num" id="days-num">—</div>
+          <div class="days-until" id="days-until"></div>
+          <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+        </div>
+
+        <ul class="feature-list" id="feature-list">
+          <li>1 устройство</li>
+          <li>Серверы по тарифу</li>
+          <li>Все клиенты (Happ, Hiddify…)</li>
         </ul>
-        <button type="button" class="btn primary plan-buy">Оплатить 600 ₽</button>
+
+        <button type="button" class="btn-gold" id="btn-renew">Продлить подписку ›</button>
+      </div>
+
+      <div class="card plans-mini">
+        <div class="card-label">Тарифы</div>
+        <button type="button" class="plan-row" data-plan="STANDARD">
+          <div>
+            <div class="plan-row-name">Стандарт</div>
+            <div class="plan-row-meta">Обычные серверы</div>
+          </div>
+          <div class="plan-row-price">300 ₽</div>
+        </button>
+        <button type="button" class="plan-row plan-row-prem" data-plan="PREMIUM">
+          <div>
+            <div class="plan-row-name">Премиум</div>
+            <div class="plan-row-meta">До 50 чел. · быстрее</div>
+          </div>
+          <div class="plan-row-price">600 ₽</div>
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== PROFILE ===== -->
+    <section id="screen-profile" class="screen hidden">
+      <header class="sub-header">
+        <div class="spacer"></div>
+        <h2>Профиль</h2>
+        <div class="spacer"></div>
+      </header>
+
+      <div class="profile-head card">
+        <div class="avatar" id="avatar">?</div>
+        <div>
+          <div class="profile-name" id="user-name">—</div>
+          <div class="profile-meta" id="user-meta"></div>
+        </div>
+      </div>
+
+      <div class="profile-stats">
+        <div class="ps">
+          <div class="ps-num" id="ps-plan">—</div>
+          <div class="ps-label">Тариф</div>
+        </div>
+        <div class="ps">
+          <div class="ps-num">1</div>
+          <div class="ps-label">Устройств</div>
+        </div>
+        <div class="ps">
+          <div class="ps-num" id="ps-ref">—</div>
+          <div class="ps-label">Реферал</div>
+        </div>
+      </div>
+
+      <div class="menu card">
+        <button type="button" class="menu-item" id="menu-promo">
+          <span>🎁 Промокод</span><span class="chev">›</span>
+        </button>
+        <button type="button" class="menu-item" id="menu-ref">
+          <span>👥 Пригласить друга</span><span class="chev">›</span>
+        </button>
+        <a class="menu-item" id="menu-support" href="https://t.me/" target="_blank">
+          <span>💬 Поддержка</span><span class="chev">›</span>
+        </a>
       </div>
     </section>
 
     <!-- ===== PROMO ===== -->
     <section id="screen-promo" class="screen hidden">
-      <header class="topbar">
-        <button type="button" class="back" id="back-from-promo" aria-label="Назад">←</button>
-        <div class="topbar-title">Промокод</div>
-        <div class="topbar-spacer"></div>
+      <header class="sub-header">
+        <button type="button" class="icon-btn" data-back="profile">←</button>
+        <h2>Промокод</h2>
+        <div class="spacer"></div>
       </header>
-      <p class="hint">Введите промокод, если он у вас есть</p>
-      <input type="text" id="promo-input" class="input" placeholder="PROMO2026" autocomplete="off" />
-      <button type="button" class="btn primary" id="btn-apply-promo">Применить</button>
+      <p class="hint">Введите код, если он у вас есть</p>
+      <input type="text" class="input" id="promo-input" placeholder="PROMO2026" />
+      <button type="button" class="btn-gold" id="btn-apply-promo">Применить</button>
     </section>
 
     <!-- ===== REFERRAL ===== -->
     <section id="screen-ref" class="screen hidden">
-      <header class="topbar">
-        <button type="button" class="back" id="back-from-ref" aria-label="Назад">←</button>
-        <div class="topbar-title">Пригласить друга</div>
-        <div class="topbar-spacer"></div>
+      <header class="sub-header">
+        <button type="button" class="icon-btn" data-back="profile">←</button>
+        <h2>Пригласить друга</h2>
+        <div class="spacer"></div>
       </header>
-      <p class="hint">
-        Друг получит <b>7 дней Стандарт</b>.<br />
-        Вы — <b>+7 дней</b> (только если у вас Стандарт).
-      </p>
-      <div class="sub-url-box"><code id="ref-link">—</code></div>
-      <button type="button" class="btn primary" id="btn-copy-ref">Скопировать ссылку</button>
+      <p class="hint">Друг — 7 дней Стандарт.<br />Вы — +7 дней (только Стандарт).</p>
+      <div class="link-box"><code id="ref-link">—</code></div>
+      <button type="button" class="btn-gold" id="btn-copy-ref">Скопировать ссылку</button>
     </section>
+
+    <!-- BOTTOM NAV -->
+    <nav class="tabbar" id="tabbar">
+      <button type="button" class="tab active" data-tab="home">
+        <span class="tab-icon">⌂</span>
+        <span>Главная</span>
+      </button>
+      <button type="button" class="tab" data-tab="connect">
+        <span class="tab-icon">🔗</span>
+        <span>Ссылка</span>
+      </button>
+      <button type="button" class="tab" data-tab="sub">
+        <span class="tab-icon">👑</span>
+        <span>Подписка</span>
+      </button>
+      <button type="button" class="tab" data-tab="profile">
+        <span class="tab-icon">👤</span>
+        <span>Профиль</span>
+      </button>
+    </nav>
 
     <div id="toast" class="toast hidden"></div>
     <div id="error-screen" class="error-screen hidden">
-      <p id="error-text">Ошибка загрузки</p>
-      <button type="button" class="btn primary" id="btn-retry">Повторить</button>
+      <p id="error-text">Ошибка</p>
+      <button type="button" class="btn-gold" id="btn-retry">Повторить</button>
     </div>
   </div>
   <script src="app.js"></script>

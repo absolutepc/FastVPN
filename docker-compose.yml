@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: accessone-postgres
+    container_name: 4stepsvpn-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: accessone
@@ -14,7 +14,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: accessone-redis
+    container_name: 4stepsvpn-redis
     restart: unless-stopped
     ports:
       - "6379:6379"

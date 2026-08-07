@@ -1,4 +1,4 @@
-# Настройка Xray-ноды для Access One
+# Настройка Xray-ноды для 4StepsVPN
 
 ## Минимальный inbound (VLESS + Reality)
 
@@ -70,30 +70,15 @@
 
 ```bash
 xray x25519
-# Private key → на сервер
-# Public key  → в админку при добавлении ноды (pbk)
-```
-
-Short ID (8 hex):
-
-```bash
 openssl rand -hex 4
 ```
 
 ## Безопасность API
 
-Порт `10085` лучше:
-- слушать только на приватном IP / VPN между backend и нодой
-- или закрыть firewall и пускать только IP backend
+Порт `10085` лучше слушать только с IP backend или через VPN между серверами.
 
-В админке при добавлении сервера:
+В админке:
 
 ```
 name|host|port|type|publicKey|shortId|sni
 ```
-
-`apiHost` по умолчанию = host. Если API на другом адресе — позже добавим отдельное поле в форму.
-
-## inboundTag
-
-Должен совпадать с `tag` inbound в конфиге Xray (по умолчанию `vless-reality`).

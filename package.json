@@ -1,7 +1,7 @@
 {
-  "name": "access-one",
+  "name": "4steps-vpn",
   "version": "0.1.0",
-  "description": "Access One — Telegram-based internet access service",
+  "description": "4StepsVPN — Telegram-based internet access service",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

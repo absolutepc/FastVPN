@@ -33,7 +33,22 @@ export class BotService implements OnModuleInit {
     private readonly subscriptions: SubscriptionsService,
   ) {
     const token = this.config.getOrThrow<string>('BOT_TOKEN');
-    this.bot = new Bot<BotContext>(token);
+    // Optional local Telegram Bot API server (bypass blocked api.telegram.org)
+    // Example: TELEGRAM_API_ROOT=http://127.0.0.1:8081
+    const apiRoot = (this.config.get<string>('TELEGRAM_API_ROOT') || '').replace(/\/$/, '');
+
+    this.bot = apiRoot
+      ? new Bot<BotContext>(token, {
+          client: {
+            apiRoot,
+          },
+        })
+      : new Bot<BotContext>(token);
+
+    if (apiRoot) {
+      this.logger.log(`Using custom Telegram API root: ${apiRoot}`);
+    }
+
     this.bot.use(session({ initial: (): SessionData => ({}) }));
   }
 

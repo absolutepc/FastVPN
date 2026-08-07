@@ -14,16 +14,9 @@ import { SubscriptionsService } from './subscriptions.service';
 export class SubscriptionsController {
   constructor(private readonly subscriptions: SubscriptionsService) {}
 
-  /**
-   * GET /sub/:token
-   * Клиенты (Hiddify, v2RayTun, Happ) запрашивают этот URL.
-   * Ответ: plain text со списком vless:// ссылок (по одной на строку).
-   * Многие клиенты также принимают base64 — отдаём plain для простоты,
-   * при необходимости можно переключить.
-   */
   @Get(':token')
   @Header('Content-Type', 'text/plain; charset=utf-8')
-  @Header('Profile-Update-Interval', '12') // часы, подсказка клиенту
+  @Header('Profile-Update-Interval', '12')
   async getSubscription(
     @Param('token') token: string,
     @Res({ passthrough: true }) res: Response,
@@ -35,7 +28,6 @@ export class SubscriptionsController {
     const sub = await this.subscriptions.getValidSubscriptionByToken(token);
 
     if (!sub) {
-      // Не светим, есть ли токен — просто 404
       throw new NotFoundException();
     }
 
@@ -48,10 +40,9 @@ export class SubscriptionsController {
       plan: sub.plan,
     });
 
-    // Имя профиля в клиенте
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="AccessOne-${sub.plan.toLowerCase()}.txt"`,
+      `attachment; filename="4StepsVPN-${sub.plan.toLowerCase()}.txt"`,
     );
 
     return links.join('\n');

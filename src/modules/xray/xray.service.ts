@@ -2,17 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Node, NodeType, PlanType } from '@prisma/client';
 
-/**
- * Управление пользователями на Xray-нодах через gRPC API.
- *
- * Требования к ноде:
- * - Xray-core с API inbound (dokodemo-door) на apiPort (по умолчанию 10085)
- * - HandlerService / StatsService включены
- * - inbound с tag = node.inboundTag (по умолчанию "vless-reality")
- *
- * Используется @remnawave/xtls-sdk.
- * Если SDK недоступен или нода не отвечает — логируем ошибку, не падаем.
- */
 @Injectable()
 export class XrayService {
   private readonly logger = new Logger(XrayService.name);
@@ -24,7 +13,6 @@ export class XrayService {
     const port = node.apiPort || 10085;
 
     try {
-      // Динамический import — чтобы проект собирался даже без установленного SDK локально
       const { XtlsApi } = await import('@remnawave/xtls-sdk');
       return new XtlsApi(host, String(port));
     } catch (e) {
@@ -36,12 +24,10 @@ export class XrayService {
     }
   }
 
-  /** Email в Xray = стабильный идентификатор для логов/статы */
   private emailFor(uuid: string) {
-    return `${uuid}@access.one`;
+    return `${uuid}@4stepsvpn.local`;
   }
 
-  /** Активные ноды нужного типа */
   async getNodesForPlan(plan: PlanType): Promise<Node[]> {
     const type = plan === PlanType.PREMIUM ? NodeType.PREMIUM : NodeType.STANDARD;
     return this.prisma.node.findMany({
@@ -49,10 +35,6 @@ export class XrayService {
     });
   }
 
-  /**
-   * Сколько «живых» пользователей сейчас на ноде (по активным подпискам этого типа).
-   * Для Premium — жёсткий лимит maxUsers (50).
-   */
   async countUsersOnNodeType(type: NodeType): Promise<number> {
     const plan = type === NodeType.PREMIUM ? PlanType.PREMIUM : PlanType.STANDARD;
     const now = new Date();
@@ -66,7 +48,6 @@ export class XrayService {
     });
   }
 
-  /** Можно ли принять ещё одного Premium-пользователя */
   async canAcceptPremium(): Promise<boolean> {
     const nodes = await this.prisma.node.findMany({
       where: { isActive: true, type: NodeType.PREMIUM },
@@ -74,15 +55,12 @@ export class XrayService {
 
     if (nodes.length === 0) return false;
 
-    // Считаем пользователей на весь пул premium-нод
-    // Лимит = sum(maxUsers) или 50 * количество нод
     const capacity = nodes.reduce((sum, n) => sum + (n.maxUsers ?? 50), 0);
     const current = await this.countUsersOnNodeType(NodeType.PREMIUM);
 
     return current < capacity;
   }
 
-  /** Добавить пользователя на все ноды тарифа */
   async addUserToPlanNodes(params: {
     uuid: string;
     plan: PlanType;
@@ -135,7 +113,6 @@ export class XrayService {
     }
   }
 
-  /** Удалить пользователя со всех нод тарифа (или со всех нод) */
   async removeUserFromPlanNodes(params: {
     uuid: string;
     plan?: PlanType;
@@ -168,7 +145,6 @@ export class XrayService {
       );
 
       if (result && (result as { isOk?: boolean }).isOk === false) {
-        // уже удалён — не считаем критичной ошибкой
         this.logger.debug(`removeUser soft-fail on ${node.name}`, result);
       }
 
@@ -179,13 +155,11 @@ export class XrayService {
     }
   }
 
-  /** Проверка доступности API ноды */
   async pingNode(node: Node): Promise<boolean> {
     const api = await this.getClient(node);
     if (!api) return false;
 
     try {
-      // list users as healthcheck
       await api.handler.getInboundUsersCount(node.inboundTag || 'vless-reality');
       return true;
     } catch {

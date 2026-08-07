@@ -24,6 +24,12 @@ export class WebappService {
       throw new UnauthorizedException('No initData');
     }
 
+    // Local preview: ?mock=TELEGRAM_ID → initData "mock:123"
+    if (initData.startsWith('mock:')) {
+      const mockId = Number(initData.replace('mock:', '')) || 1;
+      return { id: mockId, first_name: 'Dev', username: 'devuser' };
+    }
+
     const botToken = this.config.getOrThrow<string>('BOT_TOKEN');
     const params = new URLSearchParams(initData);
     const hash = params.get('hash');
@@ -40,11 +46,6 @@ export class WebappService {
     const calculated = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
     if (calculated !== hash) {
-      // Dev fallback: allow mock when NODE_ENV=development and initData starts with mock
-      if (process.env.NODE_ENV !== 'production' && initData.startsWith('mock:')) {
-        const mockId = Number(initData.replace('mock:', '')) || 1;
-        return { id: mockId, first_name: 'Dev', username: 'devuser' };
-      }
       this.logger.warn('Invalid initData hash');
       throw new UnauthorizedException('Invalid initData');
     }
@@ -93,7 +94,6 @@ export class WebappService {
       });
       this.logger.log(`WebApp new user: ${tg.id}`);
     } else {
-      // soft update names
       await this.prisma.user.update({
         where: { id: user.id },
         data: {

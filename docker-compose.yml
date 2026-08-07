@@ -4,9 +4,9 @@ services:
     container_name: 4stepsvpn-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: accessone
-      POSTGRES_PASSWORD: accessone
-      POSTGRES_DB: accessone
+      POSTGRES_USER: 4stepsvpn
+      POSTGRES_PASSWORD: 4stepsvpn
+      POSTGRES_DB: 4stepsvpn
     ports:
       - "5432:5432"
     volumes:

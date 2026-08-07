@@ -4,8 +4,8 @@
     tg.ready();
     tg.expand();
     try {
-      tg.setHeaderColor('#0c1210');
-      tg.setBackgroundColor('#0c1210');
+      tg.setHeaderColor('#0a0f0c');
+      tg.setBackgroundColor('#0a0f0c');
     } catch (_) {}
   }
 
@@ -66,10 +66,12 @@
 
     const sub = data.subscription;
     if (sub) {
-      $('stat-plan').textContent = sub.plan === 'PREMIUM' ? 'Премиум' : 'Стандарт';
+      const planName = sub.plan === 'PREMIUM' ? 'Премиум' : 'Стандарт';
+      $('stat-plan').textContent = planName;
       $('stat-expires').textContent = formatDate(sub.expiresAt);
       $('stat-status').textContent = sub.isTrial ? 'Пробный' : 'Активна';
-      $('stat-status').className = 'value ' + (sub.isTrial ? 'trial' : 'on');
+      $('stat-status').className = 'stat-value ' + (sub.isTrial ? 'trial' : 'on');
+
       $('sub-block').classList.remove('hidden');
       $('sub-url').textContent = sub.subUrl;
       $('btn-copy-sub').onclick = () => copyText(sub.subUrl);
@@ -77,7 +79,7 @@
       $('stat-plan').textContent = 'Нет';
       $('stat-expires').textContent = '—';
       $('stat-status').textContent = 'Неактивна';
-      $('stat-status').className = 'value off';
+      $('stat-status').className = 'stat-value off';
       $('sub-block').classList.add('hidden');
     }
 
@@ -87,11 +89,14 @@
   async function load() {
     $('error-screen').classList.add('hidden');
     const initData = getInitData();
+
     if (!initData) {
-      $('error-text').textContent = 'Откройте из бота или ?mock=ВАШ_ID';
+      $('error-text').textContent =
+        'Откройте кабинет из Telegram-бота или добавьте ?mock=ВАШ_TELEGRAM_ID';
       $('error-screen').classList.remove('hidden');
       return;
     }
+
     try {
       const res = await fetch(`${API_BASE}/api/webapp/me`, {
         method: 'POST',
@@ -105,7 +110,7 @@
       render(await res.json());
       showScreen('home');
     } catch (e) {
-      $('error-text').textContent = e.message || 'Ошибка загрузки';
+      $('error-text').textContent = e.message || 'Не удалось загрузить';
       $('error-screen').classList.remove('hidden');
     }
   }
@@ -113,8 +118,10 @@
   async function buy(plan) {
     const initData = getInitData();
     if (!initData) return toast('Нет авторизации');
+
     const buttons = document.querySelectorAll('.plan-buy');
     buttons.forEach((b) => (b.disabled = true));
+
     try {
       const res = await fetch(`${API_BASE}/api/webapp/payment`, {
         method: 'POST',
@@ -122,11 +129,15 @@
         body: JSON.stringify({ initData, plan }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || 'Ошибка оплаты');
+      if (!res.ok) {
+        throw new Error(data.message || 'Ошибка оплаты. Проверьте ЮKassa.');
+      }
       if (data.confirmationUrl) {
         if (tg?.openLink) tg.openLink(data.confirmationUrl);
         else window.open(data.confirmationUrl, '_blank');
-      } else toast('Нет ссылки на оплату');
+      } else {
+        toast('Ссылка на оплату не получена');
+      }
     } catch (e) {
       toast(e.message || 'Ошибка');
     } finally {
@@ -135,7 +146,12 @@
   }
 
   $('btn-buy').onclick = () => showScreen('buy');
-  $('btn-renew').onclick = () => showScreen('buy');
+  $('btn-renew').onclick = () => {
+    if (!cabinet?.subscription) {
+      toast('Нет активной подписки — выберите тариф');
+    }
+    showScreen('buy');
+  };
   $('btn-promo').onclick = () => showScreen('promo');
   $('btn-ref').onclick = () => showScreen('ref');
 
@@ -144,7 +160,10 @@
   $('back-from-ref').onclick = () => showScreen('home');
 
   document.querySelectorAll('.plan-buy').forEach((btn) => {
-    btn.onclick = () => buy(btn.closest('.tariff')?.dataset.plan);
+    btn.onclick = () => {
+      const plan = btn.closest('.plan-card')?.dataset.plan;
+      buy(plan);
+    };
   });
 
   $('btn-copy-ref').onclick = () => {
@@ -152,7 +171,8 @@
   };
 
   $('btn-apply-promo').onclick = () => {
-    if (!$('promo-input').value.trim()) return toast('Введите промокод');
+    const code = $('promo-input').value.trim();
+    if (!code) return toast('Введите промокод');
     toast('Промокоды скоро будут доступны');
   };
 

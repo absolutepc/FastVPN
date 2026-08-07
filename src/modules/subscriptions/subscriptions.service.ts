@@ -22,7 +22,6 @@ export class SubscriptionsService {
     days: number;
     isTrial?: boolean;
   }) {
-    // Premium capacity check
     if (params.plan === PlanType.PREMIUM) {
       const can = await this.xray.canAcceptPremium();
       if (!can) {
@@ -51,7 +50,6 @@ export class SubscriptionsService {
       `Subscription created: user=${params.userId} plan=${params.plan} days=${params.days} trial=${!!params.isTrial}`,
     );
 
-    // Синхронизация с Xray
     await this.xray.addUserToPlanNodes({
       uuid: sub.uuid,
       plan: sub.plan,
@@ -108,7 +106,6 @@ export class SubscriptionsService {
       },
     });
 
-    // Если подписка была мертва — снова добавить на ноды
     if (wasExpired) {
       await this.xray.addUserToPlanNodes({
         uuid: updated.uuid,
@@ -171,7 +168,6 @@ export class SubscriptionsService {
       data: { status: SubscriptionStatus.EXPIRED },
     });
 
-    // Удаляем с нод
     for (const sub of overdue) {
       await this.xray.removeUserFromPlanNodes({
         uuid: sub.uuid,
@@ -193,7 +189,7 @@ export class SubscriptionsService {
 
     if (nodes.length === 0) {
       return [
-        `vless://${sub.uuid}@example.com:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.cloudflare.com&fp=chrome&pbk=PLACEHOLDER&sid=0000000000000000&type=tcp#AccessOne-Stub`,
+        `vless://${sub.uuid}@example.com:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.cloudflare.com&fp=chrome&pbk=PLACEHOLDER&sid=0000000000000000&type=tcp#4StepsVPN-Stub`,
       ];
     }
 

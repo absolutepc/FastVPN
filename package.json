@@ -33,5 +33,9 @@
     "@types/uuid": "^10.0.0",
     "prisma": "^6.0.0",
     "typescript": "^5.7.0"
+  },
+  "allowScripts": {
+    "prisma@6.19.3": true,
+    "@prisma/client@6.19.3": true
   }
 }

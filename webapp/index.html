@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>4StepsVPN</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="logo">4Steps<span>VPN</span></div>
+      <div id="user-name" class="user-name"></div>
+    </header>
+
+    <main>
+      <!-- Status -->
+      <section id="status-card" class="card status-card">
+        <div class="status-label">Подписка</div>
+        <div id="status-value" class="status-value">Загрузка…</div>
+        <div id="status-meta" class="status-meta"></div>
+      </section>
+
+      <!-- Subscription link -->
+      <section id="sub-section" class="card hidden">
+        <h2>Ваша ссылка</h2>
+        <div class="sub-url-box">
+          <code id="sub-url"></code>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn primary" id="btn-copy">Скопировать</button>
+        </div>
+        <div class="apps">
+          <p class="hint">Импортируйте в приложение:</p>
+          <div class="app-grid">
+            <a class="app-chip" href="https://apps.apple.com/app/happ-proxy-utility/id6504287215" target="_blank" rel="noopener">🍏 Happ</a>
+            <a class="app-chip" href="https://apps.apple.com/app/v2raytun/id6476628951" target="_blank" rel="noopener">📱 v2RayTun</a>
+            <a class="app-chip" href="https://hiddify.com/" target="_blank" rel="noopener">🤖 Hiddify</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Plans -->
+      <section class="card">
+        <h2>Тарифы</h2>
+        <div class="plans" id="plans">
+          <div class="plan" data-plan="STANDARD">
+            <div class="plan-name">Стандарт</div>
+            <div class="plan-price">300 ₽<span>/мес</span></div>
+            <div class="plan-desc">Обычные серверы</div>
+            <button type="button" class="btn outline plan-btn">Купить</button>
+          </div>
+          <div class="plan plan-premium" data-plan="PREMIUM">
+            <div class="badge">Быстрее</div>
+            <div class="plan-name">Премиум</div>
+            <div class="plan-price">600 ₽<span>/мес</span></div>
+            <div class="plan-desc">До 50 человек на сервер</div>
+            <button type="button" class="btn primary plan-btn">Купить</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Referral -->
+      <section class="card">
+        <h2>Пригласи друга</h2>
+        <p class="hint">Друг — 7 дней Стандарт. Вам — +7 дней (только Стандарт).</p>
+        <div class="sub-url-box">
+          <code id="ref-link">—</code>
+        </div>
+        <button type="button" class="btn outline" id="btn-copy-ref">Скопировать ссылку</button>
+      </section>
+
+      <!-- Support -->
+      <section class="card support">
+        <h2>Поддержка</h2>
+        <p class="hint">Вопросы по подписке и подключению</p>
+        <a class="btn outline" id="support-link" href="https://t.me/" target="_blank">Написать в Telegram</a>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <div id="error-screen" class="error-screen hidden">
+      <p id="error-text">Ошибка загрузки</p>
+      <button type="button" class="btn primary" id="btn-retry">Повторить</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

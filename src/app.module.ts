@@ -6,6 +6,7 @@ import { BotModule } from './bot/bot.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { XrayModule } from './modules/xray/xray.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { WebappModule } from './modules/webapp/webapp.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     XrayModule,
     SubscriptionsModule,
     PaymentsModule,
+    WebappModule,
     BotModule,
   ],
 })

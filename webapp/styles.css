@@ -130,7 +130,6 @@ body {
   margin: 0 auto 14px;
 }
 
-/* мягкие волны */
 .ring {
   position: absolute;
   border-radius: 50%;
@@ -150,14 +149,8 @@ body {
 .ring-3 { animation-delay: 2.4s; border-color: rgba(212, 175, 55, 0.2); }
 
 @keyframes waveOut {
-  0% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1.75);
-    opacity: 0;
-  }
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.75); opacity: 0; }
 }
 
 .shield-core {
@@ -261,6 +254,30 @@ body {
   border-radius: 99px;
 }
 
+/* ===== Banner carousel ===== */
+.banner-carousel {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 18px;
+  margin-bottom: 4px;
+}
+
+.banner-track {
+  display: flex;
+  width: 100%;
+  transition: transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: transform;
+}
+
+.banner-track .banner.slide {
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 100%;
+  margin: 0;
+  border-radius: 18px;
+}
+
 .banner {
   position: relative;
   width: 100%;
@@ -339,6 +356,25 @@ body {
   flex-shrink: 0;
   width: 18px;
   height: 18px;
+}
+
+.banner-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0 2px;
+}
+.banner-dots .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.25);
+  transition: background 0.25s, transform 0.25s;
+}
+.banner-dots .dot.active {
+  background: var(--gold);
+  transform: scale(1.15);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.45);
 }
 
 .btn-gold {

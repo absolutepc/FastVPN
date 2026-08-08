@@ -72,6 +72,90 @@
     window.scrollTo(0, 0);
   }
 
+  /* ----- Banner carousel ----- */
+  function initBannerCarousel() {
+    const track = $('banner-track');
+    const dotsWrap = $('banner-dots');
+    if (!track || !dotsWrap) return;
+
+    const slides = track.querySelectorAll('.slide');
+    const dots = dotsWrap.querySelectorAll('.dot');
+    const total = slides.length;
+    if (!total) return;
+
+    let index = 0;
+    let timer = null;
+    let startX = 0;
+    let deltaX = 0;
+    let dragging = false;
+
+    function go(i) {
+      index = (i + total) % total;
+      track.style.transform = `translateX(-${index * 100}%)`;
+      dots.forEach((d, n) => d.classList.toggle('active', n === index));
+    }
+
+    function next() {
+      go(index + 1);
+    }
+
+    function startAuto() {
+      stopAuto();
+      timer = setInterval(next, 4500);
+    }
+
+    function stopAuto() {
+      if (timer) clearInterval(timer);
+      timer = null;
+    }
+
+    dots.forEach((d, n) => {
+      d.style.cursor = 'pointer';
+      d.addEventListener('click', () => {
+        go(n);
+        startAuto();
+      });
+    });
+
+    track.addEventListener(
+      'touchstart',
+      (e) => {
+        dragging = true;
+        startX = e.touches[0].clientX;
+        deltaX = 0;
+        stopAuto();
+      },
+      { passive: true },
+    );
+
+    track.addEventListener(
+      'touchmove',
+      (e) => {
+        if (!dragging) return;
+        deltaX = e.touches[0].clientX - startX;
+      },
+      { passive: true },
+    );
+
+    track.addEventListener('touchend', () => {
+      if (!dragging) return;
+      dragging = false;
+      if (deltaX < -40) go(index + 1);
+      else if (deltaX > 40) go(index - 1);
+      startAuto();
+    });
+
+    track.querySelectorAll('[data-go]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-go');
+        if (target) showScreen(target);
+      });
+    });
+
+    go(0);
+    startAuto();
+  }
+
   function render(data) {
     cabinet = data;
     const name = data.user?.firstName || data.user?.username || 'друг';
@@ -223,7 +307,6 @@
   });
 
   $('btn-details').onclick = () => showScreen('servers');
-  $('btn-go-sub').onclick = () => showScreen('sub');
   $('btn-renew').onclick = () => {
     const el = document.querySelector('.plans');
     el?.scrollIntoView({ behavior: 'smooth' });
@@ -247,5 +330,6 @@
   };
 
   $('btn-retry').onclick = load;
+  initBannerCarousel();
   load();
 })();

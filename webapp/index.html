@@ -82,46 +82,71 @@
         </div>
       </div>
 
-      <button type="button" class="banner" id="btn-go-sub">
-        <div class="banner-ico">💎</div>
-        <div class="banner-body">
-          <div class="banner-title">Премиум-опыт без компромиссов</div>
-          <div class="banner-desc">Высокая скорость и стабильность на выделенных серверах</div>
+      <!-- Banner carousel -->
+      <div class="banner-carousel" id="banner-carousel">
+        <div class="banner-track" id="banner-track">
+          <button type="button" class="banner slide" data-go="sub">
+            <div class="banner-ico">💎</div>
+            <div class="banner-body">
+              <div class="banner-title">Премиум-опыт без компромиссов</div>
+              <div class="banner-desc">Высокая скорость и стабильность на выделенных серверах</div>
+            </div>
+            <div class="banner-art" aria-hidden="true">
+              <svg class="server-rack" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="12" width="32" height="68" rx="3" fill="#1a1610" stroke="#d4af37" stroke-opacity="0.45"/>
+                <rect x="12" y="18" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.35"/>
+                <rect x="12" y="28" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.25"/>
+                <rect x="12" y="38" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.2"/>
+                <rect x="12" y="48" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.3"/>
+                <rect x="12" y="58" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.2"/>
+                <circle cx="16" cy="72" r="2" fill="#22c55e"/>
+                <circle cx="24" cy="72" r="2" fill="#d4af37"/>
+                <circle cx="32" cy="72" r="2" fill="#d4af37" fill-opacity="0.5"/>
+                <rect x="44" y="4" width="36" height="78" rx="3" fill="#15120c" stroke="#f0d78c" stroke-opacity="0.5"/>
+                <rect x="49" y="12" width="26" height="7" rx="1" fill="#f0d78c" fill-opacity="0.4"/>
+                <rect x="49" y="24" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.28"/>
+                <rect x="49" y="36" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.35"/>
+                <rect x="49" y="48" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.22"/>
+                <rect x="49" y="60" width="26" height="7" rx="1" fill="#f0d78c" fill-opacity="0.3"/>
+                <circle cx="54" cy="74" r="2.2" fill="#22c55e"/>
+                <circle cx="62" cy="74" r="2.2" fill="#22c55e"/>
+                <circle cx="70" cy="74" r="2.2" fill="#d4af37"/>
+                <rect x="84" y="18" width="30" height="62" rx="3" fill="#12100b" stroke="#d4af37" stroke-opacity="0.35"/>
+                <rect x="88" y="24" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.3"/>
+                <rect x="88" y="34" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.2"/>
+                <rect x="88" y="44" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.28"/>
+                <rect x="88" y="54" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.18"/>
+                <circle cx="92" cy="70" r="2" fill="#22c55e"/>
+                <circle cx="100" cy="70" r="2" fill="#d4af37" fill-opacity="0.6"/>
+              </svg>
+            </div>
+            <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+
+          <button type="button" class="banner slide" data-go="sub">
+            <div class="banner-ico">🔥</div>
+            <div class="banner-body">
+              <div class="banner-title">Скидка 50% на год</div>
+              <div class="banner-desc">При покупке годовой подписки до 1 сентября</div>
+            </div>
+            <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+
+          <button type="button" class="banner slide" data-go="sub">
+            <div class="banner-ico">🛠</div>
+            <div class="banner-body">
+              <div class="banner-title">Инвестируем в развитие</div>
+              <div class="banner-desc">Большая часть выручки за подписки идёт на инфраструктуру и ПО</div>
+            </div>
+            <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
         </div>
-        <div class="banner-art" aria-hidden="true">
-          <svg class="server-rack" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- rack 1 -->
-            <rect x="8" y="12" width="32" height="68" rx="3" fill="#1a1610" stroke="#d4af37" stroke-opacity="0.45"/>
-            <rect x="12" y="18" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.35"/>
-            <rect x="12" y="28" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.25"/>
-            <rect x="12" y="38" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.2"/>
-            <rect x="12" y="48" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.3"/>
-            <rect x="12" y="58" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.2"/>
-            <circle cx="16" cy="72" r="2" fill="#22c55e"/>
-            <circle cx="24" cy="72" r="2" fill="#d4af37"/>
-            <circle cx="32" cy="72" r="2" fill="#d4af37" fill-opacity="0.5"/>
-            <!-- rack 2 -->
-            <rect x="44" y="4" width="36" height="78" rx="3" fill="#15120c" stroke="#f0d78c" stroke-opacity="0.5"/>
-            <rect x="49" y="12" width="26" height="7" rx="1" fill="#f0d78c" fill-opacity="0.4"/>
-            <rect x="49" y="24" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.28"/>
-            <rect x="49" y="36" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.35"/>
-            <rect x="49" y="48" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.22"/>
-            <rect x="49" y="60" width="26" height="7" rx="1" fill="#f0d78c" fill-opacity="0.3"/>
-            <circle cx="54" cy="74" r="2.2" fill="#22c55e"/>
-            <circle cx="62" cy="74" r="2.2" fill="#22c55e"/>
-            <circle cx="70" cy="74" r="2.2" fill="#d4af37"/>
-            <!-- rack 3 -->
-            <rect x="84" y="18" width="30" height="62" rx="3" fill="#12100b" stroke="#d4af37" stroke-opacity="0.35"/>
-            <rect x="88" y="24" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.3"/>
-            <rect x="88" y="34" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.2"/>
-            <rect x="88" y="44" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.28"/>
-            <rect x="88" y="54" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.18"/>
-            <circle cx="92" cy="70" r="2" fill="#22c55e"/>
-            <circle cx="100" cy="70" r="2" fill="#d4af37" fill-opacity="0.6"/>
-          </svg>
+        <div class="banner-dots" id="banner-dots" aria-hidden="true">
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
         </div>
-        <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-      </button>
+      </div>
     </section>
 
     <!-- ========== SERVERS (connection / apps) ========== -->

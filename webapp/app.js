@@ -172,10 +172,12 @@
     const deviceLimit = data.deviceLimit ?? 1;
     const deviceUsed = data.deviceUsed ?? 0;
     const left = data.daysLeft ?? (sub ? daysLeft(sub.expiresAt) : 0);
+    const subDays = $('days-num')?.closest('.sub-days');
 
     if (state === 'ACTIVE' && sub) {
       const planName = sub.plan === 'PREMIUM' ? 'Премиум' : 'Стандарт';
 
+      if (subDays) subDays.style.display = '';
       $('greet-status').textContent = 'Ваш доступ активен';
       $('greet-status').className = 'hello-sub on';
       $('status-dot').className = 'status-dot on';
@@ -207,12 +209,13 @@
       $('dev-count').textContent = `${deviceUsed} из ${deviceLimit}`;
       $('dev-avail').textContent = 'Лимит тарифа';
       $('dev-bar').style.width = `${Math.min(100, Math.round((deviceUsed / Math.max(1, deviceLimit)) * 100))}%`;
+      $('btn-add-device').style.display = '';
       $('dev-list').innerHTML =
         '<div class="dev-item">' +
         '<div class="dev-item-ico">📱</div>' +
-        '<div><div class="dev-item-name">Ваше устройство</div>' +
-        '<div class="dev-item-meta">Подписка · ' + planName + '</div></div>' +
-        '<span class="dev-online">Онлайн</span></div>';
+        '<div><div class="dev-item-name">1 устройство</div>' +
+        '<div class="dev-item-meta">Доступно по подписке · ' + planName + '</div></div>' +
+        '<span class="dev-online">Активно</span></div>';
       return;
     }
 
@@ -233,8 +236,12 @@
     $('dev-count').textContent = `0 из ${deviceLimit}`;
     $('dev-avail').textContent = `Доступно ещё ${deviceLimit}`;
     $('dev-bar').style.width = '0%';
+    $('btn-add-device').style.display = 'none';
 
     if (state === 'EXPIRED') {
+      if (subDays) subDays.style.display = '';
+      $('days-num').textContent = '0 дней';
+      $('days-until').textContent = 'Срок действия закончился';
       $('greet-status').textContent = 'Срок подписки истёк';
       $('hero-title').textContent = 'Подписка истекла';
       $('hero-sub').textContent = 'Продлите подписку, чтобы восстановить доступ';
@@ -248,6 +255,7 @@
       return;
     }
 
+    if (subDays) subDays.style.display = 'none';
     $('greet-status').textContent = 'Подписка не оформлена';
     $('hero-title').textContent = 'Подписка не активна';
     $('hero-sub').textContent = 'Оформите тариф, чтобы начать';

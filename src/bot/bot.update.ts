@@ -47,6 +47,27 @@ export class BotUpdate implements OnModuleInit {
       });
     });
 
+    bot.hears('🏠 Кабинет', async (ctx) => {
+      const appUrl = (this.config.get<string>('APP_URL') || '').replace(/\/$/, '');
+
+      if (!appUrl.startsWith('https://')) {
+        return ctx.reply('Кабинет временно недоступен.');
+      }
+
+      await ctx.reply('Откройте личный кабинет:', {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: '🏠 Открыть кабинет',
+                web_app: { url: `${appUrl}/` },
+              },
+            ],
+          ],
+        },
+      });
+    });
+
     bot.hears('🛡 Купить', async (ctx) => {
       await ctx.reply(
         `Выберите тариф:\n\n` +

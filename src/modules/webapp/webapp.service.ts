@@ -1,11 +1,10 @@
-import { Injectable, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac } from 'crypto';
+import { createHmac, randomBytes, randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PlanType } from '@prisma/client';
-import { randomBytes } from 'crypto';
 
 @Injectable()
 export class WebappService {
@@ -20,11 +19,8 @@ export class WebappService {
 
   /** Validate Telegram WebApp initData (HMAC-SHA256) */
   validateInitData(initData: string): { id: number; username?: string; first_name?: string; last_name?: string } {
-    if (!initData) {
-      throw new UnauthorizedException('No initData');
-    }
+    if (!initData) throw new UnauthorizedException('No initData');
 
-    // Local preview: ?mock=TELEGRAM_ID → initData "mock:123"
     if (initData.startsWith('mock:')) {
       const mockId = Number(initData.replace('mock:', '')) || 1;
       return { id: mockId, first_name: 'Dev', username: 'devuser' };
@@ -33,15 +29,11 @@ export class WebappService {
     const botToken = this.config.getOrThrow<string>('BOT_TOKEN');
     const params = new URLSearchParams(initData);
     const hash = params.get('hash');
-    if (!hash) {
-      throw new UnauthorizedException('No hash');
-    }
+    if (!hash) throw new UnauthorizedException('No hash');
 
     params.delete('hash');
-    const entries = Array.from(params.entries());
-    entries.sort(([a], [b]) => a.localeCompare(b));
+    const entries = Array.from(params.entries()).sort(([a], [b]) => a.localeCompare(b));
     const dataCheckString = entries.map(([k, v]) => `${k}=${v}`).join('\n');
-
     const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();
     const calculated = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
@@ -51,36 +43,16 @@ export class WebappService {
     }
 
     const authDate = Number(params.get('auth_date') || 0);
-    if (authDate && Date.now() / 1000 - authDate > 86400) {
-      throw new UnauthorizedException('initData expired');
-    }
+    if (authDate && Date.now() / 1000 - authDate > 86400) throw new UnauthorizedException('initData expired');
 
     const userRaw = params.get('user');
-    if (!userRaw) {
-      throw new UnauthorizedException('No user in initData');
-    }
-
-    const user = JSON.parse(userRaw) as {
-      id: number;
-      username?: string;
-      first_name?: string;
-      last_name?: string;
-    };
-
-    return user;
+    if (!userRaw) throw new UnauthorizedException('No user in initData');
+    return JSON.parse(userRaw);
   }
 
-  async findOrCreateFromTelegram(tg: {
-    id: number;
-    username?: string;
-    first_name?: string;
-    last_name?: string;
-  }) {
+  async findOrCreateFromTelegram(tg: { id: number; username?: string; first_name?: string; last_name?: string }) {
     const telegramId = BigInt(tg.id);
-
-    let user = await this.prisma.user.findUnique({
-      where: { telegramId },
-    });
+    let user = await this.prisma.user.findUnique({ where: { telegramId } });
 
     if (!user) {
       user = await this.prisma.user.create({
@@ -94,7 +66,7 @@ export class WebappService {
       });
       this.logger.log(`WebApp new user: ${tg.id}`);
     } else {
-      await this.prisma.user.update({
+      user = await this.prisma.user.update({
         where: { id: user.id },
         data: {
           username: tg.username ?? user.username,
@@ -104,10 +76,7 @@ export class WebappService {
       });
     }
 
-    if (user.isBlocked) {
-      throw new ForbiddenException('User blocked');
-    }
-
+    if (user.isBlocked) throw new ForbiddenException('User blocked');
     return user;
   }
 
@@ -115,42 +84,19 @@ export class WebappService {
     const tg = this.validateInitData(initData);
     const user = await this.findOrCreateFromTelegram(tg);
     const sub = await this.subscriptions.getActiveSubscription(user.id);
+    const latestSub = sub ? sub : await this.subscriptions.getLatestSubscription(user.id);
+    const device = sub ? await this.prisma.device.findUnique({ where: { subscriptionId: sub.id } }) : null;
 
-    const latestSub = sub
-      ? sub
-      : await this.subscriptions.getLatestSubscription(user.id);
-
-    const device = sub
-      ? await this.prisma.device.findUnique({
-          where: { subscriptionId: sub.id },
-        })
-      : null;
-
-    const subscriptionState = sub
-      ? 'ACTIVE'
-      : latestSub
-        ? 'EXPIRED'
-        : 'NONE';
-
+    const subscriptionState = sub ? 'ACTIVE' : latestSub ? 'EXPIRED' : 'NONE';
     const daysLeft = sub
-      ? Math.max(
-          0,
-          Math.ceil(
-            (sub.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-          ),
-        )
+      ? Math.max(0, Math.ceil((sub.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
       : 0;
 
     const appUrl = (this.config.get<string>('APP_URL') || 'http://localhost:3000').replace(/\/$/, '');
     const botUsername = this.config.get<string>('BOT_USERNAME') || 'FourStepsVPNbot';
 
     return {
-      user: {
-        id: user.id,
-        firstName: user.firstName,
-        username: user.username,
-        referralCode: user.referralCode,
-      },
+      user: { id: user.id, firstName: user.firstName, username: user.username, referralCode: user.referralCode },
       subscriptionState,
       daysLeft,
       deviceLimit: 1,
@@ -176,37 +122,47 @@ export class WebappService {
         : null,
       referralLink: `https://t.me/${botUsername}?start=${user.referralCode}`,
       plans: [
-        {
-          id: 'STANDARD',
-          name: 'Стандарт',
-          price: 300,
-          description: 'Обычные серверы',
-        },
-        {
-          id: 'PREMIUM',
-          name: 'Премиум',
-          price: 600,
-          description: 'Выделенные серверы, макс. 50 человек',
-        },
+        { id: 'STANDARD', name: 'Стандарт', price: 300, description: 'Обычные серверы' },
+        { id: 'PREMIUM', name: 'Премиум', price: 600, description: 'Выделенные серверы, макс. 50 человек' },
       ],
     };
+  }
+
+  async activateDevice(initData: string, name?: string, platform?: string) {
+    const tg = this.validateInitData(initData);
+    const user = await this.findOrCreateFromTelegram(tg);
+    const sub = await this.subscriptions.getActiveSubscription(user.id);
+    if (!sub) throw new BadRequestException('Active subscription required');
+
+    const existing = await this.prisma.device.findUnique({ where: { subscriptionId: sub.id } });
+    if (existing) {
+      return {
+        device: existing,
+        created: false,
+        message: 'Device already activated for this subscription',
+      };
+    }
+
+    const device = await this.prisma.device.create({
+      data: {
+        userId: user.id,
+        subscriptionId: sub.id,
+        uuid: randomUUID(),
+        name: (name || 'Моё устройство').trim().slice(0, 80),
+        platform: platform?.trim().slice(0, 40) || null,
+        isActive: true,
+      },
+    });
+
+    this.logger.log(`Device activated: user=${user.id} subscription=${sub.id} device=${device.id}`);
+    return { device, created: true };
   }
 
   async createPayment(initData: string, planKey: string) {
     const tg = this.validateInitData(initData);
     const user = await this.findOrCreateFromTelegram(tg);
-
     const plan = planKey === 'PREMIUM' || planKey === 'premium' ? PlanType.PREMIUM : PlanType.STANDARD;
-
-    const result = await this.payments.createPayment({
-      userId: user.id,
-      plan,
-    });
-
-    return {
-      confirmationUrl: result.confirmationUrl,
-      amount: result.amount,
-      plan,
-    };
+    const result = await this.payments.createPayment({ userId: user.id, plan });
+    return { confirmationUrl: result.confirmationUrl, amount: result.amount, plan };
   }
 }

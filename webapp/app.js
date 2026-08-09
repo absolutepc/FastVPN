@@ -168,9 +168,13 @@
     $('ref-link').textContent = data.referralLink || '—';
 
     const sub = data.subscription;
-    if (sub) {
+    const state = data.subscriptionState || (sub ? 'ACTIVE' : 'NONE');
+    const deviceLimit = data.deviceLimit ?? 1;
+    const deviceUsed = data.deviceUsed ?? 0;
+    const left = data.daysLeft ?? (sub ? daysLeft(sub.expiresAt) : 0);
+
+    if (state === 'ACTIVE' && sub) {
       const planName = sub.plan === 'PREMIUM' ? 'Премиум' : 'Стандарт';
-      const left = daysLeft(sub.expiresAt);
 
       $('greet-status').textContent = 'Ваш доступ активен';
       $('greet-status').className = 'hello-sub on';
@@ -182,7 +186,7 @@
 
       $('stat-days').textContent = String(left);
       $('stat-days-bar').style.width = Math.min(100, Math.round((left / 30) * 100)) + '%';
-      $('stat-devices').textContent = '1 из 1';
+      $('stat-devices').textContent = `${deviceUsed} из ${deviceLimit}`;
       $('stat-net').textContent = planName;
       $('stat-net-lbl').textContent = 'тариф';
 
@@ -198,47 +202,57 @@
       $('progress-bar').style.width = Math.min(100, Math.round((left / 30) * 100)) + '%';
 
       $('ps-plan').textContent = '1';
-      $('dev-count').textContent = '1 из 1';
+      $('dev-count').textContent = `${deviceUsed} из ${deviceLimit}`;
       $('dev-avail').textContent = 'Лимит тарифа';
-      $('dev-bar').style.width = '100%';
-      $('dev-empty').style.display = 'none';
+      $('dev-bar').style.width = `${Math.min(100, Math.round((deviceUsed / Math.max(1, deviceLimit)) * 100))}%`;
       $('dev-list').innerHTML =
         '<div class="dev-item">' +
         '<div class="dev-item-ico">📱</div>' +
         '<div><div class="dev-item-name">Ваше устройство</div>' +
         '<div class="dev-item-meta">Подписка · ' + planName + '</div></div>' +
         '<span class="dev-online">Онлайн</span></div>';
-    } else {
-      $('greet-status').textContent = 'Подписка не оформлена';
-      $('greet-status').className = 'hello-sub';
-      $('status-dot').className = 'status-dot';
-      $('hero-title').textContent = 'Подписка не активна';
-      $('hero-sub').textContent = 'Оформите тариф, чтобы начать';
-      $('server-chip').hidden = true;
-
-      $('stat-days').textContent = '0';
-      $('stat-days-bar').style.width = '0%';
-      $('stat-devices').textContent = '0 из 1';
-      $('stat-net').textContent = '—';
-      $('stat-net-lbl').textContent = 'тариф';
-
-      $('sub-url').textContent = 'Нет активной подписки';
-      $('smart-desc').textContent = 'Сначала оформите подписку';
-
-      $('sub-plan-name').textContent = 'Нет подписки';
-      $('sub-plan-desc').textContent = 'Выберите тариф ниже';
-      $('sub-badge').hidden = true;
-      $('days-num').textContent = '—';
-      $('days-until').textContent = '';
-      $('progress-bar').style.width = '0%';
-      $('ps-plan').textContent = '0';
-
-      $('dev-count').textContent = '0 из 1';
-      $('dev-avail').textContent = 'Доступно ещё 1';
-      $('dev-bar').style.width = '0%';
-      $('dev-list').innerHTML =
-        '<div class="dev-empty" id="dev-empty">Нет активной подписки.<br/>После оплаты здесь появится ваше устройство.</div>';
+      return;
     }
+
+    $('greet-status').className = 'hello-sub';
+    $('status-dot').className = 'status-dot';
+    $('server-chip').hidden = true;
+    $('stat-days').textContent = '0';
+    $('stat-days-bar').style.width = '0%';
+    $('stat-devices').textContent = `0 из ${deviceLimit}`;
+    $('stat-net').textContent = '—';
+    $('stat-net-lbl').textContent = 'тариф';
+    $('sub-badge').hidden = true;
+    $('days-num').textContent = '—';
+    $('days-until').textContent = '';
+    $('progress-bar').style.width = '0%';
+    $('ps-plan').textContent = '0';
+    $('dev-count').textContent = `0 из ${deviceLimit}`;
+    $('dev-avail').textContent = `Доступно ещё ${deviceLimit}`;
+    $('dev-bar').style.width = '0%';
+
+    if (state === 'EXPIRED') {
+      $('greet-status').textContent = 'Срок подписки истёк';
+      $('hero-title').textContent = 'Подписка истекла';
+      $('hero-sub').textContent = 'Продлите подписку, чтобы восстановить доступ';
+      $('sub-url').textContent = 'Доступ приостановлен';
+      $('smart-desc').textContent = 'Продлите подписку для получения доступа';
+      $('sub-plan-name').textContent = 'Подписка истекла';
+      $('sub-plan-desc').textContent = 'Продлите тариф, чтобы снова подключиться';
+      $('dev-list').innerHTML =
+        '<div class="dev-empty" id="dev-empty">Подписка истекла.<br/>После продления доступ на устройстве восстановится.</div>';
+      return;
+    }
+
+    $('greet-status').textContent = 'Подписка не оформлена';
+    $('hero-title').textContent = 'Подписка не активна';
+    $('hero-sub').textContent = 'Оформите тариф, чтобы начать';
+    $('sub-url').textContent = 'Нет активной подписки';
+    $('smart-desc').textContent = 'Сначала оформите подписку';
+    $('sub-plan-name').textContent = 'Нет подписки';
+    $('sub-plan-desc').textContent = 'Выберите тариф ниже';
+    $('dev-list').innerHTML =
+      '<div class="dev-empty" id="dev-empty">Нет активной подписки.<br/>После оплаты здесь появится ваше устройство.</div>';
   }
 
   async function load() {
@@ -294,7 +308,7 @@
     const url = cabinet?.subscription?.subUrl;
     if (url) copyText(url);
     else {
-      toast('Сначала оформите подписку');
+      toast(cabinet?.subscriptionState === 'EXPIRED' ? 'Подписка истекла' : 'Сначала оформите подписку');
       showScreen('sub');
     }
   }

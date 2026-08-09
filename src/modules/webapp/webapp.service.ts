@@ -116,6 +116,25 @@ export class WebappService {
     const user = await this.findOrCreateFromTelegram(tg);
     const sub = await this.subscriptions.getActiveSubscription(user.id);
 
+    const latestSub = sub
+      ? sub
+      : await this.subscriptions.getLatestSubscription(user.id);
+
+    const subscriptionState = sub
+      ? 'ACTIVE'
+      : latestSub
+        ? 'EXPIRED'
+        : 'NONE';
+
+    const daysLeft = sub
+      ? Math.max(
+          0,
+          Math.ceil(
+            (sub.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+          ),
+        )
+      : 0;
+
     const appUrl = (this.config.get<string>('APP_URL') || 'http://localhost:3000').replace(/\/$/, '');
     const botUsername = this.config.get<string>('BOT_USERNAME') || 'FourStepsVPNbot';
 
@@ -126,6 +145,10 @@ export class WebappService {
         username: user.username,
         referralCode: user.referralCode,
       },
+      subscriptionState,
+      daysLeft,
+      deviceLimit: 1,
+      deviceUsed: sub ? 1 : 0,
       subscription: sub
         ? {
             plan: sub.plan,

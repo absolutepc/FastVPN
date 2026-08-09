@@ -10,6 +10,17 @@ export class WebappController {
     return this.webapp.getCabinet(body.initData || '');
   }
 
+  @Post('device/activate')
+  async activateDevice(
+    @Body() body: { initData?: string; name?: string; platform?: string },
+  ) {
+    return this.webapp.activateDevice(
+      body.initData || '',
+      body.name,
+      body.platform,
+    );
+  }
+
   @Post('payment')
   async payment(@Body() body: { initData?: string; plan?: string }) {
     return this.webapp.createPayment(body.initData || '', body.plan || 'STANDARD');

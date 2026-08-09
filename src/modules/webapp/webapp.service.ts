@@ -120,6 +120,12 @@ export class WebappService {
       ? sub
       : await this.subscriptions.getLatestSubscription(user.id);
 
+    const device = sub
+      ? await this.prisma.device.findUnique({
+          where: { subscriptionId: sub.id },
+        })
+      : null;
+
     const subscriptionState = sub
       ? 'ACTIVE'
       : latestSub
@@ -148,7 +154,17 @@ export class WebappService {
       subscriptionState,
       daysLeft,
       deviceLimit: 1,
-      deviceUsed: sub ? 1 : 0,
+      deviceUsed: device?.isActive ? 1 : 0,
+      device: device
+        ? {
+            id: device.id,
+            name: device.name,
+            platform: device.platform,
+            isActive: device.isActive,
+            createdAt: device.createdAt.toISOString(),
+            lastSeenAt: device.lastSeenAt?.toISOString() ?? null,
+          }
+        : null,
       subscription: sub
         ? {
             plan: sub.plan,

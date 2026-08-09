@@ -71,6 +71,17 @@ export class SubscriptionsService {
     });
   }
 
+  async getLatestSubscription(userId: string) {
+    return this.prisma.subscription.findFirst({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
   async getValidSubscriptionByToken(subToken: string) {
     const now = new Date();
     return this.prisma.subscription.findFirst({

@@ -65,7 +65,7 @@ export class BotService implements OnModuleInit {
 
   getMainKeyboard() {
     const appUrl = (this.config.get<string>('APP_URL') || '').replace(/\/$/, '');
-    const webAppUrl = appUrl ? `${appUrl}/app/` : '';
+    const webAppUrl = appUrl ? `${appUrl}/` : '';
 
     const rows: Array<Array<{ text: string; web_app?: { url: string } }>> = [
       [{ text: '🛡 Купить' }],
@@ -76,7 +76,7 @@ export class BotService implements OnModuleInit {
 
     // WebApp button only works over HTTPS in Telegram
     if (webAppUrl.startsWith('https://')) {
-      rows.unshift([{ text: '🏠 Кабинет', web_app: { url: webAppUrl } }]);
+      rows.unshift([{ text: '🏠 Кабинет' }]);
     }
 
     return {

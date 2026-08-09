@@ -44,6 +44,7 @@ model User {
   isBlocked     Boolean        @default(false)
   subscriptions Subscription[]
   payments      Payment[]
+  devices       Device[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -61,12 +62,32 @@ model Subscription {
   startsAt    DateTime           @default(now())
   expiresAt   DateTime
   isTrial     Boolean            @default(false)
+  device      Device?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
   @@index([userId])
   @@index([status, expiresAt])
   @@map("subscriptions")
+}
+
+model Device {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String       @unique
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  uuid           String       @unique
+  name           String       @default("Устройство")
+  platform       String?
+  isActive       Boolean      @default(true)
+  lastSeenAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("devices")
 }
 
 model Payment {

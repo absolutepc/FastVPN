@@ -182,7 +182,9 @@
       $('hero-title').textContent = 'Подписка активна';
       $('hero-sub').textContent = sub.isTrial ? 'Пробный период · вы в безопасности' : 'Вы в безопасности';
       $('server-chip').hidden = false;
+      $('server-chip').style.display = '';
       $('server-chip-text').textContent = planName;
+      $('btn-renew').textContent = 'Продлить подписку ›';
 
       $('stat-days').textContent = String(left);
       $('stat-days-bar').style.width = Math.min(100, Math.round((left / 30) * 100)) + '%';
@@ -217,6 +219,7 @@
     $('greet-status').className = 'hello-sub';
     $('status-dot').className = 'status-dot';
     $('server-chip').hidden = true;
+    $('server-chip').style.display = 'none';
     $('stat-days').textContent = '0';
     $('stat-days-bar').style.width = '0%';
     $('stat-devices').textContent = `0 из ${deviceLimit}`;
@@ -239,6 +242,7 @@
       $('smart-desc').textContent = 'Продлите подписку для получения доступа';
       $('sub-plan-name').textContent = 'Подписка истекла';
       $('sub-plan-desc').textContent = 'Продлите тариф, чтобы снова подключиться';
+      $('btn-renew').textContent = 'Продлить подписку ›';
       $('dev-list').innerHTML =
         '<div class="dev-empty" id="dev-empty">Подписка истекла.<br/>После продления доступ на устройстве восстановится.</div>';
       return;
@@ -251,6 +255,7 @@
     $('smart-desc').textContent = 'Сначала оформите подписку';
     $('sub-plan-name').textContent = 'Нет подписки';
     $('sub-plan-desc').textContent = 'Выберите тариф ниже';
+    $('btn-renew').textContent = 'Оформить подписку ›';
     $('dev-list').innerHTML =
       '<div class="dev-empty" id="dev-empty">Нет активной подписки.<br/>После оплаты здесь появится ваше устройство.</div>';
   }

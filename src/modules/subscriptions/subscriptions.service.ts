@@ -338,6 +338,48 @@ export class SubscriptionsService {
     return overdue.length;
   }
 
+  async recoverMissingH1CloudClients() {
+    const missing = await this.prisma.subscription.findMany({
+      where: {
+        plan: PlanType.STANDARD,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+        },
+        expiresAt: { gt: new Date() },
+        user: { isBlocked: false },
+        h1CloudClients: {
+          none: {
+            nodeKey: this.h1NodeKey,
+          },
+        },
+      },
+    });
+
+    let ok = 0;
+    let fail = 0;
+
+    for (const sub of missing) {
+      try {
+        await this.provisionH1Cloud(sub);
+        ok++;
+      } catch (error) {
+        fail++;
+
+        const message = error instanceof Error ? error.message : String(error);
+
+        this.logger.error(
+          `H1Cloud recovery failed for subscription ${sub.id}: ${message}`,
+        );
+      }
+    }
+
+    return {
+      total: missing.length,
+      ok,
+      fail,
+    };
+  }
+
   async buildSubscriptionLinks(sub: {
     id?: string;
     uuid: string;

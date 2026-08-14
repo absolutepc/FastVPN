@@ -8,6 +8,7 @@ import { SubscriptionsService } from './subscriptions.service';
 export class SubscriptionsCron {
   private readonly logger = new Logger(SubscriptionsCron.name);
   private recoveryRunning = false;
+  private h1RecoveryRunning = false;
 
   constructor(
     private readonly subscriptions: SubscriptionsService,
@@ -19,13 +20,10 @@ export class SubscriptionsCron {
   @Cron('*/2 * * * *')
   async handleExpired() {
     try {
-      const count =
-        await this.subscriptions.expireOverdueSubscriptions();
+      const count = await this.subscriptions.expireOverdueSubscriptions();
 
       if (count > 0) {
-        this.logger.log(
-          `Cron: expired ${count} subscription(s)`,
-        );
+        this.logger.log(`Cron: expired ${count} subscription(s)`);
       }
     } catch (e) {
       this.logger.error('Cron expire failed', e);
@@ -47,11 +45,9 @@ export class SubscriptionsCron {
       });
 
       for (const node of nodes) {
-        const expected =
-          await this.xray.countUsersOnNodeType(node.type);
+        const expected = await this.xray.countUsersOnNodeType(node.type);
 
-        const actual =
-          await this.xray.getUsersCountOnNode(node);
+        const actual = await this.xray.getUsersCountOnNode(node);
 
         if (actual === null) {
           this.logger.warn(
@@ -68,8 +64,7 @@ export class SubscriptionsCron {
           `Recovering ${node.name}: actual=${actual} expected=${expected}`,
         );
 
-        const sync =
-          await this.xray.syncActiveUsersToNode(node);
+        const sync = await this.xray.syncActiveUsersToNode(node);
 
         this.logger.log(
           `Recovery ${node.name}: total=${sync.total} ok=${sync.ok} fail=${sync.fail}`,
@@ -82,6 +77,30 @@ export class SubscriptionsCron {
       );
     } finally {
       this.recoveryRunning = false;
+    }
+  }
+  /** Восстанавливаем отсутствующих клиентов H1Cloud */
+  @Cron('*/2 * * * *')
+  async recoverH1CloudClients() {
+    if (this.h1RecoveryRunning) return;
+
+    this.h1RecoveryRunning = true;
+
+    try {
+      const result = await this.subscriptions.recoverMissingH1CloudClients();
+
+      if (result.total > 0) {
+        this.logger.log(
+          `H1Cloud recovery: total=${result.total} ok=${result.ok} fail=${result.fail}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        'H1Cloud recovery failed',
+        error instanceof Error ? error.message : error,
+      );
+    } finally {
+      this.h1RecoveryRunning = false;
     }
   }
 }

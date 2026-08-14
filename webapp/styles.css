@@ -909,3 +909,115 @@ body {
   text-align: center;
 }
 .admin-refresh { width: 100%; justify-content: center; }
+
+
+/* ===== Admin node modal ===== */
+body.admin-modal-open { overflow: hidden; }
+.admin-node {
+  width: 100%;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+.admin-node:active {
+  transform: scale(0.985);
+  border-color: rgba(212, 175, 55, 0.45);
+}
+.admin-node-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.admin-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20px 12px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(5px);
+}
+.admin-modal.hidden { display: none; }
+.admin-modal-card {
+  width: min(100%, 430px);
+  max-height: min(78vh, 680px);
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 22px;
+  background: #0d0d0d;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
+}
+.admin-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.admin-modal-identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+.admin-modal-flag { font-size: 1.8rem; }
+.admin-modal-identity h3 {
+  margin: 0 0 3px;
+  font-size: 1.15rem;
+}
+.admin-modal-identity p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.admin-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-modal-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--card2);
+  color: var(--text);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.admin-modal-details {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+.admin-modal-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+}
+.admin-modal-row:last-child { border-bottom: 0; }
+.admin-modal-row span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.admin-modal-row strong {
+  max-width: 62%;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 650;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 600px) {
+  .admin-modal { align-items: center; }
+}

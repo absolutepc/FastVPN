@@ -842,3 +842,70 @@ body {
 .error-screen.hidden { display: none; }
 .error-screen p { color: #e57373; max-width: 260px; }
 .error-screen .btn-gold { max-width: 160px; }
+
+
+/* ===== Admin Dashboard ===== */
+.mi-admin { color: var(--gold-l); }
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.admin-stat {
+  min-height: 86px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px 8px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #12100a, var(--card));
+  text-align: center;
+}
+.admin-stat span { color: var(--gold-l); font-size: 1.3rem; font-weight: 800; }
+.admin-stat small { color: var(--muted); font-size: 0.72rem; }
+.admin-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.admin-section-head h3 { font-size: 0.95rem; }
+.admin-section-head span { color: var(--muted); font-size: 0.68rem; text-align: right; }
+.admin-node-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.admin-node {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+}
+.admin-node-flag { font-size: 1.45rem; }
+.admin-node-body { flex: 1; min-width: 0; }
+.admin-node-title { margin-bottom: 3px; font-size: 0.92rem; font-weight: 700; }
+.admin-node-meta { color: var(--muted); font-size: 0.7rem; line-height: 1.35; }
+.admin-node-status {
+  flex-shrink: 0;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.admin-node-status.online { color: #4ade80; background: rgba(34, 197, 94, 0.12); }
+.admin-node-status.offline { color: #f87171; background: rgba(239, 68, 68, 0.12); }
+.admin-loading {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+.admin-refresh { width: 100%; justify-content: center; }

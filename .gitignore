@@ -7,3 +7,13 @@ dist/
 coverage/
 .idea/
 .vscode/
+
+# 4StepsVPN runtime and local files
+.device-limit-state.json
+.enc
+/4stepsvpn
+*.bak-*
+*.backup
+*.broken
+*.bad
+webapp/subtest-*.txt

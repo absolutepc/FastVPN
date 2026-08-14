@@ -169,5 +169,66 @@ export class PaymentsService {
       where: { yookassaPaymentId, status: PaymentStatus.PENDING },
       data: { status: PaymentStatus.CANCELLED },
     });
+
+ }
+ async createManualPayment(params: {
+  userId: string;
+  plan: PlanType;
+  bank: 'TBANK' | 'SBER';
+}) {
+  const amount = this.getPrice(params.plan);
+
+  return this.prisma.payment.create({
+    data: {
+      userId: params.userId,
+      amount,
+      currency: 'RUB',
+      plan: params.plan,
+      status: PaymentStatus.PENDING,
+      paymentMethod: 'MANUAL_SBP',
+      bank: params.bank,
+      description: `4StepsVPN — Стандарт 30 дн. — ручная оплата`,
+    },
+  });
+}
+
+async approveManualPayment(paymentId: string, adminTelegramId: string) {
+  const payment = await this.prisma.payment.findUnique({
+    where: { id: paymentId },
+  });
+
+  if (!payment) {
+    throw new Error('PAYMENT_NOT_FOUND');
   }
+
+  if (payment.status === PaymentStatus.SUCCEEDED) {
+    return payment;
+  }
+
+  const updated = await this.prisma.payment.update({
+    where: { id: paymentId },
+    data: {
+      status: PaymentStatus.SUCCEEDED,
+      reviewedAt: new Date(),
+      reviewedBy: adminTelegramId,
+    },
+  });
+
+  const active = await this.subscriptions.getActiveSubscription(payment.userId);
+
+  if (active && active.plan === payment.plan) {
+    await this.subscriptions.extendSubscription(active.id, PLAN_DAYS);
+  } else {
+    await this.subscriptions.createSubscription({
+      userId: payment.userId,
+      plan: payment.plan,
+      days: PLAN_DAYS,
+      isTrial: false,
+    });
+  }
+
+  this.logger.log(`Manual payment ${paymentId} approved`);
+
+  return updated;
+}
 }

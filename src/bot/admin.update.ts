@@ -2,12 +2,83 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BotService, BotContext } from './bot.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { execFile } from 'child_process';
 import { SubscriptionsService } from '../modules/subscriptions/subscriptions.service';
 import { XrayService } from '../modules/xray/xray.service';
 import { PlanType, SubscriptionStatus, NodeType } from '@prisma/client';
 
 @Injectable()
 export class AdminUpdate implements OnModuleInit {
+  private async getNodeMetrics(host: string): Promise<any | null> {
+  return new Promise((resolve) => {
+    execFile(
+      '/usr/bin/ssh',
+      [
+        '-i',
+        '/root/.ssh/4stepsvpn_xray',
+        '-o',
+        'BatchMode=yes',
+        '-o',
+        'ConnectTimeout=5',
+        '-o',
+        'StrictHostKeyChecking=yes',
+        `root@${host}`,
+        '4steps-node-metrics',
+      ],
+      {
+        timeout: 8000,
+        maxBuffer: 1024 * 1024,
+      },
+      (error, stdout) => {
+        if (error) {
+          this.logger.warn(`Metrics unavailable for ${host}: ${error.message}`);
+          return resolve(null);
+        }
+
+        try {
+          resolve(JSON.parse(stdout));
+        } catch (e) {
+          this.logger.warn(`Invalid metrics JSON from ${host}`);
+          resolve(null);
+        }
+      },
+    );
+  });
+}
+
+private formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return '—';
+
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = bytes;
+  let unit = 0;
+
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+
+  return `${value.toFixed(unit >= 3 ? 2 : 1)} ${units[unit]}`;
+}
+
+private resourceIcon(value: number): string {
+  if (value >= 85) return '🔴';
+  if (value >= 70) return '🟡';
+  return '🟢';
+}
+
+private countryFlag(name: string): string {
+  const n = name.toLowerCase();
+
+  if (n.includes('germany')) return '🇩🇪';
+  if (n.includes('netherlands')) return '🇳🇱';
+  if (n.includes('finland')) return '🇫🇮';
+  if (n.includes('france')) return '🇫🇷';
+  if (n.includes('sweden')) return '🇸🇪';
+  if (n.includes('usa') || n.includes('united states')) return '🇺🇸';
+
+  return '🌐';
+}
   private readonly logger = new Logger(AdminUpdate.name);
   private adminIds: Set<string>;
 
@@ -301,34 +372,111 @@ export class AdminUpdate implements OnModuleInit {
     });
 
     bot.callbackQuery('admin:monitor', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
-      await ctx.answerCallbackQuery();
+  if (!this.isAdmin(ctx.from?.id)) {
+    return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+  }
 
-      const nodes = await this.prisma.node.findMany({ orderBy: { name: 'asc' } });
-      if (nodes.length === 0) {
-        return ctx.editMessageText('Нет серверов.', {
-          reply_markup: {
-            inline_keyboard: [[{ text: '« Назад', callback_data: 'admin:menu' }]],
-          },
-        });
-      }
+  await ctx.answerCallbackQuery({
+    text: 'Получаю данные серверов...',
+  });
 
-      const lines: string[] = [];
-      for (const n of nodes) {
-        const alive = await this.xray.pingNode(n);
-        lines.push(
-          `${alive ? '🟢' : '🔴'} <b>${n.name}</b> (${n.type})\n` +
-            `   ${n.host}:${n.port} · API: ${alive ? 'ok' : 'fail'} · max: ${n.maxUsers ?? '∞'}`,
-        );
-      }
+  const nodes = await this.prisma.node.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+  });
 
-      await ctx.editMessageText(`📡 <b>Серверы</b>\n\n${lines.join('\n\n')}`, {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[{ text: '« Назад', callback_data: 'admin:menu' }]],
-        },
-      });
+  if (nodes.length === 0) {
+    return ctx.editMessageText('Нет активных серверов.', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '« Назад', callback_data: 'admin:menu' }],
+        ],
+      },
     });
+  }
+
+  const blocks: string[] = [];
+
+  for (const node of nodes) {
+    const metrics = await this.getNodeMetrics(node.host);
+    const apiAlive = await this.xray.pingNode(node);
+
+    const users = await this.xray.countUsersOnNodeType(node.type);
+
+    const flag = this.countryFlag(node.name);
+
+    if (!metrics) {
+      blocks.push(
+        `${flag} <b>${node.name}</b>\n` +
+        `🔴 <b>NODE OFFLINE / METRICS UNAVAILABLE</b>\n\n` +
+        `🌐 ${node.host}:${node.port}\n` +
+        `Xray API: ${apiAlive ? '🟢 OK' : '🔴 FAIL'}\n` +
+        `👥 Users: ${users} / ${node.maxUsers ?? '∞'}`,
+      );
+
+      continue;
+    }
+
+    const cpu = Number(metrics.cpu_percent ?? 0);
+    const ram = Number(metrics.ram?.percent ?? 0);
+    const disk = Number(metrics.disk?.percent ?? 0);
+
+    const xrayOk = metrics.xray === 'active';
+    const portOk = metrics.port_443 === 'open';
+
+    const healthy =
+      apiAlive &&
+      xrayOk &&
+      portOk &&
+      cpu < 85 &&
+      ram < 85 &&
+      disk < 85;
+
+    blocks.push(
+      `${flag} <b>${node.name}</b>\n` +
+      `${healthy ? '🟢 ONLINE' : '🟡 ATTENTION'}\n\n` +
+
+      `${this.resourceIcon(cpu)} CPU: <b>${cpu.toFixed(1)}%</b>\n` +
+      `${this.resourceIcon(ram)} RAM: <b>${metrics.ram.used_mb} / ${metrics.ram.total_mb} MB (${ram.toFixed(1)}%)</b>\n` +
+      `${this.resourceIcon(disk)} Disk: <b>${metrics.disk.used} / ${metrics.disk.total} (${disk.toFixed(0)}%)</b>\n` +
+      `⚙️ Load: <b>${metrics.load_1m}</b>\n` +
+      `⏱ Uptime: <b>${metrics.uptime}</b>\n\n` +
+
+      `Xray: ${xrayOk ? '🟢 active' : '🔴 down'}\n` +
+      `Port 443: ${portOk ? '🟢 open' : '🔴 closed'}\n` +
+      `Xray API: ${apiAlive ? '🟢 OK' : '🔴 FAIL'}\n` +
+      `🔌 Connections: <b>${metrics.connections_443}</b>\n` +
+      `👥 Users: <b>${users} / ${node.maxUsers ?? '∞'}</b>\n\n` +
+
+      `📊 <b>Traffic since boot</b>\n` +
+      `↓ ${this.formatBytes(Number(metrics.network?.rx_bytes ?? 0))}\n` +
+      `↑ ${this.formatBytes(Number(metrics.network?.tx_bytes ?? 0))}`,
+    );
+  }
+
+  await ctx.editMessageText(
+    `📡 <b>4StepsVPN · Monitoring</b>\n\n${blocks.join('\n\n──────────────\n\n')}`,
+    {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: '🔄 Обновить',
+              callback_data: 'admin:monitor',
+            },
+          ],
+          [
+            {
+              text: '« Назад',
+              callback_data: 'admin:menu',
+            },
+          ],
+        ],
+      },
+    },
+  );
+});
 
     bot.on('message:text', async (ctx, next) => {
       if (!this.isAdmin(ctx.from?.id)) return next();
@@ -448,28 +596,57 @@ export class AdminUpdate implements OnModuleInit {
     });
 
     if (block) {
-      const subs = await this.prisma.subscription.findMany({
-        where: {
-          userId: user.id,
-          status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
-        },
-      });
+  const subs = await this.prisma.subscription.findMany({
+    where: {
+      userId: user.id,
+      status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
+    },
+  });
 
-      await this.prisma.subscription.updateMany({
-        where: {
-          userId: user.id,
-          status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
-        },
-        data: { status: SubscriptionStatus.CANCELLED },
-      });
+  await this.prisma.subscription.updateMany({
+    where: {
+      userId: user.id,
+      status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
+    },
+    data: { status: SubscriptionStatus.CANCELLED },
+  });
 
-      for (const sub of subs) {
-        await this.xray.removeUserFromPlanNodes({
-          uuid: sub.uuid,
-          plan: sub.plan,
-        });
-      }
-    }
+  for (const sub of subs) {
+    await this.xray.removeUserFromPlanNodes({
+      uuid: sub.uuid,
+      plan: sub.plan,
+    });
+  }
+} else {
+  const cancelled = await this.prisma.subscription.findFirst({
+    where: {
+      userId: user.id,
+      status: SubscriptionStatus.CANCELLED,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: {
+      updatedAt: 'desc',
+    },
+  });
+
+  if (cancelled) {
+    const restoredStatus = cancelled.isTrial
+      ? SubscriptionStatus.TRIAL
+      : SubscriptionStatus.ACTIVE;
+
+    const restored = await this.prisma.subscription.update({
+      where: { id: cancelled.id },
+      data: {
+        status: restoredStatus,
+      },
+    });
+
+    await this.xray.addUserToPlanNodes({
+      uuid: restored.uuid,
+      plan: restored.plan,
+    });
+  }
+}
 
     this.botService.clearAdminSession(ctx);
 

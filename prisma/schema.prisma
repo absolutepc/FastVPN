@@ -52,23 +52,45 @@ model User {
 }
 
 model Subscription {
-  id          String             @id @default(cuid())
-  userId      String
-  user        User               @relation(fields: [userId], references: [id])
-  plan        PlanType
-  status      SubscriptionStatus @default(ACTIVE)
-  uuid        String             @unique
-  subToken    String             @unique
-  startsAt    DateTime           @default(now())
-  expiresAt   DateTime
-  isTrial     Boolean            @default(false)
-  device      Device?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id])
+  plan           PlanType
+  status         SubscriptionStatus @default(ACTIVE)
+  uuid           String             @unique
+  subToken       String             @unique
+  startsAt       DateTime           @default(now())
+  expiresAt      DateTime
+  isTrial        Boolean            @default(false)
+  device         Device?
+  h1CloudClients H1CloudClient[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   @@index([userId])
   @@index([status, expiresAt])
   @@map("subscriptions")
+}
+
+model H1CloudClient {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  nodeKey      String
+  remoteName   String
+  remoteUuid   String
+  remoteLink   String
+  remoteSubUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([subscriptionId, nodeKey])
+  @@unique([nodeKey, remoteName])
+  @@unique([nodeKey, remoteUuid])
+  @@index([subscriptionId])
+  @@map("h1cloud_clients")
 }
 
 model Device {
@@ -100,6 +122,11 @@ model Payment {
   plan              PlanType
   status            PaymentStatus @default(PENDING)
   description       String?
+  paymentMethod     String?
+  bank              String?
+  proofFileId       String?
+  reviewedAt        DateTime?
+  reviewedBy        String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

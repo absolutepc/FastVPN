@@ -117,7 +117,7 @@ export class WebappService {
             status: sub.status,
             isTrial: sub.isTrial,
             expiresAt: sub.expiresAt.toISOString(),
-            subUrl: `${appUrl}/sub/${sub.subToken}`,
+            subUrl: `${appUrl}/sub/${sub.subToken}.txt`,
           }
         : null,
       referralLink: `https://t.me/${botUsername}?start=${user.referralCode}`,

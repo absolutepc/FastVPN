@@ -1,3 +1,6 @@
+import { NodeTunnelService } from './node-tunnel.service';
+import { NodeRegisterController } from './node-register.controller';
+import { NodeInstallController } from './node-install.controller';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -21,6 +24,13 @@ import { WebappModule } from './modules/webapp/webapp.module';
     PaymentsModule,
     WebappModule,
     BotModule,
+    ],
+  providers: [
+    NodeTunnelService,
+    ],
+  controllers: [
+    NodeInstallController,
+    NodeRegisterController,
   ],
 })
 export class AppModule {}

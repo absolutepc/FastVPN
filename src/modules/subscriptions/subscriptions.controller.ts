@@ -36,6 +36,7 @@ export class SubscriptionsController {
     }
 
     const links = await this.subscriptions.buildSubscriptionLinks({
+      id: sub.id,
       uuid: sub.uuid,
       plan: sub.plan,
     });
@@ -45,6 +46,6 @@ export class SubscriptionsController {
       `attachment; filename="4StepsVPN-${sub.plan.toLowerCase()}.txt"`,
     );
 
-    return links.join('\n');
+    return links.join('\n') + '\n';
   }
 }

@@ -162,6 +162,99 @@ export class XrayService {
     }
   }
 
+  async syncActiveUsersToNode(
+  node: Node,
+): Promise<{ total: number; ok: number; fail: number }> {
+  const plan =
+    node.type === NodeType.PREMIUM
+      ? PlanType.PREMIUM
+      : PlanType.STANDARD;
+
+  const now = new Date();
+
+  const subscriptions =
+    await this.prisma.subscription.findMany({
+      where: {
+        plan,
+        status: {
+          in: ['ACTIVE', 'TRIAL'],
+        },
+        expiresAt: {
+          gt: now,
+        },
+        user: {
+          isBlocked: false,
+        },
+      },
+      select: {
+        uuid: true,
+      },
+    });
+
+  let ok = 0;
+  let fail = 0;
+
+  for (const sub of subscriptions) {
+    // Делаем синхронизацию идемпотентной:
+    // если пользователь уже был добавлен при прошлой попытке,
+    // сначала удаляем его и создаём заново.
+    await this.removeUserFromNode(
+      node,
+      sub.uuid,
+    ).catch(() => false);
+
+    const added = await this.addUserToNode(
+      node,
+      sub.uuid,
+      'xtls-rprx-vision',
+    );
+
+    if (added) {
+      ok++;
+    } else {
+      fail++;
+    }
+  }
+
+  this.logger.log(
+    `syncActiveUsersToNode ${node.name}: total=${subscriptions.length} ok=${ok} fail=${fail}`,
+  );
+
+  return {
+    total: subscriptions.length,
+    ok,
+    fail,
+  };
+}
+
+  async getUsersCountOnNode(node: Node): Promise<number | null> {
+  const api = await this.getClient(node);
+  if (!api) return null;
+
+  try {
+    const result = await api.handler.getInboundUsersCount(
+      node.inboundTag || 'vless-reality',
+    );
+
+    if (!result || (result as { isOk?: boolean }).isOk === false) {
+      return null;
+    }
+
+    const data = (result as { data?: unknown }).data;
+
+    return typeof data === 'number'
+      ? data
+      : null;
+  } catch (e) {
+    this.logger.warn(
+      `getUsersCountOnNode failed for ${node.name}`,
+      e instanceof Error ? e.message : e,
+    );
+
+    return null;
+  }
+}
+
   async pingNode(node: Node): Promise<boolean> {
     const api = await this.getClient(node);
     if (!api) return false;

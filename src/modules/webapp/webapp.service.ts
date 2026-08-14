@@ -4,7 +4,8 @@ import { createHmac, randomBytes, randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PaymentsService } from '../payments/payments.service';
-import { PlanType } from '@prisma/client';
+import { PlanType, SubscriptionStatus } from '@prisma/client';
+import { XrayService } from '../xray/xray.service';
 
 @Injectable()
 export class WebappService {
@@ -15,16 +16,12 @@ export class WebappService {
     private readonly prisma: PrismaService,
     private readonly subscriptions: SubscriptionsService,
     private readonly payments: PaymentsService,
+    private readonly xray: XrayService,
   ) {}
 
   /** Validate Telegram WebApp initData (HMAC-SHA256) */
   validateInitData(initData: string): { id: number; username?: string; first_name?: string; last_name?: string } {
     if (!initData) throw new UnauthorizedException('No initData');
-
-    if (initData.startsWith('mock:')) {
-      const mockId = Number(initData.replace('mock:', '')) || 1;
-      return { id: mockId, first_name: 'Dev', username: 'devuser' };
-    }
 
     const botToken = this.config.getOrThrow<string>('BOT_TOKEN');
     const params = new URLSearchParams(initData);
@@ -48,6 +45,26 @@ export class WebappService {
     const userRaw = params.get('user');
     if (!userRaw) throw new UnauthorizedException('No user in initData');
     return JSON.parse(userRaw);
+  }
+
+  private isAdminTelegramId(telegramId: number): boolean {
+    const adminIds = (this.config.get<string>('ADMIN_IDS') || '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+
+    return adminIds.includes(String(telegramId));
+  }
+
+  private requireAdmin(initData: string) {
+    const tg = this.validateInitData(initData);
+
+    if (!this.isAdminTelegramId(tg.id)) {
+      this.logger.warn(`WebApp admin access denied: telegram=${tg.id}`);
+      throw new ForbiddenException('Admin access required');
+    }
+
+    return tg;
   }
 
   async findOrCreateFromTelegram(tg: { id: number; username?: string; first_name?: string; last_name?: string }) {
@@ -97,6 +114,7 @@ export class WebappService {
 
     return {
       user: { id: user.id, firstName: user.firstName, username: user.username, referralCode: user.referralCode },
+      isAdmin: this.isAdminTelegramId(tg.id),
       subscriptionState,
       daysLeft,
       deviceLimit: 1,
@@ -125,6 +143,114 @@ export class WebappService {
         { id: 'STANDARD', name: 'Стандарт', price: 300, description: 'Обычные серверы' },
         { id: 'PREMIUM', name: 'Премиум', price: 600, description: 'Выделенные серверы, макс. 50 человек' },
       ],
+    };
+  }
+
+
+  async getAdminDashboard(initData: string) {
+    const admin = this.requireAdmin(initData);
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const [
+      users,
+      activeSubscriptions,
+      trials,
+      revenue,
+      expiringToday,
+      nodes,
+    ] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.subscription.count({
+        where: {
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+          },
+          expiresAt: { gt: now },
+          user: { isBlocked: false },
+        },
+      }),
+      this.prisma.subscription.count({
+        where: {
+          status: SubscriptionStatus.TRIAL,
+          expiresAt: { gt: now },
+          user: { isBlocked: false },
+        },
+      }),
+      this.prisma.payment.aggregate({
+        where: { status: 'SUCCEEDED' },
+        _sum: { amount: true },
+      }),
+      this.prisma.subscription.count({
+        where: {
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+          },
+          expiresAt: { gte: startOfDay, lte: endOfDay },
+          user: { isBlocked: false },
+        },
+      }),
+      this.prisma.node.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    const nodeStatuses = await Promise.all(
+      nodes.map(async (node) => ({
+        id: node.id,
+        name: node.name,
+        type: node.type,
+        host: node.host,
+        port: node.port,
+        maxUsers: node.maxUsers,
+        users: await this.xray.countUsersOnNodeType(node.type),
+        apiOnline: await this.xray.pingNode(node),
+      })),
+    );
+
+    let h1Cloud: {
+      apiOk: boolean;
+      clients: number;
+      online: number;
+      expected: number;
+    };
+
+    try {
+      h1Cloud = await this.subscriptions.getH1CloudMonitoringStatus();
+    } catch (error) {
+      this.logger.warn(
+        `WebApp Finland monitoring unavailable: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      h1Cloud = {
+        apiOk: false,
+        clients: 0,
+        online: 0,
+        expected: 0,
+      };
+    }
+
+    return {
+      admin: {
+        telegramId: admin.id,
+        username: admin.username || null,
+      },
+      stats: {
+        users,
+        activeSubscriptions,
+        trials,
+        revenueRub: Math.round((revenue._sum.amount || 0) / 100),
+        expiringToday,
+        servers: nodeStatuses.length + 1,
+      },
+      nodes: nodeStatuses,
+      h1Cloud,
+      generatedAt: new Date().toISOString(),
     };
   }
 

@@ -10,6 +10,12 @@ export class WebappController {
     return this.webapp.getCabinet(body.initData || '');
   }
 
+
+  @Post('admin/dashboard')
+  async adminDashboard(@Body() body: { initData?: string }) {
+    return this.webapp.getAdminDashboard(body.initData || '');
+  }
+
   @Post('device/activate')
   async activateDevice(
     @Body() body: { initData?: string; name?: string; platform?: string },

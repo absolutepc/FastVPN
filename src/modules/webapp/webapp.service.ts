@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, randomUUID } from 'crypto';
+import { execFile } from 'child_process';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PaymentsService } from '../payments/payments.service';
@@ -147,6 +148,41 @@ export class WebappService {
   }
 
 
+  private getNodeMetrics(host: string): Promise<Record<string, any> | null> {
+    return new Promise((resolve) => {
+      execFile(
+        '/usr/bin/ssh',
+        [
+          '-i',
+          '/root/.ssh/4stepsvpn_xray',
+          '-o',
+          'BatchMode=yes',
+          '-o',
+          'ConnectTimeout=5',
+          '-o',
+          'StrictHostKeyChecking=yes',
+          `root@${host}`,
+          '4steps-node-metrics',
+        ],
+        {
+          timeout: 8000,
+          maxBuffer: 1024 * 1024,
+        },
+        (error, stdout) => {
+          if (error) {
+            return resolve(null);
+          }
+
+          try {
+            resolve(JSON.parse(stdout));
+          } catch {
+            resolve(null);
+          }
+        },
+      );
+    });
+  }
+
   async getAdminDashboard(initData: string) {
     const admin = this.requireAdmin(initData);
     const now = new Date();
@@ -200,16 +236,25 @@ export class WebappService {
     ]);
 
     const nodeStatuses = await Promise.all(
-      nodes.map(async (node) => ({
-        id: node.id,
-        name: node.name,
-        type: node.type,
-        host: node.host,
-        port: node.port,
-        maxUsers: node.maxUsers,
-        users: await this.xray.countUsersOnNodeType(node.type),
-        apiOnline: await this.xray.pingNode(node),
-      })),
+      nodes.map(async (node) => {
+        const [users, apiOnline, metrics] = await Promise.all([
+          this.xray.countUsersOnNodeType(node.type),
+          this.xray.pingNode(node),
+          this.getNodeMetrics(node.host),
+        ]);
+
+        return {
+          id: node.id,
+          name: node.name,
+          type: node.type,
+          host: node.host,
+          port: node.port,
+          maxUsers: node.maxUsers,
+          users,
+          apiOnline,
+          metrics,
+        };
+      }),
     );
 
     let h1Cloud: {

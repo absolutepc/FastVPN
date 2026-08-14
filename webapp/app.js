@@ -278,25 +278,92 @@
     return '🌐';
   }
 
+  function adminNumber(value, digits = 1) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number.toFixed(digits) : '—';
+  }
+
+  function adminBytes(value) {
+    const bytes = Number(value);
+    if (!Number.isFinite(bytes) || bytes < 0) return '—';
+    if (bytes < 1024) return bytes.toFixed(0) + ' B';
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let result = bytes;
+    let unit = -1;
+    do {
+      result /= 1024;
+      unit += 1;
+    } while (result >= 1024 && unit < units.length - 1);
+    return result.toFixed(result >= 100 ? 0 : 1) + ' ' + units[unit];
+  }
+
+  function closeAdminNodeModal() {
+    $('admin-node-modal').classList.add('hidden');
+    document.body.classList.remove('admin-modal-open');
+  }
+
+  function openAdminNodeModal(params) {
+    $('admin-modal-flag').textContent = params.flag;
+    $('admin-modal-title').textContent = params.name;
+    $('admin-modal-subtitle').textContent = params.subtitle || '';
+
+    const status = $('admin-modal-status');
+    status.className = 'admin-node-status ' + (params.online ? 'online' : 'offline');
+    status.textContent = params.online ? 'ONLINE' : 'OFFLINE';
+
+    const details = $('admin-modal-details');
+    details.replaceChildren();
+
+    for (const row of params.rows || []) {
+      const item = document.createElement('div');
+      item.className = 'admin-modal-row';
+
+      const label = document.createElement('span');
+      label.textContent = row.label;
+
+      const value = document.createElement('strong');
+      value.textContent = row.value;
+
+      item.append(label, value);
+      details.append(item);
+    }
+
+    $('admin-node-modal').classList.remove('hidden');
+    document.body.classList.add('admin-modal-open');
+    tg?.HapticFeedback?.selectionChanged?.();
+  }
+
   function addAdminNode(container, params) {
-    const card = document.createElement('div');
+    const card = document.createElement('button');
+    card.type = 'button';
     card.className = 'admin-node';
+
     const flag = document.createElement('div');
     flag.className = 'admin-node-flag';
     flag.textContent = params.flag;
+
     const body = document.createElement('div');
     body.className = 'admin-node-body';
+
     const title = document.createElement('div');
     title.className = 'admin-node-title';
     title.textContent = params.name;
+
     const meta = document.createElement('div');
     meta.className = 'admin-node-meta';
     meta.textContent = params.meta;
+
     const status = document.createElement('div');
     status.className = 'admin-node-status ' + (params.online ? 'online' : 'offline');
     status.textContent = params.online ? 'ONLINE' : 'OFFLINE';
+
+    const chevron = document.createElement('span');
+    chevron.className = 'admin-node-chevron';
+    chevron.textContent = '›';
+
     body.append(title, meta);
-    card.append(flag, body, status);
+    card.append(flag, body, status, chevron);
+    card.onclick = () => openAdminNodeModal(params);
     container.append(card);
   }
 
@@ -310,25 +377,99 @@
 
     const nodes = $('admin-node-list');
     nodes.replaceChildren();
+
     for (const node of data.nodes || []) {
+      const metrics = node.metrics;
+      const xrayActive = metrics?.xray === 'active';
+      const portOpen = metrics?.port_443 === 'open';
+      const online = Boolean(node.apiOnline && metrics && xrayActive && portOpen);
+      const rows = [
+        { label: 'Адрес', value: String(node.host || '—') + ':' + String(node.port ?? '—') },
+        { label: 'Тип', value: String(node.type || '—') },
+        { label: 'Xray API', value: node.apiOnline ? '🟢 Доступен' : '🔴 Недоступен' },
+        { label: 'Пользователи', value: String(node.users ?? 0) + ' / ' + String(node.maxUsers ?? '∞') },
+      ];
+
+      if (metrics) {
+        rows.push(
+          { label: 'CPU', value: adminNumber(metrics.cpu_percent) + '%' },
+          {
+            label: 'RAM',
+            value:
+              String(metrics.ram?.used_mb ?? '—') +
+              ' / ' +
+              String(metrics.ram?.total_mb ?? '—') +
+              ' MB (' +
+              adminNumber(metrics.ram?.percent) +
+              '%)',
+          },
+          {
+            label: 'Диск',
+            value:
+              String(metrics.disk?.used ?? '—') +
+              ' / ' +
+              String(metrics.disk?.total ?? '—') +
+              ' (' +
+              adminNumber(metrics.disk?.percent, 0) +
+              '%)',
+          },
+          { label: 'Load 1m', value: String(metrics.load_1m ?? '—') },
+          { label: 'Uptime', value: String(metrics.uptime ?? '—') },
+          { label: 'Xray', value: xrayActive ? '🟢 active' : '🔴 down' },
+          { label: 'Порт 443', value: portOpen ? '🟢 open' : '🔴 closed' },
+          { label: 'Подключения', value: String(metrics.connections_443 ?? 0) },
+          { label: 'Трафик ↓', value: adminBytes(metrics.network?.rx_bytes) },
+          { label: 'Трафик ↑', value: adminBytes(metrics.network?.tx_bytes) },
+        );
+      } else {
+        rows.push({ label: 'Метрики сервера', value: '🔴 Недоступны по SSH' });
+      }
+
       addAdminNode(nodes, {
         flag: adminFlag(node.name),
         name: node.name,
-        online: Boolean(node.apiOnline),
-        meta: 'Xray API · ' + String(node.users ?? 0) + ' / ' + String(node.maxUsers ?? '∞') + ' пользователей',
+        subtitle: 'Xray Node',
+        online,
+        meta:
+          'Xray API · ' +
+          String(node.users ?? 0) +
+          ' / ' +
+          String(node.maxUsers ?? '∞') +
+          ' пользователей',
+        rows,
       });
     }
 
     const h1 = data.h1Cloud || {};
+    const synchronized = Number(h1.clients ?? 0) === Number(h1.expected ?? 0);
+    const h1Online = Boolean(h1.apiOk && synchronized);
+
     addAdminNode(nodes, {
       flag: '🇫🇮',
       name: 'Finland',
-      online: Boolean(h1.apiOk),
-      meta: 'H1Cloud · ' + String(h1.clients ?? 0) + ' / ' + String(h1.expected ?? 0) + ' клиентов · онлайн ' + String(h1.online ?? 0),
+      subtitle: 'H1Cloud',
+      online: h1Online,
+      meta:
+        'H1Cloud · ' +
+        String(h1.clients ?? 0) +
+        ' / ' +
+        String(h1.expected ?? 0) +
+        ' клиентов · онлайн ' +
+        String(h1.online ?? 0),
+      rows: [
+        { label: 'H1Cloud API', value: h1.apiOk ? '🟢 Доступен' : '🔴 Недоступен' },
+        {
+          label: 'Клиенты',
+          value: String(h1.clients ?? 0) + ' / ' + String(h1.expected ?? 0),
+        },
+        { label: 'Сейчас онлайн', value: String(h1.online ?? 0) },
+        { label: 'Синхронизация', value: synchronized ? '🟢 OK' : '🟡 Несоответствие' },
+      ],
     });
 
     $('admin-updated').textContent = data.generatedAt
-      ? 'Обновлено: ' + new Date(data.generatedAt).toLocaleTimeString('ru-RU', {
+      ? 'Обновлено: ' +
+        new Date(data.generatedAt).toLocaleTimeString('ru-RU', {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
@@ -341,6 +482,7 @@
     const button = $('btn-admin-refresh');
     button.disabled = true;
     button.textContent = 'Обновление...';
+
     try {
       const res = await fetch(`${API_BASE}/api/webapp/admin/dashboard`, {
         method: 'POST',
@@ -444,6 +586,13 @@
     loadAdminDashboard();
   };
   $('btn-admin-refresh').onclick = loadAdminDashboard;
+  $('admin-modal-close').onclick = closeAdminNodeModal;
+  $('admin-node-modal').onclick = (event) => {
+    if (event.target === $('admin-node-modal')) closeAdminNodeModal();
+  };
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeAdminNodeModal();
+  });
   $('btn-copy-ref').onclick = () => {
     if (cabinet?.referralLink) copyText(cabinet.referralLink);
   };

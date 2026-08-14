@@ -248,7 +248,7 @@
       $('smart-desc').textContent = 'Продлите подписку для получения доступа';
       $('sub-plan-name').textContent = 'Подписка истекла';
       $('sub-plan-desc').textContent = 'Продлите тариф, чтобы снова подключиться';
-      $('btn-renew').textContent = 'Продлить подписку ›';
+      $('btn-renew').textContent = 'Купить подписку ›';
       $('dev-list').innerHTML =
         '<div class="dev-empty" id="dev-empty">Подписка истекла.<br/>После продления доступ на устройстве восстановится.</div>';
       return;
@@ -262,7 +262,7 @@
     $('smart-desc').textContent = 'Сначала оформите подписку';
     $('sub-plan-name').textContent = 'Нет подписки';
     $('sub-plan-desc').textContent = 'Выберите тариф ниже';
-    $('btn-renew').textContent = 'Оформить подписку ›';
+    $('btn-renew').textContent = 'Купить подписку ›';
     $('dev-list').innerHTML =
       '<div class="dev-empty" id="dev-empty">Нет активной подписки.<br/>После оплаты здесь появится ваше устройство.</div>';
   }
@@ -527,29 +527,139 @@
     }
   }
 
-  async function buy(plan) {
-    const initData = getInitData();
-    if (!initData) return toast('Нет авторизации');
-    document.querySelectorAll('[data-plan]').forEach((b) => (b.disabled = true));
+  let manualPayment = null;
+  let selectedProof = null;
+
+  function setPurchaseStep(step) {
+    ['bank', 'details', 'success'].forEach((name) => {
+      $('purchase-step-' + name).classList.toggle('hidden', name !== step);
+    });
+  }
+
+  function closePurchaseModal() {
+    $('purchase-modal').classList.add('hidden');
+    document.body.classList.remove('admin-modal-open');
+    manualPayment = null;
+    selectedProof = null;
+    $('purchase-proof').value = '';
+    $('purchase-proof-name').textContent = 'JPEG, PNG, WebP или PDF · до 10 МБ';
+  }
+
+  function openPurchaseModal(plan = 'STANDARD') {
+    if (plan === 'PREMIUM') {
+      return toast('Премиум временно недоступен');
+    }
+
+    const active = cabinet?.subscriptionState === 'ACTIVE';
+    const expired = cabinet?.subscriptionState === 'EXPIRED';
+
+    if (active && cabinet?.subscription?.plan === 'PREMIUM') {
+      return toast('Продление Премиум временно недоступно');
+    }
+
+    $('purchase-modal-title').textContent = active
+      ? 'Продлить подписку'
+      : 'Купить подписку';
+
+    $('purchase-modal-description').textContent = active
+      ? 'После подтверждения оплаты к текущему сроку добавится 30 дней.'
+      : expired
+        ? 'После подтверждения оплаты доступ восстановится с прежней ссылкой.'
+        : 'После подтверждения оплаты подписка будет активирована.';
+
+    manualPayment = null;
+    selectedProof = null;
+    $('purchase-proof').value = '';
+    setPurchaseStep('bank');
+    $('purchase-modal').classList.remove('hidden');
+    document.body.classList.add('admin-modal-open');
+    tg?.HapticFeedback?.selectionChanged?.();
+  }
+
+  async function startManualPayment(bank) {
+    const buttons = document.querySelectorAll('[data-purchase-bank]');
+    buttons.forEach((button) => (button.disabled = true));
+
     try {
-      const res = await fetch(`${API_BASE}/api/webapp/payment`, {
+      const response = await fetch(API_BASE + '/api/webapp/manual-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ initData, plan }),
+        body: JSON.stringify({
+          initData: getInitData(),
+          plan: 'STANDARD',
+          bank,
+        }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || 'Ошибка оплаты');
-      if (data.confirmationUrl) {
-        if (tg?.openLink) tg.openLink(data.confirmationUrl);
-        else window.open(data.confirmationUrl, '_blank');
-      } else toast('Нет ссылки на оплату');
-    } catch (e) {
-      toast(e.message || 'Ошибка');
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Не удалось создать платёж');
+      }
+
+      manualPayment = data;
+      $('purchase-bank-name').textContent = data.bankName || '—';
+      $('purchase-amount').textContent = String(data.amountRub ?? 300) + ' ₽';
+      $('purchase-phone').textContent = data.phone || '—';
+      $('purchase-recipient').textContent = data.recipient || '—';
+      $('purchase-proof-name').textContent = 'JPEG, PNG, WebP или PDF · до 10 МБ';
+      setPurchaseStep('details');
+      tg?.HapticFeedback?.notificationOccurred?.('success');
+    } catch (error) {
+      toast(error.message || 'Ошибка создания платежа');
     } finally {
-      document.querySelectorAll('[data-plan]').forEach((b) => (b.disabled = false));
+      buttons.forEach((button) => (button.disabled = false));
     }
   }
 
+  async function submitManualProof() {
+    if (!manualPayment?.paymentId) {
+      return toast('Сначала создайте заявку');
+    }
+
+    if (!selectedProof) {
+      return toast('Выберите чек');
+    }
+
+    if (selectedProof.size > 10 * 1024 * 1024) {
+      return toast('Файл больше 10 МБ');
+    }
+
+    const button = $('purchase-submit-proof');
+    button.disabled = true;
+    button.textContent = 'Отправляем чек...';
+
+    try {
+      const form = new FormData();
+      form.append('initData', getInitData());
+      form.append('proof', selectedProof);
+
+      const response = await fetch(
+        API_BASE +
+          '/api/webapp/manual-payment/' +
+          encodeURIComponent(manualPayment.paymentId) +
+          '/proof',
+        {
+          method: 'POST',
+          body: form,
+        },
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Не удалось отправить чек');
+      }
+
+      setPurchaseStep('success');
+      tg?.HapticFeedback?.notificationOccurred?.('success');
+    } catch (error) {
+      toast(error.message || 'Ошибка отправки чека');
+    } finally {
+      button.disabled = false;
+      button.textContent = '✅ Отправить чек на проверку';
+    }
+  }
   function copySub() {
     const url = cabinet?.subscription?.subUrl;
     if (url) copyText(url);
@@ -567,16 +677,13 @@
   });
 
   $('btn-details').onclick = () => showScreen('servers');
-  $('btn-renew').onclick = () => {
-    const el = document.querySelector('.plans');
-    el?.scrollIntoView({ behavior: 'smooth' });
-  };
+  $('btn-renew').onclick = () => openPurchaseModal('STANDARD');
   $('btn-copy-sub').onclick = copySub;
   $('btn-copy-sub-top').onclick = copySub;
   $('btn-add-device').onclick = () => showScreen('servers');
 
   document.querySelectorAll('.plan').forEach((row) => {
-    row.onclick = () => buy(row.dataset.plan);
+    row.onclick = () => openPurchaseModal(row.dataset.plan);
   });
 
   $('menu-promo').onclick = () => showScreen('promo');
@@ -590,8 +697,33 @@
   $('admin-node-modal').onclick = (event) => {
     if (event.target === $('admin-node-modal')) closeAdminNodeModal();
   };
+
+  $('purchase-modal-close').onclick = closePurchaseModal;
+  $('purchase-cancel').onclick = closePurchaseModal;
+  $('purchase-done').onclick = closePurchaseModal;
+  $('purchase-copy-phone').onclick = () => {
+    const phone = manualPayment?.phone;
+    if (phone) copyText(phone);
+  };
+  document.querySelectorAll('[data-purchase-bank]').forEach((button) => {
+    button.onclick = () => startManualPayment(button.dataset.purchaseBank);
+  });
+  $('purchase-proof').onchange = (event) => {
+    selectedProof = event.target.files?.[0] || null;
+    $('purchase-proof-name').textContent = selectedProof
+      ? selectedProof.name
+      : 'JPEG, PNG, WebP или PDF · до 10 МБ';
+  };
+  $('purchase-submit-proof').onclick = submitManualProof;
+  $('purchase-modal').onclick = (event) => {
+    if (event.target === $('purchase-modal')) closePurchaseModal();
+  };
+
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeAdminNodeModal();
+    if (event.key === 'Escape') {
+      closeAdminNodeModal();
+      closePurchaseModal();
+    }
   });
   $('btn-copy-ref').onclick = () => {
     if (cabinet?.referralLink) copyText(cabinet.referralLink);

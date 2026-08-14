@@ -15,8 +15,6 @@
 
   function getInitData() {
     if (tg?.initData) return tg.initData;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('mock')) return `mock:${params.get('mock')}`;
     return '';
   }
 
@@ -63,7 +61,7 @@
 
   function showScreen(name) {
     const main = ['home', 'servers', 'devices', 'sub', 'profile'];
-    const all = [...main, 'promo', 'ref'];
+    const all = [...main, 'promo', 'ref', 'admin'];
     all.forEach((s) => $(`screen-${s}`)?.classList.toggle('hidden', s !== name));
     document.querySelectorAll('.tab').forEach((t) => {
       t.classList.toggle('active', t.dataset.tab === name);
@@ -166,6 +164,7 @@
       ? `@${data.user.username}`
       : `ID: ${data.user?.id?.slice?.(-6) || '—'}`;
     $('ref-link').textContent = data.referralLink || '—';
+    $('menu-admin').style.display = data.isAdmin ? '' : 'none';
 
     const sub = data.subscription;
     const state = data.subscriptionState || (sub ? 'ACTIVE' : 'NONE');
@@ -268,11 +267,103 @@
       '<div class="dev-empty" id="dev-empty">Нет активной подписки.<br/>После оплаты здесь появится ваше устройство.</div>';
   }
 
+  function adminFlag(name) {
+    const value = String(name || '').toLowerCase();
+    if (value.includes('germany')) return '🇩🇪';
+    if (value.includes('finland')) return '🇫🇮';
+    if (value.includes('netherlands')) return '🇳🇱';
+    if (value.includes('france')) return '🇫🇷';
+    if (value.includes('sweden')) return '🇸🇪';
+    if (value.includes('usa') || value.includes('united states')) return '🇺🇸';
+    return '🌐';
+  }
+
+  function addAdminNode(container, params) {
+    const card = document.createElement('div');
+    card.className = 'admin-node';
+    const flag = document.createElement('div');
+    flag.className = 'admin-node-flag';
+    flag.textContent = params.flag;
+    const body = document.createElement('div');
+    body.className = 'admin-node-body';
+    const title = document.createElement('div');
+    title.className = 'admin-node-title';
+    title.textContent = params.name;
+    const meta = document.createElement('div');
+    meta.className = 'admin-node-meta';
+    meta.textContent = params.meta;
+    const status = document.createElement('div');
+    status.className = 'admin-node-status ' + (params.online ? 'online' : 'offline');
+    status.textContent = params.online ? 'ONLINE' : 'OFFLINE';
+    body.append(title, meta);
+    card.append(flag, body, status);
+    container.append(card);
+  }
+
+  function renderAdminDashboard(data) {
+    $('admin-users').textContent = String(data.stats?.users ?? 0);
+    $('admin-active').textContent = String(data.stats?.activeSubscriptions ?? 0);
+    $('admin-trials').textContent = String(data.stats?.trials ?? 0);
+    $('admin-revenue').textContent = String(data.stats?.revenueRub ?? 0) + ' ₽';
+    $('admin-expiring').textContent = String(data.stats?.expiringToday ?? 0);
+    $('admin-servers').textContent = String(data.stats?.servers ?? 0);
+
+    const nodes = $('admin-node-list');
+    nodes.replaceChildren();
+    for (const node of data.nodes || []) {
+      addAdminNode(nodes, {
+        flag: adminFlag(node.name),
+        name: node.name,
+        online: Boolean(node.apiOnline),
+        meta: 'Xray API · ' + String(node.users ?? 0) + ' / ' + String(node.maxUsers ?? '∞') + ' пользователей',
+      });
+    }
+
+    const h1 = data.h1Cloud || {};
+    addAdminNode(nodes, {
+      flag: '🇫🇮',
+      name: 'Finland',
+      online: Boolean(h1.apiOk),
+      meta: 'H1Cloud · ' + String(h1.clients ?? 0) + ' / ' + String(h1.expected ?? 0) + ' клиентов · онлайн ' + String(h1.online ?? 0),
+    });
+
+    $('admin-updated').textContent = data.generatedAt
+      ? 'Обновлено: ' + new Date(data.generatedAt).toLocaleTimeString('ru-RU', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      : '';
+  }
+
+  async function loadAdminDashboard() {
+    if (!cabinet?.isAdmin) return toast('Нет доступа');
+    const button = $('btn-admin-refresh');
+    button.disabled = true;
+    button.textContent = 'Обновление...';
+    try {
+      const res = await fetch(`${API_BASE}/api/webapp/admin/dashboard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: getInitData() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Ошибка ' + res.status);
+      renderAdminDashboard(data);
+      tg?.HapticFeedback?.notificationOccurred?.('success');
+    } catch (error) {
+      toast(error.message || 'Не удалось загрузить Admin Dashboard');
+    } finally {
+      button.disabled = false;
+      button.textContent = '🔄 Обновить';
+    }
+  }
+
   async function load() {
     $('error-screen').classList.add('hidden');
     const initData = getInitData();
     if (!initData) {
-      $('error-text').textContent = 'Откройте из бота или ?mock=ВАШ_ID';
+      $('error-text').textContent = 'Откройте приложение из Telegram-бота';
       $('error-screen').classList.remove('hidden');
       return;
     }
@@ -348,6 +439,11 @@
 
   $('menu-promo').onclick = () => showScreen('promo');
   $('menu-ref').onclick = () => showScreen('ref');
+  $('menu-admin').onclick = () => {
+    showScreen('admin');
+    loadAdminDashboard();
+  };
+  $('btn-admin-refresh').onclick = loadAdminDashboard;
   $('btn-copy-ref').onclick = () => {
     if (cabinet?.referralLink) copyText(cabinet.referralLink);
   };

@@ -454,6 +454,32 @@ private countryFlag(name: string): string {
     );
   }
 
+  try {
+    const h1 =
+      await this.subscriptions.getH1CloudMonitoringStatus();
+
+    const synchronized = h1.clients === h1.expected;
+    const healthy = h1.apiOk && synchronized;
+
+    blocks.push(
+      `🇫🇮 <b>Finland</b>\n` +
+        `${healthy ? '🟢 ONLINE' : '🟡 ATTENTION'}\n\n` +
+        `H1Cloud API: ${h1.apiOk ? '🟢 OK' : '🔴 FAIL'}\n` +
+        `👥 Clients: <b>${h1.clients} / ${h1.expected}</b>\n` +
+        `📱 Online now: <b>${h1.online}</b>\n` +
+        `🔄 Sync: ${synchronized ? '🟢 OK' : '🟡 MISMATCH'}`,
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : String(error);
+
+    this.logger.warn(`Finland monitoring unavailable: ${message}`);
+
+    blocks.push(
+      `🇫🇮 <b>Finland</b>\n` +
+        `🔴 <b>H1CLOUD API UNAVAILABLE</b>`,
+    );
+  }
   await ctx.editMessageText(
     `📡 <b>4StepsVPN · Monitoring</b>\n\n${blocks.join('\n\n──────────────\n\n')}`,
     {

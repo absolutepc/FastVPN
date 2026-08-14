@@ -338,6 +338,34 @@ export class SubscriptionsService {
     return overdue.length;
   }
 
+  async getH1CloudMonitoringStatus(): Promise<{
+    apiOk: boolean;
+    clients: number;
+    online: number;
+    expected: number;
+  }> {
+    const [status, remoteClients, expected] = await Promise.all([
+      this.h1cloud.status(),
+      this.h1cloud.getClients(),
+      this.prisma.subscription.count({
+        where: {
+          plan: PlanType.STANDARD,
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+          },
+          expiresAt: { gt: new Date() },
+          user: { isBlocked: false },
+        },
+      }),
+    ]);
+
+    return {
+      apiOk: status.ok === true,
+      clients: remoteClients.length,
+      online: remoteClients.filter((client) => client.online).length,
+      expected,
+    };
+  }
   async recoverMissingH1CloudClients() {
     const missing = await this.prisma.subscription.findMany({
       where: {

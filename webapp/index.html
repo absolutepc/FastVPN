@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>4StepsVPN</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="/styles.css?v=6" />
 </head>
 <body>
   <div id="app">
@@ -385,6 +385,25 @@
       <button type="button" class="btn-outline-gold admin-refresh" id="btn-admin-refresh">🔄 Обновить</button>
     </section>
 
+    <div class="admin-modal hidden" id="admin-node-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+      <div class="admin-modal-card">
+        <div class="admin-modal-head">
+          <div class="admin-modal-identity">
+            <span class="admin-modal-flag" id="admin-modal-flag">🌐</span>
+            <div>
+              <h3 id="admin-modal-title">Сервер</h3>
+              <p id="admin-modal-subtitle"></p>
+            </div>
+          </div>
+          <div class="admin-modal-actions">
+            <span class="admin-node-status offline" id="admin-modal-status">OFFLINE</span>
+            <button type="button" class="admin-modal-close" id="admin-modal-close" aria-label="Закрыть">×</button>
+          </div>
+        </div>
+        <div class="admin-modal-details" id="admin-modal-details"></div>
+      </div>
+    </div>
+
     <!-- TAB BAR -->
     <nav class="tabbar" id="tabbar">
       <button type="button" class="tab active" data-tab="home">
@@ -415,6 +434,6 @@
       <button type="button" class="btn-gold" id="btn-retry">Повторить</button>
     </div>
   </div>
-  <script src="app.js?v=4"></script>
+  <script src="/app.js?v=6"></script>
 </body>
 </html>

@@ -455,31 +455,64 @@ private countryFlag(name: string): string {
   }
 
   try {
-    const h1 =
-      await this.subscriptions.getH1CloudMonitoringStatus();
+    const h1Nodes =
+      await this.subscriptions.getH1CloudMonitoringStatuses();
 
-    const synchronized = h1.clients === h1.expected;
-    const healthy = h1.apiOk && synchronized;
+    for (const h1 of h1Nodes) {
+      const synchronized = h1.clients === h1.expected;
+      const healthy = h1.apiOk && synchronized;
 
-    blocks.push(
-      `🇫🇮 <b>Finland</b>\n` +
-        `${healthy ? '🟢 ONLINE' : '🟡 ATTENTION'}\n\n` +
-        `H1Cloud API: ${h1.apiOk ? '🟢 OK' : '🔴 FAIL'}\n` +
-        `👥 Clients: <b>${h1.clients} / ${h1.expected}</b>\n` +
-        `📱 Online now: <b>${h1.online}</b>\n` +
-        `🔄 Sync: ${synchronized ? '🟢 OK' : '🟡 MISMATCH'}`,
-    );
+      const inboundProtocol = h1.inbound
+        ? [
+            h1.inbound.protocol,
+            h1.inbound.security,
+            h1.inbound.network,
+          ]
+            .filter(Boolean)
+            .map((value) => String(value).toUpperCase())
+            .join(' · ')
+        : '—';
+
+      const nearestDays = h1.nearestExpiry
+        ? Math.max(
+            0,
+            Math.ceil(
+              (new Date(h1.nearestExpiry).getTime() - Date.now()) /
+                86400000,
+            ),
+          )
+        : null;
+
+      blocks.push(
+        `<b>${h1.name}</b>\n` +
+          `${healthy ? '🟢 ONLINE' : '🟡 ATTENTION'}\n\n` +
+          `H1Cloud API: ${h1.apiOk ? '🟢 OK' : '🔴 FAIL'} · ${h1.latencyMs} ms\n` +
+          `Inbound: ${h1.inbound?.enabled ? '🟢' : '🔴'} ${inboundProtocol}\n` +
+          `Port: <b>${h1.inbound?.port ?? '—'}</b>\n` +
+          `👥 Clients: <b>${h1.clients} / ${h1.expected}</b> · active ${h1.active}\n` +
+          `⏳ Expired: ${h1.expired} · banned ${h1.banned}\n` +
+          `📱 Online: <b>${h1.online}</b> · devices ${h1.devices} / ${h1.deviceLimit}\n` +
+          `📊 Traffic: <b>${this.formatBytes(h1.trafficBytes)}</b>\n` +
+          `🗓 Nearest expiry: ${nearestDays === null ? '—' : `${nearestDays} day(s)`}\n` +
+          `⚙️ ${String(h1.transportMode || '—').toUpperCase()} · ${h1.egressMode || '—'} · Reality ${h1.realityEnabled ? 'ON' : 'OFF'}\n` +
+          `🔄 Sync: ${synchronized ? '🟢 OK' : '🟡 MISMATCH'}`,
+      );
+    }
+
   } catch (error) {
     const message =
       error instanceof Error ? error.message : String(error);
 
-    this.logger.warn(`Finland monitoring unavailable: ${message}`);
+    this.logger.warn(
+      `H1Cloud monitoring unavailable: ${message}`,
+    );
 
     blocks.push(
-      `🇫🇮 <b>Finland</b>\n` +
-        `🔴 <b>H1CLOUD API UNAVAILABLE</b>`,
+      `🌐 <b>H1Cloud</b>\n` +
+        `🔴 <b>MONITORING UNAVAILABLE</b>`,
     );
   }
+
   await ctx.editMessageText(
     `📡 <b>4StepsVPN · Monitoring</b>\n\n${blocks.join('\n\n──────────────\n\n')}`,
     {

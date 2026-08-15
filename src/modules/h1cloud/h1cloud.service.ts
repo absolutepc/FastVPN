@@ -1,6 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+export const H1_CLOUD_NODE_KEYS = ['FI1', 'ES1'] as const;
+
+export type H1CloudNodeKey = (typeof H1_CLOUD_NODE_KEYS)[number];
+
+type H1CloudNodeConfig = {
+  baseUrl: string;
+  token: string;
+  inboundId: string;
+};
+
 type H1InboundLink = {
   id: string;
   tag: string;
@@ -11,7 +21,46 @@ type H1InboundLink = {
   link: string;
 };
 
-type H1Client = {
+export type H1Inbound = {
+  id: string;
+  tag: string;
+  protocol: string;
+  network: string;
+  security: string;
+  port: number;
+  enabled?: boolean;
+  active?: boolean;
+  status?: string | boolean;
+};
+
+export type H1Status = {
+  ok: boolean;
+  service?: string;
+  version?: string;
+  node_name?: string;
+  domain?: string;
+  transport?: {
+    mode?: string;
+  };
+  egress?: {
+    mode?: string;
+  };
+  reality?: {
+    enabled?: boolean;
+    public_host?: string;
+    public_port?: string | number;
+    sni?: string;
+    dest?: string;
+  };
+  clients?: {
+    total?: number;
+    active?: number;
+    expired?: number;
+    banned?: number;
+  };
+};
+
+export type H1Client = {
   name: string;
   uuid: string;
   status: string;
@@ -27,38 +76,59 @@ type H1Client = {
 
 @Injectable()
 export class H1CloudService {
-  private readonly baseUrl: string;
-  private readonly token: string;
-  private readonly inboundId: string;
+  private readonly nodes: Record<H1CloudNodeKey, H1CloudNodeConfig>;
 
   constructor(private readonly config: ConfigService) {
-    this.baseUrl = (
-      this.config.get<string>('H1CLOUD_FI1_API_URL') || ''
-    ).replace(/\/+$/, '');
+    this.nodes = Object.fromEntries(
+      H1_CLOUD_NODE_KEYS.map((nodeKey) => [
+        nodeKey,
+        {
+          baseUrl: (
+            this.config.get<string>(`H1CLOUD_${nodeKey}_API_URL`) || ''
+          ).replace(/\/+$/, ''),
+          token: this.config.get<string>(`H1CLOUD_${nodeKey}_API_TOKEN`) || '',
+          inboundId:
+            this.config.get<string>(`H1CLOUD_${nodeKey}_INBOUND_ID`) || '',
+        },
+      ]),
+    ) as Record<H1CloudNodeKey, H1CloudNodeConfig>;
+  }
 
-    this.token =
-      this.config.get<string>('H1CLOUD_FI1_API_TOKEN') || '';
+  isConfigured(nodeKey: H1CloudNodeKey): boolean {
+    const node = this.nodes[nodeKey];
 
-    this.inboundId =
-      this.config.get<string>('H1CLOUD_FI1_INBOUND_ID') || '';
+    return Boolean(node.baseUrl && node.token && node.inboundId);
+  }
+
+  getConfiguredNodeKeys(): H1CloudNodeKey[] {
+    return H1_CLOUD_NODE_KEYS.filter((nodeKey) => this.isConfigured(nodeKey));
+  }
+
+  private getNode(nodeKey: H1CloudNodeKey): H1CloudNodeConfig {
+    const node = this.nodes[nodeKey];
+
+    if (!node?.baseUrl) {
+      throw new Error(`H1Cloud ${nodeKey} API URL missing`);
+    }
+
+    if (!node.token) {
+      throw new Error(`H1Cloud ${nodeKey} API token missing`);
+    }
+
+    return node;
   }
 
   private async request<T>(
     path: string,
     init: RequestInit = {},
+    nodeKey: H1CloudNodeKey = 'FI1',
   ): Promise<T> {
-    if (!this.baseUrl) {
-      throw new Error('H1Cloud API URL missing');
-    }
+    const node = this.getNode(nodeKey);
 
-    if (!this.token) {
-      throw new Error('H1Cloud API token missing');
-    }
-
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const response = await fetch(`${node.baseUrl}${path}`, {
       ...init,
       headers: {
-        Authorization: `Bearer ${this.token}`,
+        Authorization: `Bearer ${node.token}`,
         Accept: 'application/json',
         'Content-Type': 'application/json',
         ...(init.headers || {}),
@@ -73,70 +143,86 @@ export class H1CloudService {
       data = text ? JSON.parse(text) : {};
     } catch {
       throw new Error(
-        `H1Cloud invalid JSON: HTTP ${response.status}`,
+        `H1Cloud ${nodeKey} invalid JSON: HTTP ${response.status}`,
       );
     }
 
     if (!response.ok) {
       throw new Error(
-        `H1Cloud HTTP ${response.status}: ${JSON.stringify(data)}`,
+        `H1Cloud ${nodeKey} HTTP ${response.status}: ${JSON.stringify(data)}`,
       );
     }
 
     return data as T;
   }
 
-  async status() {
-    return this.request<{ ok: boolean }>('/api/status');
+  async status(
+    nodeKey: H1CloudNodeKey = 'FI1',
+  ): Promise<H1Status> {
+    return this.request<H1Status>(
+      '/api/status',
+      {},
+      nodeKey,
+    );
   }
 
-  async getClients(): Promise<H1Client[]> {
+  async getClients(nodeKey: H1CloudNodeKey = 'FI1'): Promise<H1Client[]> {
     const result = await this.request<{
       ok: boolean;
       clients: H1Client[];
-    }>('/api/clients');
+    }>('/api/clients', {}, nodeKey);
 
     return result.clients || [];
   }
 
-  async getInbounds() {
+  async getInbounds(nodeKey: H1CloudNodeKey = 'FI1') {
     return this.request<{
       ok: boolean;
-      inbounds: unknown[];
-    }>('/api/inbounds');
+      inbounds: H1Inbound[];
+    }>('/api/inbounds', {}, nodeKey);
   }
 
   async getClientByName(
     name: string,
+    nodeKey: H1CloudNodeKey = 'FI1',
   ): Promise<H1Client | null> {
-    const clients = await this.getClients();
+    const clients = await this.getClients(nodeKey);
 
     return clients.find((client) => client.name === name) || null;
   }
 
-  async createClient(params: {
-    name: string;
-    days: number;
-    deviceLimit?: number;
-  }): Promise<H1Client> {
-    if (!this.inboundId) {
-      throw new Error('H1Cloud inbound ID missing');
+  async createClient(
+    params: {
+      name: string;
+      days: number;
+      deviceLimit?: number;
+    },
+    nodeKey: H1CloudNodeKey = 'FI1',
+  ): Promise<H1Client> {
+    const node = this.getNode(nodeKey);
+
+    if (!node.inboundId) {
+      throw new Error(`H1Cloud ${nodeKey} inbound ID missing`);
     }
 
     const result = await this.request<{
       ok: boolean;
       client: H1Client;
-    }>('/api/create', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: params.name,
-        days: params.days,
-        device_limit: params.deviceLimit ?? 1,
-        channels: [],
-        inbound_ids: [this.inboundId],
-        wg: false,
-      }),
-    });
+    }>(
+      '/api/create',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          name: params.name,
+          days: params.days,
+          device_limit: params.deviceLimit ?? 1,
+          channels: [],
+          inbound_ids: [node.inboundId],
+          wg: false,
+        }),
+      },
+      nodeKey,
+    );
 
     return result.client;
   }
@@ -144,36 +230,50 @@ export class H1CloudService {
   async extendClient(
     name: string,
     days: number,
+    nodeKey: H1CloudNodeKey = 'FI1',
   ): Promise<H1Client> {
+    const node = this.getNode(nodeKey);
+
+    if (!node.inboundId) {
+      throw new Error(`H1Cloud ${nodeKey} inbound ID missing`);
+    }
+
     const result = await this.request<{
       ok: boolean;
       client: H1Client;
-    }>(`/api/clients/${encodeURIComponent(name)}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        traffic_limit_gb: 0,
-        device_limit: 1,
-        channels: [],
-        inbound_ids: [this.inboundId],
-        wg: false,
-        days,
-      }),
-    });
+    }>(
+      `/api/clients/${encodeURIComponent(name)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          traffic_limit_gb: 0,
+          device_limit: 1,
+          channels: [],
+          inbound_ids: [node.inboundId],
+          wg: false,
+          days,
+        }),
+      },
+      nodeKey,
+    );
 
     return result.client;
   }
 
-  async deleteClient(name: string): Promise<boolean> {
+  async deleteClient(
+    name: string,
+    nodeKey: H1CloudNodeKey = 'FI1',
+  ): Promise<boolean> {
     await this.request(
       `/api/clients/${encodeURIComponent(name)}`,
       {
         method: 'DELETE',
       },
+      nodeKey,
     );
 
     return true;
   }
-
 
   private nameForSubscription(subscriptionId: string) {
     return `sub_${subscriptionId}`;
@@ -192,56 +292,66 @@ export class H1CloudService {
   async createForSubscription(
     subscriptionId: string,
     days: number,
+    nodeKey: H1CloudNodeKey = 'FI1',
   ): Promise<H1Client> {
     const name = this.nameForSubscription(subscriptionId);
 
-    const existing = await this.getClientByName(name);
+    const existing = await this.getClientByName(name, nodeKey);
 
     if (existing) {
       return existing;
     }
 
-    return this.createClient({
-      name,
-      days,
-      deviceLimit: 1,
-    });
+    return this.createClient(
+      {
+        name,
+        days,
+        deviceLimit: 1,
+      },
+      nodeKey,
+    );
   }
 
   async extendForSubscription(
     subscriptionId: string,
     days: number,
+    nodeKey: H1CloudNodeKey = 'FI1',
+    createDays: number = days,
   ): Promise<H1Client> {
     const name = this.nameForSubscription(subscriptionId);
 
-    const existing = await this.getClientByName(name);
+    const existing = await this.getClientByName(name, nodeKey);
 
     if (!existing) {
-      return this.createClient({
-        name,
-        days,
-        deviceLimit: 1,
-      });
+      return this.createClient(
+        {
+          name,
+          days: createDays,
+          deviceLimit: 1,
+        },
+        nodeKey,
+      );
     }
 
-    return this.extendClient(name, days);
+    return this.extendClient(name, days, nodeKey);
   }
 
   async deleteForSubscription(
     subscriptionId: string,
+    nodeKey: H1CloudNodeKey = 'FI1',
   ): Promise<boolean> {
     const name = this.nameForSubscription(subscriptionId);
 
-    const existing = await this.getClientByName(name);
+    const existing = await this.getClientByName(name, nodeKey);
 
     if (!existing) {
       return true;
     }
 
-    return this.deleteClient(name);
+    return this.deleteClient(name, nodeKey);
   }
 
-  getConfiguredInboundId() {
-    return this.inboundId;
+  getConfiguredInboundId(nodeKey: H1CloudNodeKey = 'FI1') {
+    return this.nodes[nodeKey].inboundId;
   }
 }

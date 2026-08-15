@@ -264,28 +264,29 @@ export class WebappService {
       }),
     );
 
-    let h1Cloud: {
-      apiOk: boolean;
-      clients: number;
-      online: number;
-      expected: number;
+    const h1CloudNodes =
+      await this.subscriptions
+        .getH1CloudMonitoringStatuses()
+        .catch((error) => {
+          this.logger.warn(
+            `WebApp H1Cloud monitoring unavailable: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+
+          return [];
+        });
+
+    const h1Cloud = h1CloudNodes[0] || {
+      nodeKey: 'FI1',
+      name: '🇫🇮 Finland',
+      apiOk: false,
+      clients: 0,
+      online: 0,
+      expected: 0,
+      error: 'Monitoring unavailable',
     };
 
-    try {
-      h1Cloud = await this.subscriptions.getH1CloudMonitoringStatus();
-    } catch (error) {
-      this.logger.warn(
-        `WebApp Finland monitoring unavailable: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-      h1Cloud = {
-        apiOk: false,
-        clients: 0,
-        online: 0,
-        expected: 0,
-      };
-    }
 
     return {
       admin: {
@@ -298,10 +299,11 @@ export class WebappService {
         trials,
         revenueRub: Math.round((revenue._sum.amount || 0) / 100),
         expiringToday,
-        servers: nodeStatuses.length + 1,
+          servers: nodeStatuses.length + h1CloudNodes.length,
       },
       nodes: nodeStatuses,
       h1Cloud,
+        h1CloudNodes,
       generatedAt: new Date().toISOString(),
     };
   }

@@ -1,7 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { XrayService } from "../xray/xray.service";
-import { H1CloudService } from "../h1cloud/h1cloud.service";
+import {
+  type H1Client,
+  type H1CloudNodeKey,
+  H1CloudService,
+} from "../h1cloud/h1cloud.service";
 import { PlanType, SubscriptionStatus } from "@prisma/client";
 import { randomUUID, randomBytes } from "crypto";
 
@@ -18,62 +22,37 @@ export class SubscriptionsService {
     private readonly h1cloud: H1CloudService,
   ) {}
 
-  private readonly h1NodeKey = "FI1";
+  private readonly h1Nodes: ReadonlyArray<{
+    key: H1CloudNodeKey;
+    name: string;
+  }> = [
+    { key: "FI1", name: "🇫🇮 Finland" },
+    { key: "ES1", name: "🇪🇸 Spain" },
+  ];
 
-  private async provisionH1Cloud(subscription: {
-    id: string;
-    expiresAt: Date;
-  }) {
-    const now = new Date();
-
-    const remainingMs = subscription.expiresAt.getTime() - now.getTime();
-
-    const days = Math.max(1, Math.ceil(remainingMs / 86400000));
-
-    const client = await this.h1cloud.createForSubscription(
-      subscription.id,
-      days,
-    );
-
-    const remoteLink = this.h1cloud.getPrimaryLink(client);
-
-    return this.prisma.h1CloudClient.upsert({
-      where: {
-        subscriptionId_nodeKey: {
-          subscriptionId: subscription.id,
-          nodeKey: this.h1NodeKey,
-        },
-      },
-      update: {
-        remoteName: client.name,
-        remoteUuid: client.uuid,
-        remoteLink,
-        remoteSubUrl: client.sub_url || null,
-      },
-      create: {
-        subscriptionId: subscription.id,
-        nodeKey: this.h1NodeKey,
-        remoteName: client.name,
-        remoteUuid: client.uuid,
-        remoteLink,
-        remoteSubUrl: client.sub_url || null,
-      },
-    });
+  private getConfiguredH1Nodes() {
+    return this.h1Nodes.filter((node) => this.h1cloud.isConfigured(node.key));
   }
 
-  private async extendH1Cloud(subscriptionId: string, days: number) {
-    const client = await this.h1cloud.extendForSubscription(
-      subscriptionId,
-      days,
+  private getRemainingDays(expiresAt: Date) {
+    return Math.max(
+      1,
+      Math.ceil((expiresAt.getTime() - Date.now()) / 86400000),
     );
+  }
 
+  private async saveH1CloudClient(
+    nodeKey: H1CloudNodeKey,
+    subscriptionId: string,
+    client: H1Client,
+  ) {
     const remoteLink = this.h1cloud.getPrimaryLink(client);
 
     return this.prisma.h1CloudClient.upsert({
       where: {
         subscriptionId_nodeKey: {
           subscriptionId,
-          nodeKey: this.h1NodeKey,
+          nodeKey,
         },
       },
       update: {
@@ -84,7 +63,7 @@ export class SubscriptionsService {
       },
       create: {
         subscriptionId,
-        nodeKey: this.h1NodeKey,
+        nodeKey,
         remoteName: client.name,
         remoteUuid: client.uuid,
         remoteLink,
@@ -93,15 +72,61 @@ export class SubscriptionsService {
     });
   }
 
-  private async removeH1Cloud(subscriptionId: string) {
-    await this.h1cloud.deleteForSubscription(subscriptionId);
+  private async provisionH1CloudNode(
+    nodeKey: H1CloudNodeKey,
+    subscription: {
+      id: string;
+      expiresAt: Date;
+    },
+  ) {
+    const client = await this.h1cloud.createForSubscription(
+      subscription.id,
+      this.getRemainingDays(subscription.expiresAt),
+      nodeKey,
+    );
 
-    await this.prisma.h1CloudClient.deleteMany({
-      where: {
+    return this.saveH1CloudClient(nodeKey, subscription.id, client);
+  }
+
+  private async provisionH1Cloud(subscription: {
+    id: string;
+    expiresAt: Date;
+  }) {
+    for (const node of this.getConfiguredH1Nodes()) {
+      await this.provisionH1CloudNode(node.key, subscription);
+    }
+  }
+
+  private async extendH1Cloud(
+    subscriptionId: string,
+    extensionDays: number,
+    expiresAt: Date,
+  ) {
+    const createDays = this.getRemainingDays(expiresAt);
+
+    for (const node of this.getConfiguredH1Nodes()) {
+      const client = await this.h1cloud.extendForSubscription(
         subscriptionId,
-        nodeKey: this.h1NodeKey,
-      },
-    });
+        extensionDays,
+        node.key,
+        createDays,
+      );
+
+      await this.saveH1CloudClient(node.key, subscriptionId, client);
+    }
+  }
+
+  private async removeH1Cloud(subscriptionId: string) {
+    for (const node of this.getConfiguredH1Nodes()) {
+      await this.h1cloud.deleteForSubscription(subscriptionId, node.key);
+
+      await this.prisma.h1CloudClient.deleteMany({
+        where: {
+          subscriptionId,
+          nodeKey: node.key,
+        },
+      });
+    }
   }
 
   async createSubscription(params: {
@@ -263,7 +288,7 @@ export class SubscriptionsService {
     }
 
     if (updated.plan === PlanType.STANDARD) {
-      await this.extendH1Cloud(updated.id, days);
+      await this.extendH1Cloud(updated.id, days, updated.expiresAt);
     }
 
     return updated;
@@ -338,25 +363,29 @@ export class SubscriptionsService {
     return overdue.length;
   }
 
-  async getH1CloudMonitoringStatus(): Promise<{
+  private async countExpectedH1CloudClients() {
+    return this.prisma.subscription.count({
+      where: {
+        plan: PlanType.STANDARD,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+        },
+        expiresAt: { gt: new Date() },
+        user: { isBlocked: false },
+      },
+    });
+  }
+
+  async getH1CloudMonitoringStatus(nodeKey: H1CloudNodeKey = "FI1"): Promise<{
     apiOk: boolean;
     clients: number;
     online: number;
     expected: number;
   }> {
     const [status, remoteClients, expected] = await Promise.all([
-      this.h1cloud.status(),
-      this.h1cloud.getClients(),
-      this.prisma.subscription.count({
-        where: {
-          plan: PlanType.STANDARD,
-          status: {
-            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
-          },
-          expiresAt: { gt: new Date() },
-          user: { isBlocked: false },
-        },
-      }),
+      this.h1cloud.status(nodeKey),
+      this.h1cloud.getClients(nodeKey),
+      this.countExpectedH1CloudClients(),
     ]);
 
     return {
@@ -366,46 +395,230 @@ export class SubscriptionsService {
       expected,
     };
   }
-  async recoverMissingH1CloudClients() {
-    const missing = await this.prisma.subscription.findMany({
-      where: {
-        plan: PlanType.STANDARD,
-        status: {
-          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
-        },
-        expiresAt: { gt: new Date() },
-        user: { isBlocked: false },
-        h1CloudClients: {
-          none: {
-            nodeKey: this.h1NodeKey,
-          },
-        },
-      },
-    });
 
+  async getH1CloudMonitoringStatuses() {
+    const expected =
+      await this.countExpectedH1CloudClients();
+
+    return Promise.all(
+      this.getConfiguredH1Nodes().map(
+        async (node) => {
+          const startedAt = Date.now();
+
+          try {
+            const [
+              status,
+              remoteClients,
+              inboundResult,
+            ] = await Promise.all([
+              this.h1cloud.status(node.key),
+              this.h1cloud.getClients(node.key),
+              this.h1cloud.getInbounds(node.key),
+            ]);
+
+            const latencyMs =
+              Date.now() - startedAt;
+
+            const inbound =
+              inboundResult.inbounds[0] || null;
+
+            const trafficBytes =
+              remoteClients.reduce(
+                (sum, client) =>
+                  sum +
+                  Number(
+                    client.traffic_used_bytes || 0,
+                  ),
+                0,
+              );
+
+            const devices =
+              remoteClients.reduce(
+                (sum, client) =>
+                  sum +
+                  Number(
+                    client.devices_count || 0,
+                  ),
+                0,
+              );
+
+            const deviceLimit =
+              remoteClients.reduce(
+                (sum, client) =>
+                  sum +
+                  Number(
+                    client.device_limit || 0,
+                  ),
+                0,
+              );
+
+            const expirations =
+              remoteClients
+                .filter(
+                  (client) =>
+                    String(
+                      client.status,
+                    ).toUpperCase() ===
+                    "ACTIVE",
+                )
+                .map((client) =>
+                  Number(
+                    client.expires_at || 0,
+                  ),
+                )
+                .filter(Boolean)
+                .sort((a, b) => a - b);
+
+            const inboundEnabled =
+              inbound === null
+                ? false
+                : inbound.enabled ??
+                  inbound.active ??
+                  [
+                    "active",
+                    "enabled",
+                    "on",
+                    "true",
+                  ].includes(
+                    String(
+                      inbound.status || "",
+                    ).toLowerCase(),
+                  );
+
+            return {
+              nodeKey: node.key,
+              name: node.name,
+              apiOk: status.ok === true,
+              latencyMs,
+              clients: remoteClients.length,
+              active:
+                status.clients?.active ??
+                remoteClients.filter(
+                  (client) =>
+                    String(
+                      client.status,
+                    ).toUpperCase() ===
+                    "ACTIVE",
+                ).length,
+              expired:
+                status.clients?.expired ?? 0,
+              banned:
+                status.clients?.banned ?? 0,
+              online: remoteClients.filter(
+                (client) => client.online,
+              ).length,
+              expected,
+              trafficBytes,
+              devices,
+              deviceLimit,
+              nearestExpiry:
+                expirations[0]
+                  ? new Date(
+                      expirations[0] * 1000,
+                    ).toISOString()
+                  : null,
+              domain: status.domain || null,
+              version: status.version || null,
+              transportMode:
+                status.transport?.mode || null,
+              egressMode:
+                status.egress?.mode || null,
+              realityEnabled:
+                status.reality?.enabled === true,
+              inbound: inbound
+                ? {
+                    tag: inbound.tag,
+                    protocol: inbound.protocol,
+                    network: inbound.network,
+                    security: inbound.security,
+                    port: inbound.port,
+                    enabled: inboundEnabled,
+                  }
+                : null,
+              error: null,
+            };
+          } catch (error) {
+            const message =
+              error instanceof Error
+                ? error.message
+                : String(error);
+
+            this.logger.warn(
+              `H1Cloud monitoring unavailable for ${node.key}: ${message}`,
+            );
+
+            return {
+              nodeKey: node.key,
+              name: node.name,
+              apiOk: false,
+              latencyMs:
+                Date.now() - startedAt,
+              clients: 0,
+              active: 0,
+              expired: 0,
+              banned: 0,
+              online: 0,
+              expected,
+              trafficBytes: 0,
+              devices: 0,
+              deviceLimit: 0,
+              nearestExpiry: null,
+              domain: null,
+              version: null,
+              transportMode: null,
+              egressMode: null,
+              realityEnabled: false,
+              inbound: null,
+              error: message,
+            };
+          }
+        },
+      ),
+    );
+  }
+
+  async recoverMissingH1CloudClients() {
+    let total = 0;
     let ok = 0;
     let fail = 0;
 
-    for (const sub of missing) {
-      try {
-        await this.provisionH1Cloud(sub);
-        ok++;
-      } catch (error) {
-        fail++;
+    for (const node of this.getConfiguredH1Nodes()) {
+      const missing = await this.prisma.subscription.findMany({
+        where: {
+          plan: PlanType.STANDARD,
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+          },
+          expiresAt: { gt: new Date() },
+          user: { isBlocked: false },
+          h1CloudClients: {
+            none: {
+              nodeKey: node.key,
+            },
+          },
+        },
+      });
 
-        const message = error instanceof Error ? error.message : String(error);
+      total += missing.length;
 
-        this.logger.error(
-          `H1Cloud recovery failed for subscription ${sub.id}: ${message}`,
-        );
+      for (const sub of missing) {
+        try {
+          await this.provisionH1CloudNode(node.key, sub);
+          ok++;
+        } catch (error) {
+          fail++;
+
+          const message =
+            error instanceof Error ? error.message : String(error);
+
+          this.logger.error(
+            `H1Cloud recovery failed for ${node.key} subscription ${sub.id}: ${message}`,
+          );
+        }
       }
     }
 
-    return {
-      total: missing.length,
-      ok,
-      fail,
-    };
+    return { total, ok, fail };
   }
 
   async buildSubscriptionLinks(sub: {
@@ -450,20 +663,25 @@ export class SubscriptionsService {
           subscriptionId: sub.id,
         },
         select: {
+          nodeKey: true,
           remoteLink: true,
         },
       });
 
-      links.push(
-        ...h1Links.flatMap((item) => {
-          if (!item.remoteLink) return [];
-
-          const base = item.remoteLink.split("#")[0];
-          const name = encodeURIComponent("🇫🇮 Finland");
-
-          return [`${base}#${name}`];
-        }),
+      const linksByNode = new Map(
+        h1Links.map((item) => [item.nodeKey, item.remoteLink]),
       );
+
+      for (const node of this.h1Nodes) {
+        const remoteLink = linksByNode.get(node.key);
+
+        if (!remoteLink) continue;
+
+        const base = remoteLink.split("#")[0];
+        const name = encodeURIComponent(node.name);
+
+        links.push(`${base}#${name}`);
+      }
     }
 
     return links;

@@ -931,6 +931,63 @@ body.admin-modal-open { overflow: hidden; }
   font-size: 1.35rem;
   line-height: 1;
 }
+/* ===== Admin server card grid ===== */
+.admin-node-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.admin-node {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 14px;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.admin-node-flag {
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.admin-node-body {
+  width: 100%;
+  flex: 0 1 auto;
+}
+
+.admin-node-title {
+  margin-bottom: 5px;
+  font-size: 0.94rem;
+  line-height: 1.15;
+}
+
+.admin-node-meta {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.66rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.admin-node-status {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+}
+
+.admin-node-chevron {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+}
+
 .admin-modal {
   position: fixed;
   inset: 0;

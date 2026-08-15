@@ -440,32 +440,157 @@
       });
     }
 
-    const h1 = data.h1Cloud || {};
-    const synchronized = Number(h1.clients ?? 0) === Number(h1.expected ?? 0);
-    const h1Online = Boolean(h1.apiOk && synchronized);
+    const h1Nodes =
+      Array.isArray(data.h1CloudNodes) &&
+      data.h1CloudNodes.length > 0
+        ? data.h1CloudNodes
+        : [{
+            nodeKey: 'FI1',
+            name: '🇫🇮 Finland',
+            ...(data.h1Cloud || {}),
+          }];
 
-    addAdminNode(nodes, {
-      flag: '🇫🇮',
-      name: 'Finland',
-      subtitle: 'H1Cloud',
-      online: h1Online,
-      meta:
-        'H1Cloud · ' +
-        String(h1.clients ?? 0) +
-        ' / ' +
-        String(h1.expected ?? 0) +
-        ' клиентов · онлайн ' +
-        String(h1.online ?? 0),
-      rows: [
-        { label: 'H1Cloud API', value: h1.apiOk ? '🟢 Доступен' : '🔴 Недоступен' },
-        {
-          label: 'Клиенты',
-          value: String(h1.clients ?? 0) + ' / ' + String(h1.expected ?? 0),
-        },
-        { label: 'Сейчас онлайн', value: String(h1.online ?? 0) },
-        { label: 'Синхронизация', value: synchronized ? '🟢 OK' : '🟡 Несоответствие' },
-      ],
-    });
+    for (const h1 of h1Nodes) {
+      const display =
+        h1.nodeKey === 'ES1'
+          ? { flag: '🇪🇸', name: 'Spain' }
+          : { flag: '🇫🇮', name: 'Finland' };
+
+      const synchronized =
+        Number(h1.clients ?? 0) ===
+        Number(h1.expected ?? 0);
+
+      const h1Online = Boolean(
+        h1.apiOk && synchronized,
+      );
+
+      const latency = Number.isFinite(Number(h1.latencyMs))
+        ? String(h1.latencyMs) + ' мс'
+        : '—';
+
+      const inboundParts = h1.inbound
+        ? [
+            h1.inbound.protocol,
+            h1.inbound.security,
+            h1.inbound.network,
+          ]
+            .filter(Boolean)
+            .map((value) => String(value).toUpperCase())
+            .join(' · ')
+        : '—';
+
+      const nearestExpiry = h1.nearestExpiry
+        ? new Date(h1.nearestExpiry).toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '—';
+
+      addAdminNode(nodes, {
+        flag: display.flag,
+        name: display.name,
+        subtitle: 'H1Cloud',
+        online: h1Online,
+        meta:
+          latency +
+          ' · ' +
+          String(h1.clients ?? 0) +
+          ' / ' +
+          String(h1.expected ?? 0) +
+          ' клиентов · онлайн ' +
+          String(h1.online ?? 0),
+        rows: [
+          {
+            label: 'Адрес',
+            value:
+              String(h1.domain || '—') +
+              ':' +
+              String(h1.inbound?.port ?? '—'),
+          },
+          {
+            label: 'Тип',
+            value: 'STANDARD',
+          },
+          {
+            label: 'H1Cloud API',
+            value:
+              (h1.apiOk ? '🟢 Доступен' : '🔴 Недоступен') +
+              ' · ' +
+              latency,
+          },
+          {
+            label: 'Пользователи',
+            value:
+              String(h1.clients ?? 0) +
+              ' / ' +
+              String(h1.expected ?? 0),
+          },
+          {
+            label: 'Inbound',
+            value:
+              (h1.inbound?.enabled ? '🟢 active · ' : '🔴 down · ') +
+              inboundParts,
+          },
+          {
+            label: 'Порт ' + String(h1.inbound?.port ?? '—'),
+            value: h1.inbound?.enabled ? '🟢 open' : '🔴 closed',
+          },
+          {
+            label: 'Подключения',
+            value: String(h1.online ?? 0),
+          },
+          {
+            label: 'Устройства',
+            value:
+              String(h1.devices ?? 0) +
+              ' / ' +
+              String(h1.deviceLimit ?? 0),
+          },
+          {
+            label: 'Трафик',
+            value: adminBytes(Number(h1.trafficBytes ?? 0)),
+          },
+          {
+            label: 'Активные',
+            value: String(h1.active ?? 0),
+          },
+          {
+            label: 'Истекли / заблокированы',
+            value:
+              String(h1.expired ?? 0) +
+              ' / ' +
+              String(h1.banned ?? 0),
+          },
+          {
+            label: 'Ближайшее окончание',
+            value: nearestExpiry,
+          },
+          {
+            label: 'Транспорт',
+            value: String(h1.transportMode || '—').toUpperCase(),
+          },
+          {
+            label: 'Выходной маршрут',
+            value: String(h1.egressMode || '—'),
+          },
+          {
+            label: 'Reality',
+            value: h1.realityEnabled ? '🟢 Включён' : '🔴 Выключен',
+          },
+          {
+            label: 'Версия панели',
+            value: String(h1.version || '—'),
+          },
+          {
+            label: 'Синхронизация',
+            value: synchronized ? '🟢 OK' : '🟡 Несоответствие',
+          },
+        ],
+      });
+    }
 
     $('admin-updated').textContent = data.generatedAt
       ? 'Обновлено: ' +

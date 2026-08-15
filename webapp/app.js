@@ -450,11 +450,17 @@
             ...(data.h1Cloud || {}),
           }];
 
+    const h1Displays = {
+      FI1: { flag: '🇫🇮', name: 'Finland' },
+      ES1: { flag: '🇪🇸', name: 'Spain' },
+      PL1: { flag: '🇵🇱', name: 'Poland' },
+    };
+
     for (const h1 of h1Nodes) {
-      const display =
-        h1.nodeKey === 'ES1'
-          ? { flag: '🇪🇸', name: 'Spain' }
-          : { flag: '🇫🇮', name: 'Finland' };
+      const display = h1Displays[h1.nodeKey] || {
+        flag: '🌐',
+        name: String(h1.name || h1.nodeKey || 'H1Cloud'),
+      };
 
       const synchronized =
         Number(h1.clients ?? 0) ===

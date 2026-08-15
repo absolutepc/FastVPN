@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export const H1_CLOUD_NODE_KEYS = ['FI1', 'ES1'] as const;
+export const H1_CLOUD_NODE_KEYS = ['FI1', 'ES1', 'PL1'] as const;
 
 export type H1CloudNodeKey = (typeof H1_CLOUD_NODE_KEYS)[number];
 

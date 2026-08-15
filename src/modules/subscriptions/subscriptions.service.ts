@@ -28,6 +28,7 @@ export class SubscriptionsService {
   }> = [
     { key: "FI1", name: "🇫🇮 Finland" },
     { key: "ES1", name: "🇪🇸 Spain" },
+    { key: "PL1", name: "🇵🇱 Poland" },
   ];
 
   private getConfiguredH1Nodes() {

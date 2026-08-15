@@ -454,6 +454,9 @@
       FI1: { flag: '🇫🇮', name: 'Finland' },
       ES1: { flag: '🇪🇸', name: 'Spain' },
       PL1: { flag: '🇵🇱', name: 'Poland' },
+      CH1: { flag: '🇨🇭', name: 'Switzerland' },
+      SE1: { flag: '🇸🇪', name: 'Sweden' },
+      NL1: { flag: '🇳🇱', name: 'Netherlands' },
     };
 
     for (const h1 of h1Nodes) {

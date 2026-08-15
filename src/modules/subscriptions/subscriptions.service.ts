@@ -668,23 +668,37 @@ export class SubscriptionsService {
         },
         select: {
           nodeKey: true,
+          remoteUuid: true,
           remoteLink: true,
         },
       });
 
       const linksByNode = new Map(
-        h1Links.map((item) => [item.nodeKey, item.remoteLink]),
+        h1Links.map((item) => [item.nodeKey, item]),
       );
 
       for (const node of this.h1Nodes) {
-        const remoteLink = linksByNode.get(node.key);
+        const h1Client = linksByNode.get(node.key);
 
-        if (!remoteLink) continue;
+        if (!h1Client?.remoteLink) continue;
 
-        const base = remoteLink.split("#")[0];
+        const base = h1Client.remoteLink.split("#")[0];
         const name = encodeURIComponent(node.name);
 
         links.push(`${base}#${name}`);
+
+        if (node.key === "CH1" && h1Client.remoteUuid) {
+          const wsName = encodeURIComponent("🇨🇭 Switzerland WS-CDN");
+
+          links.push(
+            `vless://${h1Client.remoteUuid}@ws-ch1.4stepsvpn.ru:443` +
+            `?encryption=none&security=tls` +
+            `&sni=ws-ch1.4stepsvpn.ru` +
+            `&type=ws&host=ws-ch1.4stepsvpn.ru` +
+            `&path=${encodeURIComponent("/ws-test")}` +
+            `#${wsName}`,
+          );
+        }
       }
     }
 

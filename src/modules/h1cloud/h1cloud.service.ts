@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export const H1_CLOUD_NODE_KEYS = ['FI1', 'ES1', 'PL1', 'CH1', 'SE1', 'NL1'] as const;
+export const H1_CLOUD_NODE_KEYS = [
+  'FI1',
+  'ES1',
+  'PL1',
+  'CH1',
+  'SE1',
+  'NL1',
+] as const;
 
 export type H1CloudNodeKey = (typeof H1_CLOUD_NODE_KEYS)[number];
 
@@ -118,6 +125,20 @@ export class H1CloudService {
     return node;
   }
 
+  private getInboundIds(
+    nodeKey: H1CloudNodeKey,
+    node: H1CloudNodeConfig,
+  ): string[] {
+    const extraInboundIds = (
+      this.config.get<string>(`H1CLOUD_${nodeKey}_EXTRA_INBOUND_IDS`) || ''
+    )
+      .split(',')
+      .map((inboundId) => inboundId.trim())
+      .filter(Boolean);
+
+    return [...new Set([node.inboundId, ...extraInboundIds])];
+  }
+
   private async request<T>(
     path: string,
     init: RequestInit = {},
@@ -156,14 +177,8 @@ export class H1CloudService {
     return data as T;
   }
 
-  async status(
-    nodeKey: H1CloudNodeKey = 'FI1',
-  ): Promise<H1Status> {
-    return this.request<H1Status>(
-      '/api/status',
-      {},
-      nodeKey,
-    );
+  async status(nodeKey: H1CloudNodeKey = 'FI1'): Promise<H1Status> {
+    return this.request<H1Status>('/api/status', {}, nodeKey);
   }
 
   async getClients(nodeKey: H1CloudNodeKey = 'FI1'): Promise<H1Client[]> {
@@ -217,7 +232,7 @@ export class H1CloudService {
           days: params.days,
           device_limit: params.deviceLimit ?? 1,
           channels: [],
-          inbound_ids: [node.inboundId],
+          inbound_ids: this.getInboundIds(nodeKey, node),
           wg: false,
         }),
       },
@@ -249,7 +264,7 @@ export class H1CloudService {
           traffic_limit_gb: 0,
           device_limit: 1,
           channels: [],
-          inbound_ids: [node.inboundId],
+          inbound_ids: this.getInboundIds(nodeKey, node),
           wg: false,
           days,
         }),

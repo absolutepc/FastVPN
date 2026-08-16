@@ -703,9 +703,10 @@ export class SubscriptionsService {
           const wsName = encodeURIComponent("🇳🇱 Netherlands WS");
 
           links.push(
-            `vless://${h1Client.remoteUuid}@nl1.4stepsvpn.ru:25127` +
-            `?encryption=none&security=none` +
-            `&type=ws&host=nl1.4stepsvpn.ru` +
+            `vless://${h1Client.remoteUuid}@ws-nl1.4stepsvpn.ru:443` +
+            `?encryption=none&security=tls` +
+            `&sni=ws-nl1.4stepsvpn.ru` +
+            `&type=ws&host=ws-nl1.4stepsvpn.ru` +
             `&path=${encodeURIComponent("/ws-test")}` +
             `#${wsName}`,
           );

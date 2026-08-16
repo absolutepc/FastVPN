@@ -127,6 +127,9 @@ private countryFlag(name: string): string {
           { text: '📅 Начислить дни', callback_data: 'admin:add_days' },
         ],
         [
+          { text: '👤 Найти пользователя', callback_data: 'admin:find_user' },
+        ],
+        [
           { text: '📢 Рассылка', callback_data: 'admin:broadcast' },
           { text: '🚫 Заблокировать', callback_data: 'admin:block' },
         ],
@@ -221,6 +224,36 @@ private countryFlag(name: string): string {
         reply_markup: this.manageKeyboard(),
       });
     });
+ 
+    bot.callbackQuery('admin:find_user', async (ctx) => {
+  if (!this.isAdmin(ctx.from?.id)) {
+    return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+  }
+
+  await ctx.answerCallbackQuery();
+
+  ctx.session.adminAction = 'find_user';
+  ctx.session.adminStep = 1;
+  ctx.session.adminData = {};
+
+  await ctx.editMessageText(
+    '👤 <b>Поиск пользователя</b>\n\n' +
+      'Введите Telegram ID или username:',
+    {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: '« Отмена',
+              callback_data: 'admin:manage',
+            },
+          ],
+        ],
+      },
+    },
+  );
+});    
 
     bot.callbackQuery('admin:add_days', async (ctx) => {
       if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
@@ -546,6 +579,10 @@ private countryFlag(name: string): string {
       const step = ctx.session.adminStep || 1;
 
       try {
+        if (action === 'find_user') {
+        await this.handleFindUser(ctx, text);
+        return;
+        }
         if (action === 'add_days') {
           await this.handleAddDays(ctx, text, step);
           return;
@@ -780,7 +817,7 @@ private countryFlag(name: string): string {
     if (parts.length < 7) {
       return ctx.reply('Нужно: name|host|port|type|publicKey|shortId|sni');
     }
-
+    
     const [name, host, portStr, typeStr, publicKey, shortId, sni] = parts;
     const port = parseInt(portStr, 10) || 443;
     const type = typeStr.toLowerCase() === 'premium' ? NodeType.PREMIUM : NodeType.STANDARD;
@@ -806,6 +843,111 @@ private countryFlag(name: string): string {
       `✅ <b>${node.name}</b> · ${node.host}:${node.port} · ${node.type}` +
         (maxUsers ? ` · max ${maxUsers}` : ''),
       { parse_mode: 'HTML', reply_markup: this.manageKeyboard() },
+    );
+  }
+    private async handleFindUser(
+    ctx: BotContext,
+    text: string,
+  ) {
+    const value = text.trim();
+
+    let user;
+
+    if (/^\d+$/.test(value)) {
+      user = await this.prisma.user.findUnique({
+        where: {
+          telegramId: BigInt(value),
+        },
+        include: {
+          subscriptions: true,
+          payments: true,
+          devices: true,
+        },
+      });
+    } else {
+      user = await this.prisma.user.findFirst({
+        where: {
+          username: value.replace('@', ''),
+        },
+        include: {
+          subscriptions: true,
+          payments: true,
+          devices: true,
+        },
+      });
+    }
+
+    if (!user) {
+      return ctx.reply('❌ Пользователь не найден');
+    }
+
+    const activeSub = user.subscriptions.find(
+      (s) =>
+        s.status === SubscriptionStatus.ACTIVE ||
+        s.status === SubscriptionStatus.TRIAL,
+    );
+
+    const paymentsTotal =
+      user.payments.reduce(
+        (sum, p) => sum + p.amount,
+        0,
+      ) / 100;
+
+
+    const message =
+      `👤 <b>Пользователь</b>\n\n` +
+      `ID: <code>${user.telegramId}</code>\n` +
+      `Username: ${
+        user.username
+          ? '@' + user.username
+          : '—'
+      }\n` +
+      `Имя: ${user.firstName || '—'}\n\n` +
+
+      `Статус: ${
+        user.isBlocked
+          ? '🚫 Заблокирован'
+          : '🟢 Активен'
+      }\n\n` +
+
+      `📅 Подписка:\n` +
+      `${
+        activeSub
+          ? `${activeSub.plan}\n${activeSub.status}\nдо ${activeSub.expiresAt.toLocaleDateString('ru-RU')}`
+          : 'Нет активной подписки'
+      }\n\n` +
+
+      `💰 Оплачено: ${paymentsTotal} ₽\n` +
+      `📱 Устройств: ${user.devices.length}`;
+
+
+    this.botService.clearAdminSession(ctx);
+
+    return ctx.reply(
+      message,
+      {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: '📅 Начислить дни',
+                callback_data: 'admin:add_days',
+              },
+            ],
+            [
+              {
+                text: user.isBlocked
+                  ? '✅ Разблокировать'
+                  : '🚫 Заблокировать',
+                callback_data: user.isBlocked
+                  ? 'admin:unblock'
+                  : 'admin:block',
+              },
+            ],
+          ],
+        },
+      },
     );
   }
 }

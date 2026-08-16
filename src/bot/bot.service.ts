@@ -6,6 +6,7 @@ import { SubscriptionsService } from '../modules/subscriptions/subscriptions.ser
 import { randomBytes } from 'crypto';
 
 export type AdminAction =
+  | 'find_user'
   | 'add_days'
   | 'block'
   | 'unblock'

@@ -661,6 +661,22 @@ export class SubscriptionsService {
       );
     });
 
+    const germanyNode = nodes.find((node) =>
+      node.name.toLowerCase().includes("germany"),
+    );
+
+    if (germanyNode) {
+      const germanyWsName = encodeURIComponent("🇩🇪 Germany WS");
+
+      links.push(
+        `vless://${sub.uuid}@130.17.24.143:444` +
+        `?encryption=none&security=none` +
+        `&type=ws&host=ws-de1.4stepsvpn.ru` +
+        `&path=${encodeURIComponent("/ws-test")}` +
+        `#${germanyWsName}`,
+      );
+    }
+
     if (sub.id) {
       const h1Links = await this.prisma.h1CloudClient.findMany({
         where: {

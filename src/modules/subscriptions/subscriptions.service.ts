@@ -723,6 +723,18 @@ export class SubscriptionsService {
         const base = h1Client.remoteLink.split("#")[0];
         links.push(`${base}#${name}`);
 
+        if (node.key === "PL1" && h1Client.remoteUuid) {
+          const wsName = encodeURIComponent("🇵🇱 Poland WS");
+
+          links.push(
+            `vless://${h1Client.remoteUuid}@pl1.4stepsvpn.ru:26548` +
+            `?encryption=none&security=none` +
+            `&type=ws&host=ws-pl1.4stepsvpn.ru` +
+            `&path=${encodeURIComponent("/ws-test")}` +
+            `#${wsName}`,
+          );
+        }
+
         if (node.key === "FI1" && h1Client.remoteUuid) {
           const wsName = encodeURIComponent("🇫🇮 Finland WS");
 

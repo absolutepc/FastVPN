@@ -1,3 +1,4 @@
+import { AdminModule } from './modules/admin/admin.module';
 import { NodeTunnelService } from './node-tunnel.service';
 import { NodeRegisterController } from './node-register.controller';
 import { NodeInstallController } from './node-install.controller';
@@ -22,6 +23,7 @@ import { WebappModule } from './modules/webapp/webapp.module';
     XrayModule,
     SubscriptionsModule,
     PaymentsModule,
+    AdminModule,
     WebappModule,
     BotModule,
     ],

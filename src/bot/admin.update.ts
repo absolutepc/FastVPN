@@ -255,6 +255,42 @@ private countryFlag(name: string): string {
   );
 });    
 
+    bot.callbackQuery(/^admin:sub_link:(.+)$/, async (ctx) => {
+  if (!this.isAdmin(ctx.from?.id)) {
+    return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+  }
+
+  await ctx.answerCallbackQuery();
+
+  const userId = ctx.match[1];
+
+  const sub = await this.prisma.subscription.findFirst({
+    where: {
+      userId,
+      status: {
+        in: [
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.TRIAL,
+        ],
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  if (!sub) {
+    return ctx.reply('❌ Активная подписка не найдена');
+  }
+
+  await ctx.reply(
+    `🔗 <b>Ссылка подписки:</b>\n\nhttps://4stepsvpn.ru/sub/${sub.subToken}`,
+    {
+      parse_mode: 'HTML',
+    },
+  );
+});
+
     bot.callbackQuery('admin:add_days', async (ctx) => {
       if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
@@ -928,25 +964,31 @@ private countryFlag(name: string): string {
       {
         parse_mode: 'HTML',
         reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: '📅 Начислить дни',
-                callback_data: 'admin:add_days',
-              },
-            ],
-            [
-              {
-                text: user.isBlocked
-                  ? '✅ Разблокировать'
-                  : '🚫 Заблокировать',
-                callback_data: user.isBlocked
-                  ? 'admin:unblock'
-                  : 'admin:block',
-              },
-            ],
-          ],
-        },
+  inline_keyboard: [
+    [
+      {
+        text: '📄 Получить ссылку',
+        callback_data: `admin:sub_link:${user.id}`,
+      },
+    ],
+    [
+      {
+        text: '📅 Начислить дни',
+        callback_data: 'admin:add_days',
+      },
+    ],
+    [
+      {
+        text: user.isBlocked
+          ? '✅ Разблокировать'
+          : '🚫 Заблокировать',
+        callback_data: user.isBlocked
+          ? 'admin:unblock'
+          : 'admin:block',
+      },
+    ],
+  ],
+},
       },
     );
   }

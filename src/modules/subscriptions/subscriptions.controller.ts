@@ -17,6 +17,8 @@ export class SubscriptionsController {
   @Get(':token')
   @Header('Content-Type', 'text/plain; charset=utf-8')
   @Header('Profile-Update-Interval', '12')
+  @Header('Happ-Ping-Type', 'tcp')
+  @Header('Happ-Ping-On-Open', 'true')
   async getSubscription(
     @Param('token') token: string,
     @Res({ passthrough: true }) res: Response,

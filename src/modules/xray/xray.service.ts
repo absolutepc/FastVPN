@@ -99,54 +99,25 @@ export class XrayService {
     const api = await this.getClient(node);
     if (!api) return false;
 
-    const inbounds: Array<{ tag: string; flow: VlessFlow }> =
-      node.name.toLowerCase().includes('germany')
-        ? [
-            {
-              tag: node.inboundTag || 'vless-reality',
-              flow: 'xtls-rprx-vision',
-            },
-            {
-              tag: 'vless-ws',
-              flow: '',
-            },
-          ]
-        : [
-            {
-              tag: node.inboundTag || 'vless-reality',
-              flow,
-            },
-          ];
+    try {
+      const result = await api.handler.addVlessUser({
+        tag: node.inboundTag || 'vless-reality',
+        username: this.emailFor(uuid),
+        uuid,
+        flow,
+        level: 0,
+      });
 
-    let success = true;
-
-    for (const inbound of inbounds) {
-      try {
-        const result = await api.handler.addVlessUser({
-          tag: inbound.tag,
-          username: this.emailFor(uuid),
-          uuid,
-          flow: inbound.flow,
-          level: 0,
-        });
-
-        if (result && (result as { isOk?: boolean }).isOk === false) {
-          this.logger.warn(
-            `addVlessUser failed on ${node.name} inbound=${inbound.tag}`,
-            result,
-          );
-          success = false;
-        }
-      } catch (e) {
-        this.logger.error(
-          `addUserToNode ${node.name} inbound=${inbound.tag}`,
-          e instanceof Error ? e.message : e,
-        );
-        success = false;
+      if (result && (result as { isOk?: boolean }).isOk === false) {
+        this.logger.warn(`addVlessUser failed on ${node.name}`, result);
+        return false;
       }
-    }
 
-    return success;
+      return true;
+    } catch (e) {
+      this.logger.error(`addUserToNode ${node.name}`, e instanceof Error ? e.message : e);
+      return false;
+    }
   }
 
   async removeUserFromPlanNodes(params: {
@@ -174,35 +145,21 @@ export class XrayService {
     const api = await this.getClient(node);
     if (!api) return false;
 
-    const inboundTags = node.name.toLowerCase().includes('germany')
-      ? [node.inboundTag || 'vless-reality', 'vless-ws']
-      : [node.inboundTag || 'vless-reality'];
+    try {
+      const result = await api.handler.removeUser(
+        node.inboundTag || 'vless-reality',
+        this.emailFor(uuid),
+      );
 
-    let success = true;
-
-    for (const tag of inboundTags) {
-      try {
-        const result = await api.handler.removeUser(
-          tag,
-          this.emailFor(uuid),
-        );
-
-        if (result && (result as { isOk?: boolean }).isOk === false) {
-          this.logger.debug(
-            `removeUser soft-fail on ${node.name} inbound=${tag}`,
-            result,
-          );
-        }
-      } catch (e) {
-        this.logger.error(
-          `removeUserFromNode ${node.name} inbound=${tag}`,
-          e instanceof Error ? e.message : e,
-        );
-        success = false;
+      if (result && (result as { isOk?: boolean }).isOk === false) {
+        this.logger.debug(`removeUser soft-fail on ${node.name}`, result);
       }
-    }
 
-    return success;
+      return true;
+    } catch (e) {
+      this.logger.error(`removeUserFromNode ${node.name}`, e instanceof Error ? e.message : e);
+      return false;
+    }
   }
 
   async syncActiveUsersToNode(

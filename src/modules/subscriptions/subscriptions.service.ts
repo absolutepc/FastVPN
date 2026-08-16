@@ -698,6 +698,18 @@ export class SubscriptionsService {
 
         const base = h1Client.remoteLink.split("#")[0];
         links.push(`${base}#${name}`);
+
+        if (node.key === "NL1" && h1Client.remoteUuid) {
+          const wsName = encodeURIComponent("🇳🇱 Netherlands WS");
+
+          links.push(
+            `vless://${h1Client.remoteUuid}@nl1.4stepsvpn.ru:25127` +
+            `?encryption=none&security=none` +
+            `&type=ws&host=nl1.4stepsvpn.ru` +
+            `&path=${encodeURIComponent("/ws-test")}` +
+            `#${wsName}`,
+          );
+        }
       }
     }
 

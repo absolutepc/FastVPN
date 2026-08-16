@@ -682,22 +682,22 @@ export class SubscriptionsService {
 
         if (!h1Client?.remoteLink) continue;
 
-        const base = h1Client.remoteLink.split("#")[0];
         const name = encodeURIComponent(node.name);
 
-        links.push(`${base}#${name}`);
-
         if (node.key === "CH1" && h1Client.remoteUuid) {
-          const wsName = encodeURIComponent("🇨🇭 Switzerland WS");
-
           links.push(
             `vless://${h1Client.remoteUuid}@ch1.4stepsvpn.ru:25054` +
             `?encryption=none&security=none` +
             `&type=ws&host=ws-ch1.4stepsvpn.ru` +
             `&path=${encodeURIComponent("/ws-test")}` +
-            `#${wsName}`,
+            `#${name}`,
           );
+
+          continue;
         }
+
+        const base = h1Client.remoteLink.split("#")[0];
+        links.push(`${base}#${name}`);
       }
     }
 

@@ -354,7 +354,6 @@ REGISTER_PAYLOAD="$(python3 - <<PY
 import json
 
 print(json.dumps({
-    "token": "${NODE_REGISTER_TOKEN}",
     "name": "${NODE_NAME}",
     "host": "${PUBLIC_IP}",
     "type": "${NODE_TYPE}",
@@ -374,6 +373,7 @@ REGISTER_RESPONSE="$(
     -X POST \
     "${REGISTER_URL}" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${NODE_REGISTER_TOKEN}" \
     --data "${REGISTER_PAYLOAD}"
 )" || {
   echo "ERROR: backend registration failed"

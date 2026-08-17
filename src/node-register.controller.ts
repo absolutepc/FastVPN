@@ -3,15 +3,16 @@ import {
   Body,
   Controller,
   Post,
+  Headers,
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma/prisma.service';
 import { NodeType } from '@prisma/client';
+import { isIP } from 'net';
 
 type RegisterNodeBody = {
-  token: string;
   name: string;
   host: string;
   type: 'STANDARD' | 'PREMIUM';
@@ -35,14 +36,133 @@ export class NodeRegisterController {
     private readonly tunnel: NodeTunnelService,
   ) {}
 
-  @Post()
-  async register(@Body() body: RegisterNodeBody) {
-    const expected =
-      this.config.get<string>('NODE_REGISTER_TOKEN');
-
-    if (!expected || body.token !== expected) {
-      throw new UnauthorizedException();
+  private validateName(name: string) {
+    if (
+      typeof name !== 'string' ||
+      name.length < 1 ||
+      name.length > 64 ||
+      !/^[a-zA-Z0-9 _.-]+$/.test(name)
+    ) {
+      throw new BadRequestException('Invalid node name');
     }
+  }
+
+  private validateHost(host: string) {
+    if (
+      typeof host !== 'string' ||
+      host.length < 1 ||
+      host.length > 253
+    ) {
+      throw new BadRequestException('Invalid host');
+    }
+
+    if (isIP(host)) {
+      return;
+    }
+
+    const hostnamePattern =
+      /^(?=.{1,253}$)(?!-)(?:[a-zA-Z0-9-]{1,63}\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
+
+    if (!hostnamePattern.test(host)) {
+      throw new BadRequestException('Invalid host');
+    }
+  }
+
+  private validatePort(port: number) {
+    if (
+      !Number.isInteger(port) ||
+      port < 1 ||
+      port > 65535
+    ) {
+      throw new BadRequestException('Invalid port');
+    }
+  }
+
+  private validateMaxUsers(maxUsers: number) {
+    if (
+      !Number.isInteger(maxUsers) ||
+      maxUsers < 1 ||
+      maxUsers > 100000
+    ) {
+      throw new BadRequestException('Invalid maxUsers');
+    }
+  }
+
+  private validatePublicKey(publicKey: string) {
+    if (
+      typeof publicKey !== 'string' ||
+      publicKey.length < 20 ||
+      publicKey.length > 128 ||
+      !/^[A-Za-z0-9_-]+$/.test(publicKey)
+    ) {
+      throw new BadRequestException('Invalid publicKey');
+    }
+  }
+
+  private validateShortId(shortId: string) {
+    if (
+      typeof shortId !== 'string' ||
+      !/^[a-fA-F0-9]{2,32}$/.test(shortId)
+    ) {
+      throw new BadRequestException('Invalid shortId');
+    }
+  }
+
+  private validateSni(sni: string) {
+    if (
+      typeof sni !== 'string' ||
+      sni.length < 1 ||
+      sni.length > 253
+    ) {
+      throw new BadRequestException('Invalid sni');
+    }
+
+    const hostnamePattern =
+      /^(?=.{1,253}$)(?!-)(?:[a-zA-Z0-9-]{1,63}\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
+
+    if (!hostnamePattern.test(sni)) {
+      throw new BadRequestException('Invalid sni');
+    }
+  }
+
+  private validateInboundTag(inboundTag: string) {
+    if (
+      inboundTag.length < 1 ||
+      inboundTag.length > 64 ||
+      !/^[a-zA-Z0-9_.-]+$/.test(inboundTag)
+    ) {
+      throw new BadRequestException('Invalid inboundTag');
+    }
+  }
+
+  private validateFingerprint(fingerprint: string) {
+    if (
+      fingerprint.length < 1 ||
+      fingerprint.length > 32 ||
+      !/^[a-zA-Z0-9_.-]+$/.test(fingerprint)
+    ) {
+      throw new BadRequestException('Invalid fingerprint');
+    }
+  }
+
+  @Post()
+  async register(
+    @Headers('authorization') authorization: string | undefined,
+    @Body() body: RegisterNodeBody,
+  ) {
+    const expected =
+  this.config.get<string>('NODE_REGISTER_TOKEN');
+
+const prefix = 'Bearer ';
+
+if (
+  !expected ||
+  !authorization ||
+  !authorization.startsWith(prefix) ||
+  authorization.slice(prefix.length) !== expected
+) {
+  throw new UnauthorizedException();
+}
 
     if (
       !body.name ||
@@ -65,10 +185,27 @@ export class NodeRegisterController {
       );
     }
 
+    const port = body.port ?? 443;
+    const maxUsers = body.maxUsers ?? 50;
+    const inboundTag =
+      body.inboundTag ?? 'vless-reality';
+    const fingerprint =
+      body.fingerprint ?? 'chrome';
+
+    this.validateName(body.name);
+    this.validateHost(body.host);
+    this.validatePort(port);
+    this.validateMaxUsers(maxUsers);
+    this.validatePublicKey(body.publicKey);
+    this.validateShortId(body.shortId);
+    this.validateSni(body.sni);
+    this.validateInboundTag(inboundTag);
+    this.validateFingerprint(fingerprint);
+
     const existing = await this.prisma.node.findFirst({
       where: {
         host: body.host,
-        port: body.port ?? 443,
+        port,
       },
     });
 
@@ -80,25 +217,24 @@ export class NodeRegisterController {
         data: {
           name: body.name,
           type: body.type as NodeType,
-          maxUsers: body.maxUsers ?? 50,
+          maxUsers,
           publicKey: body.publicKey,
           shortId: body.shortId,
           sni: body.sni,
-          inboundTag:
-            body.inboundTag ?? 'vless-reality',
-          fingerprint:
-            body.fingerprint ?? 'chrome',
+          inboundTag,
+          fingerprint,
           isActive: false,
         },
       });
 
-      const tunnel = await this.tunnel.setupTunnel(updated.id);
+      const tunnel =
+        await this.tunnel.setupTunnel(updated.id);
 
       return {
         ok: true,
         action: 'updated',
         nodeId: updated.id,
-	tunnel,
+        tunnel,
       };
     }
 
@@ -106,32 +242,27 @@ export class NodeRegisterController {
       data: {
         name: body.name,
         host: body.host,
-        port: body.port ?? 443,
+        port,
 
-        // Активируем только после создания SSH tunnel
         apiHost: null,
         apiPort: 10085,
 
-        inboundTag:
-          body.inboundTag ?? 'vless-reality',
+        inboundTag,
 
         type: body.type as NodeType,
-        maxUsers: body.maxUsers ?? 50,
+        maxUsers,
 
         publicKey: body.publicKey,
         shortId: body.shortId,
         sni: body.sni,
-        fingerprint:
-          body.fingerprint ?? 'chrome',
+        fingerprint,
 
-        // ВАЖНО:
-        // новая нода не попадёт пользователям,
-        // пока backend не проверит Xray API
         isActive: false,
       },
     });
 
-    const tunnel = await this.tunnel.setupTunnel(node.id);
+    const tunnel =
+      await this.tunnel.setupTunnel(node.id);
 
     return {
       ok: true,

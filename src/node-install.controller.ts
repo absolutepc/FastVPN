@@ -1,9 +1,9 @@
 import {
   Controller,
   Get,
-  Param,
-  Res,
+  Headers,
   NotFoundException,
+  Res,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
@@ -14,16 +14,22 @@ import { join } from 'path';
 export class NodeInstallController {
   constructor(private readonly config: ConfigService) {}
 
-  @Get(':token')
+  @Get()
   async getInstaller(
-    @Param('token') token: string,
+    @Headers('authorization') authorization: string | undefined,
     @Res() res: Response,
   ) {
     const expected = this.config.get<string>('NODE_INSTALL_TOKEN');
+const prefix = 'Bearer ';
 
-    if (!expected || token !== expected) {
-      throw new NotFoundException();
-    }
+if (
+  !expected ||
+  !authorization ||
+  !authorization.startsWith(prefix) ||
+  authorization.slice(prefix.length) !== expected
+) {
+  throw new NotFoundException();
+}
 
     const installerPath = join(
       process.cwd(),

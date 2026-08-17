@@ -791,7 +791,7 @@ const inbound =
       },
     });
 
-    const links = nodes.map((node) => {
+    const links = nodes.flatMap((node) => {
       const countryFlag = node.name.toLowerCase().includes("germany")
         ? "🇩🇪"
         : node.name.toLowerCase().includes("netherlands")
@@ -809,21 +809,59 @@ const inbound =
       const name = encodeURIComponent(`${countryFlag} ${node.name}`);
 
       if (node.name.toLowerCase().includes("germany")) {
-        return (
+        const mainName = encodeURIComponent("🇩🇪 Germany MAIN");
+        const xhttpName = encodeURIComponent("🇩🇪 Germany XHTTP");
+        const wsName = encodeURIComponent("🇩🇪 Germany WS");
+        const fastName = encodeURIComponent("🇩🇪 Germany FAST");
+
+        const main =
+          `vless://${sub.uuid}@130.17.24.143:443` +
+          `?encryption=none` +
+          `&flow=xtls-rprx-vision` +
+          `&security=reality` +
+          `&sni=www.cloudflare.com` +
+          `&fp=chrome` +
+          `&pbk=aTv2LVdB1nIybUlvhXGuAY4I6eq-eWATkYIhHo3y9Qo` +
+          `&sid=933c83a3` +
+          `&type=tcp` +
+          `&headerType=none` +
+          `#${mainName}`;
+
+        const xhttp =
+          `vless://${sub.uuid}@130.17.24.143:445` +
+          `?encryption=none` +
+          `&security=reality` +
+          `&sni=www.cloudflare.com` +
+          `&fp=chrome` +
+          `&pbk=aTv2LVdB1nIybUlvhXGuAY4I6eq-eWATkYIhHo3y9Qo` +
+          `&sid=933c83a3` +
+          `&type=xhttp` +
+          `&path=${encodeURIComponent("/4steps-xhttp")}` +
+          `#${xhttpName}`;
+
+        const ws =
           `vless://${sub.uuid}@130.17.24.143:444` +
-          `?encryption=none&security=none` +
-          `&type=ws&host=ws-de1.4stepsvpn.ru` +
+          `?encryption=none` +
+          `&security=none` +
+          `&type=ws` +
+          `&host=ws-de1.4stepsvpn.ru` +
           `&path=${encodeURIComponent("/ws-test")}` +
-          `#${name}`
-        );
+          `#${wsName}`;
+
+        const fast =
+          `hy2://${sub.uuid}@hy-de1.4stepsvpn.ru:443/` +
+          `?sni=hy-de1.4stepsvpn.ru` +
+          `#${fastName}`;
+
+        return [main, xhttp, ws, fast];
       }
 
-      return (
+      return [
         `vless://${sub.uuid}@${node.host}:${node.port}` +
-        `?encryption=none&flow=xtls-rprx-vision&security=reality` +
-        `&sni=${node.sni}&fp=${node.fingerprint}&pbk=${node.publicKey}&sid=${node.shortId}` +
-        `&type=tcp&headerType=none&xtls=2#${name}`
-      );
+          `?encryption=none&flow=xtls-rprx-vision&security=reality` +
+          `&sni=${node.sni}&fp=${node.fingerprint}&pbk=${node.publicKey}&sid=${node.shortId}` +
+          `&type=tcp&headerType=none&xtls=2#${name}`,
+      ];
     });
 
     if (sub.id) {

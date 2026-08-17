@@ -119,6 +119,9 @@ private countryFlag(name: string): string {
     return {
       inline_keyboard: [
         [
+          { text: '⚡ Вкл / Выкл сервер', callback_data: 'admin:toggle_node' },
+        ],
+        [
           { text: '➕ Добавить сервер', callback_data: 'admin:add_node' },
           { text: '➖ Удалить сервер', callback_data: 'admin:del_node' },
         ],
@@ -291,6 +294,43 @@ private countryFlag(name: string): string {
   );
 });
 
+ bot.callbackQuery(/^admin:add_days:(.+)$/, async (ctx) => {
+  if (!this.isAdmin(ctx.from?.id)) {
+    return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+  }
+
+  await ctx.answerCallbackQuery();
+
+  const userId = ctx.match[1];
+
+  const user = await this.prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    return ctx.reply('❌ Пользователь не найден');
+  }
+
+  ctx.session.adminAction = 'add_days';
+  ctx.session.adminStep = 2;
+  ctx.session.adminData = {
+    userId: user.id,
+    telegramId: String(user.telegramId),
+  };
+
+  await ctx.reply(
+    `📅 <b>Начислить дни</b>\n\n` +
+      `Пользователь: <b>${user.username || user.firstName || user.telegramId}</b>\n\n` +
+      `Отправьте: <code>дни план</code>\n` +
+      `Пример: <code>30 standard</code>`,
+    {
+      parse_mode: 'HTML',
+    },
+  );
+});
+
     bot.callbackQuery('admin:add_days', async (ctx) => {
       if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
@@ -439,7 +479,107 @@ private countryFlag(name: string): string {
         },
       });
     });
+    
+    bot.callbackQuery('admin:toggle_node', async (ctx) => {
+  if (!this.isAdmin(ctx.from?.id)) {
+    return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+  }
 
+  await ctx.answerCallbackQuery();
+
+  const nodes = await this.prisma.node.findMany({
+    orderBy: { name: 'asc' },
+  });
+
+  if (nodes.length === 0) {
+    return ctx.editMessageText('Нет серверов.', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '« Назад', callback_data: 'admin:manage' }],
+        ],
+      },
+    });
+  }
+
+  const buttons = nodes.map((node) => [
+    {
+      text: `${node.isActive ? '🟢' : '🔴'} ${node.name} (${node.type})`,
+      callback_data: `admin:toggle_node:${node.id}`,
+    },
+  ]);
+
+  buttons.push([
+    { text: '« Назад', callback_data: 'admin:manage' },
+  ]);
+
+  return ctx.editMessageText(
+    '⚡ <b>Включение / выключение серверов</b>\n\nВыберите сервер:',
+    {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: buttons,
+      },
+    },
+  );
+});
+
+    bot.callbackQuery(/^admin:toggle_node:(.+)$/, async (ctx) => {
+  if (!this.isAdmin(ctx.from?.id)) {
+    return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+  }
+
+  const nodeId = ctx.match![1];
+
+  const node = await this.prisma.node.findUnique({
+    where: { id: nodeId },
+  });
+
+  if (!node) {
+    return ctx.answerCallbackQuery({
+      text: 'Сервер не найден',
+      show_alert: true,
+    });
+  }
+
+  const updated = await this.prisma.node.update({
+    where: { id: nodeId },
+    data: {
+      isActive: !node.isActive,
+    },
+  });
+
+  await ctx.answerCallbackQuery({
+    text: updated.isActive
+      ? 'Сервер включён'
+      : 'Сервер выключен',
+  });
+
+  const nodes = await this.prisma.node.findMany({
+    orderBy: { name: 'asc' },
+  });
+
+  const buttons = nodes.map((item) => [
+    {
+      text: `${item.isActive ? '🟢' : '🔴'} ${item.name} (${item.type})`,
+      callback_data: `admin:toggle_node:${item.id}`,
+    },
+  ]);
+
+  buttons.push([
+    { text: '« Назад', callback_data: 'admin:manage' },
+  ]);
+
+  return ctx.editMessageText(
+    '⚡ <b>Включение / выключение серверов</b>\n\nВыберите сервер:',
+    {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: buttons,
+      },
+    },
+  );
+});
+  
     bot.callbackQuery('admin:monitor', async (ctx) => {
   if (!this.isAdmin(ctx.from?.id)) {
     return ctx.answerCallbackQuery({ text: 'Нет доступа' });
@@ -974,7 +1114,7 @@ private countryFlag(name: string): string {
     [
       {
         text: '📅 Начислить дни',
-        callback_data: 'admin:add_days',
+        callback_data: `admin:add_days:${user.id}`,
       },
     ],
     [

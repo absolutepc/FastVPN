@@ -93,22 +93,32 @@ export class SubscriptionsService {
   }
 
   private async provisionH1Cloud(subscription: {
-    id: string;
-    expiresAt: Date;
-  }) {
-    for (const node of this.getConfiguredH1Nodes()) {
+  id: string;
+  expiresAt: Date;
+}) {
+  for (const node of this.getConfiguredH1Nodes()) {
+    try {
       await this.provisionH1CloudNode(node.key, subscription);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `H1Cloud provision failed for ${node.key} subscription ${subscription.id}: ${message}`,
+      );
     }
   }
+}
 
   private async extendH1Cloud(
-    subscriptionId: string,
-    extensionDays: number,
-    expiresAt: Date,
-  ) {
-    const createDays = this.getRemainingDays(expiresAt);
+  subscriptionId: string,
+  extensionDays: number,
+  expiresAt: Date,
+) {
+  const createDays = this.getRemainingDays(expiresAt);
 
-    for (const node of this.getConfiguredH1Nodes()) {
+  for (const node of this.getConfiguredH1Nodes()) {
+    try {
       const client = await this.h1cloud.extendForSubscription(
         subscriptionId,
         extensionDays,
@@ -116,22 +126,68 @@ export class SubscriptionsService {
         createDays,
       );
 
-      await this.saveH1CloudClient(node.key, subscriptionId, client);
+      await this.saveH1CloudClient(
+        node.key,
+        subscriptionId,
+        client,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `H1Cloud extend failed for ${node.key} subscription ${subscriptionId}: ${message}`,
+      );
     }
   }
+}
 
   private async removeH1Cloud(subscriptionId: string) {
-    for (const node of this.getConfiguredH1Nodes()) {
-      await this.h1cloud.deleteForSubscription(subscriptionId, node.key);
+  const clients = await this.prisma.h1CloudClient.findMany({
+    where: {
+      subscriptionId,
+    },
+    select: {
+      nodeKey: true,
+    },
+  });
+
+  let ok = 0;
+  let fail = 0;
+
+  for (const client of clients) {
+    try {
+      await this.h1cloud.deleteForSubscription(
+        subscriptionId,
+        client.nodeKey as H1CloudNodeKey
+      );
 
       await this.prisma.h1CloudClient.deleteMany({
         where: {
           subscriptionId,
-          nodeKey: node.key,
+          nodeKey: client.nodeKey,
         },
       });
+
+      ok++;
+    } catch (error) {
+      fail++;
+
+      const message =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `H1Cloud remove failed for ${client.nodeKey} subscription ${subscriptionId}: ${message}`,
+      );
     }
   }
+
+  return {
+    total: clients.length,
+    ok,
+    fail,
+  };
+}
 
   async createSubscription(params: {
     userId: string;
@@ -336,36 +392,96 @@ export class SubscriptionsService {
   }
 
   async expireOverdueSubscriptions() {
-    const now = new Date();
+  const now = new Date();
 
-    const overdue = await this.prisma.subscription.findMany({
-      where: {
-        status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
-        expiresAt: { lte: now },
+  const overdue = await this.prisma.subscription.findMany({
+    where: {
+      status: {
+        in: [
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.TRIAL,
+        ],
       },
-    });
+      expiresAt: {
+        lte: now,
+      },
+    },
+  });
 
-    if (overdue.length === 0) return 0;
+  if (overdue.length === 0) {
+    return 0;
+  }
 
-    await this.prisma.subscription.updateMany({
-      where: { id: { in: overdue.map((s) => s.id) } },
-      data: { status: SubscriptionStatus.EXPIRED },
-    });
+  let expired = 0;
 
-    for (const sub of overdue) {
+  for (const sub of overdue) {
+    let cleanupFailed = false;
+
+    try {
       await this.xray.removeUserFromPlanNodes({
         uuid: sub.uuid,
         plan: sub.plan,
       });
+    } catch (error) {
+      cleanupFailed = true;
 
-      if (sub.plan === PlanType.STANDARD) {
-        await this.removeH1Cloud(sub.id);
+      const message =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Xray remove failed for subscription ${sub.id}: ${message}`,
+      );
+    }
+
+    if (sub.plan === PlanType.STANDARD) {
+      const h1Result = await this.removeH1Cloud(sub.id);
+
+      if (h1Result.fail > 0) {
+        cleanupFailed = true;
+
+        this.logger.warn(
+          `H1Cloud cleanup incomplete for subscription ${sub.id}: total=${h1Result.total} ok=${h1Result.ok} fail=${h1Result.fail}`,
+        );
       }
     }
 
-    this.logger.log(`Expired ${overdue.length} subscription(s)`);
-    return overdue.length;
+    if (cleanupFailed) {
+      this.logger.warn(
+        `Subscription ${sub.id} remains ${sub.status}; cleanup will be retried`,
+      );
+
+      continue;
+    }
+
+    try {
+      await this.prisma.subscription.update({
+        where: {
+          id: sub.id,
+        },
+        data: {
+          status: SubscriptionStatus.EXPIRED,
+        },
+      });
+
+      expired++;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Failed to mark subscription ${sub.id} as expired: ${message}`,
+      );
+    }
   }
+
+  if (expired > 0) {
+    this.logger.log(
+      `Expired ${expired} subscription(s)`,
+    );
+  }
+
+  return expired;
+}
 
   private async countExpectedH1CloudClients() {
     return this.prisma.subscription.count({
@@ -423,8 +539,23 @@ export class SubscriptionsService {
             const latencyMs =
               Date.now() - startedAt;
 
-            const inbound =
-              inboundResult.inbounds[0] || null;
+            const wsInbound =
+  inboundResult.inbounds.find(
+    (item) =>
+      String(item.network || '').toLowerCase() === 'ws',
+  ) || null;
+
+const realityInbound =
+  inboundResult.inbounds.find(
+    (item) =>
+      String(item.security || '').toLowerCase() === 'reality',
+  ) || null;
+
+const inbound =
+  wsInbound ||
+  realityInbound ||
+  inboundResult.inbounds[0] ||
+  null;
 
             const trafficBytes =
               remoteClients.reduce(

@@ -12,7 +12,6 @@ type SeenUser = {
 };
 
 type DeviceState = {
-  ipLastSeen: Record<string, number>;
   violations: number;
   alertSent: boolean;
 };
@@ -26,13 +25,12 @@ export class DeviceLimitService {
 
   private readonly sshKey = '/root/.ssh/4stepsvpn_xray';
 
-  // Логи читаем за 2 минуты
+  // Смотрим только свежие подключения за текущий интервал проверки.
   private readonly logWindow = '2 minutes ago';
 
-  // IP считается "активным", если был замечен не более 5 минут назад
-  private readonly activeIpTtlMs = 5 * 60 * 1000;
-
-  // Сколько подтверждений нужно до CONFIRMED
+  // Нарушение должно повториться несколько циклов подряд.
+  // Cron запускается каждые 2 минуты, поэтому случайная смена сети
+  // Wi-Fi -> LTE не должна приводить к CONFIRMED.
   private readonly requiredViolations = 3;
 
   constructor(
@@ -73,19 +71,30 @@ export class DeviceLimitService {
 
   @Cron('*/2 * * * *')
   async checkDeviceLimits() {
-    if (this.running) return;
+    if (this.running) {
+      return;
+    }
 
     this.running = true;
 
     try {
-      const now = Date.now();
-
       const nodes = await this.prisma.node.findMany({
         where: {
           isActive: true,
         },
       });
 
+      /*
+       * ВАЖНО:
+       *
+       * IP больше не сохраняются между циклами.
+       *
+       * Раньше старый IP хранился ещё 5 минут, поэтому обычное
+       * переключение Wi-Fi -> LTE могло выглядеть как два устройства.
+       *
+       * Теперь учитываются только IP, реально замеченные
+       * в текущем окне журналов.
+       */
       const seen = new Map<string, SeenUser>();
 
       for (const node of nodes) {
@@ -103,7 +112,9 @@ export class DeviceLimitService {
             /from\s+(?:tcp:)?(\d{1,3}(?:\.\d{1,3}){3}):(\d+)\s+accepted.*email:\s+([^\s]+)/,
           );
 
-          if (!match) continue;
+          if (!match) {
+            continue;
+          }
 
           const ip = match[1];
           const email = match[3];
@@ -132,13 +143,23 @@ export class DeviceLimitService {
         }
       }
 
-      // Обновляем lastSeen для IP, которые появились в текущем цикле
+      /*
+       * Если UUID вообще не появился в текущем цикле,
+       * предыдущую серию подозрений сбрасываем.
+       *
+       * Это не позволяет старым IP влиять на следующие проверки.
+       */
+      for (const uuid of [...this.states.keys()]) {
+        if (!seen.has(uuid)) {
+          this.states.delete(uuid);
+        }
+      }
+
       for (const [uuid, data] of seen.entries()) {
         let state = this.states.get(uuid);
 
         if (!state) {
           state = {
-            ipLastSeen: {},
             violations: 0,
             alertSent: false,
           };
@@ -146,21 +167,7 @@ export class DeviceLimitService {
           this.states.set(uuid, state);
         }
 
-        for (const ip of data.ips) {
-          state.ipLastSeen[ip] = now;
-        }
-      }
-
-      // Проверяем все UUID, которые есть в state
-      for (const [uuid, state] of this.states.entries()) {
-        // Удаляем давно неактивные IP
-        for (const [ip, lastSeen] of Object.entries(state.ipLastSeen)) {
-          if (now - lastSeen > this.activeIpTtlMs) {
-            delete state.ipLastSeen[ip];
-          }
-        }
-
-        const activeIps = Object.keys(state.ipLastSeen);
+        const activeIps = [...data.ips];
 
         const subscription =
           await this.prisma.subscription.findUnique({
@@ -173,9 +180,16 @@ export class DeviceLimitService {
           });
 
         if (!subscription) {
+          this.states.delete(uuid);
           continue;
         }
 
+        /*
+         * Для MVP несколько IP являются только сигналом.
+         *
+         * Мы НЕ блокируем подписку автоматически.
+         * IP не является надёжным идентификатором устройства.
+         */
         const violation = activeIps.length > 1;
 
         if (violation) {
@@ -188,62 +202,71 @@ export class DeviceLimitService {
         const confirmed =
           state.violations >= this.requiredViolations;
 
-        const currentSeen = seen.get(uuid);
-
         if (confirmed) {
-  this.logger.error(
-    `DEVICE LIMIT CONFIRMED: ` +
-      `user=${subscription.user.username ?? '-'} ` +
-      `telegram=${subscription.user.telegramId.toString()} ` +
-      `uuid=${uuid} ` +
-      `plan=${subscription.plan} ` +
-      `ips=${activeIps.join(',')} ` +
-      `counter=${state.violations}/${this.requiredViolations} ` +
-      `nodes=${currentSeen ? [...currentSeen.nodes].join(',') : '-'} ` +
-      `connections=${currentSeen?.connections ?? 0}`,
-  );
+          this.logger.error(
+            `DEVICE LIMIT CONFIRMED: ` +
+              `user=${subscription.user.username ?? '-'} ` +
+              `telegram=${subscription.user.telegramId.toString()} ` +
+              `uuid=${uuid} ` +
+              `plan=${subscription.plan} ` +
+              `ips=${activeIps.join(',')} ` +
+              `counter=${state.violations}/${this.requiredViolations} ` +
+              `nodes=${[...data.nodes].join(',')} ` +
+              `connections=${data.connections}`,
+          );
 
-  if (!state.alertSent) {
-    const adminsRaw = process.env.ADMIN_IDS || '';
+          if (!state.alertSent) {
+            const adminsRaw = process.env.ADMIN_IDS || '';
 
-    const adminIds = adminsRaw
-      .split(',')
-      .map((id) => Number(id.trim()))
-      .filter((id) => Number.isFinite(id) && id > 0);
+            const adminIds = adminsRaw
+              .split(',')
+              .map((id) => Number(id.trim()))
+              .filter(
+                (id) =>
+                  Number.isFinite(id) &&
+                  id > 0,
+              );
 
-    const text =
-      `🚨 <b>4StepsVPN · DEVICE LIMIT</b>\n\n` +
-      `Пользователь: <b>${subscription.user.username ?? '-'}</b>\n` +
-      `Telegram ID: <code>${subscription.user.telegramId.toString()}</code>\n` +
-      `Тариф: <b>${subscription.plan}</b>\n\n` +
-      `Обнаружено IP: <b>${activeIps.length}</b>\n` +
-      `${activeIps.map((ip) => `• <code>${ip}</code>`).join('\n')}\n\n` +
-      `UUID: <code>${uuid}</code>\n` +
-      `Ноды: ${currentSeen ? [...currentSeen.nodes].join(', ') : '-'}`;
+            const text =
+              `🚨 <b>4StepsVPN · DEVICE LIMIT</b>\n\n` +
+              `Пользователь: <b>${subscription.user.username ?? '-'}</b>\n` +
+              `Telegram ID: <code>${subscription.user.telegramId.toString()}</code>\n` +
+              `Тариф: <b>${subscription.plan}</b>\n\n` +
+              `Одновременно обнаружено IP: <b>${activeIps.length}</b>\n` +
+              `${activeIps
+                .map(
+                  (ip) =>
+                    `• <code>${ip}</code>`,
+                )
+                .join('\n')}\n\n` +
+              `UUID: <code>${uuid}</code>\n` +
+              `Ноды: ${[...data.nodes].join(', ')}`;
 
-    for (const adminId of adminIds) {
-      try {
-        await this.botService.bot.api.sendMessage(
-          adminId,
-          text,
-          {
-            parse_mode: 'HTML',
-          },
-        );
-      } catch (e) {
-        this.logger.warn(
-          `Failed to send device limit alert to ${adminId}: ${
-            e instanceof Error ? e.message : e
-          }`,
-        );
-      }
-    }
+            for (const adminId of adminIds) {
+              try {
+                await this.botService.bot.api.sendMessage(
+                  adminId,
+                  text,
+                  {
+                    parse_mode: 'HTML',
+                  },
+                );
+              } catch (e) {
+                this.logger.warn(
+                  `Failed to send device limit alert to ${adminId}: ${
+                    e instanceof Error
+                      ? e.message
+                      : e
+                  }`,
+                );
+              }
+            }
 
-    state.alertSent = true;
-  }
+            state.alertSent = true;
+          }
 
-  continue;
-}
+          continue;
+        }
 
         if (violation) {
           this.logger.warn(
@@ -252,19 +275,26 @@ export class DeviceLimitService {
               `telegram=${subscription.user.telegramId.toString()} ` +
               `uuid=${uuid} ` +
               `ips=${activeIps.join(',')} ` +
-              `counter=${state.violations}/${this.requiredViolations}`,
+              `counter=${state.violations}/${this.requiredViolations} ` +
+              `nodes=${[...data.nodes].join(',')} ` +
+              `connections=${data.connections}`,
           );
         } else {
           this.logger.debug(
-            `DEVICE LIMIT OK: uuid=${uuid} ` +
-              `ip=${activeIps[0] ?? '-'}`
+            `DEVICE LIMIT OK: ` +
+              `uuid=${uuid} ` +
+              `ip=${activeIps[0] ?? '-'} ` +
+              `nodes=${[...data.nodes].join(',')} ` +
+              `connections=${data.connections}`,
           );
         }
       }
     } catch (e) {
       this.logger.error(
         'Device limit cycle failed',
-        e instanceof Error ? e.message : e,
+        e instanceof Error
+          ? e.message
+          : e,
       );
     } finally {
       this.running = false;

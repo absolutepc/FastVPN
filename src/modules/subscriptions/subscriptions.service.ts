@@ -319,6 +319,29 @@ export class SubscriptionsService {
     });
   }
 
+  async getValidSubscriptionByUuid(uuid: string) {
+    const now = new Date();
+
+    return this.prisma.subscription.findFirst({
+      where: {
+        uuid,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+        },
+        expiresAt: {
+          gt: now,
+        },
+        user: {
+          isBlocked: false,
+        },
+      },
+      select: {
+        id: true,
+        uuid: true,
+      },
+    });
+  }
+
   async extendSubscription(subscriptionId: string, days: number) {
     const sub = await this.prisma.subscription.findUniqueOrThrow({
       where: { id: subscriptionId },

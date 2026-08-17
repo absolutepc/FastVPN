@@ -110,6 +110,10 @@ export class XrayService {
               tag: 'vless-ws',
               flow: '',
             },
+            {
+              tag: 'vless-xhttp',
+              flow: '',
+            },
           ]
         : [
             {
@@ -175,7 +179,7 @@ export class XrayService {
     if (!api) return false;
 
     const inboundTags = node.name.toLowerCase().includes('germany')
-      ? [node.inboundTag || 'vless-reality', 'vless-ws']
+      ? [node.inboundTag || 'vless-reality', 'vless-ws', 'vless-xhttp']
       : [node.inboundTag || 'vless-reality'];
 
     let success = true;

@@ -71,6 +71,12 @@ export class SubscriptionsController {
   @Header('Profile-Update-Interval', '12')
   @Header('Happ-Ping-Type', 'tcp')
   @Header('Happ-Ping-On-Open', 'true')
+  @Header('providerid', 'bdYDx08Z')
+  @Header('subscription-autoconnect', '1')
+  @Header('subscription-autoconnect-type', 'lowestdelay')
+  @Header('subscription-ping-onopen-enabled', '1')
+  @Header('subscription-auto-update-open-enable', '1')
+  @Header('subscriptions-sort-type', 'ping')
   async getSubscription(
     @Param('token') token: string,
     @Res({ passthrough: true }) res: Response,

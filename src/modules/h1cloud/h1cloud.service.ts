@@ -73,6 +73,8 @@ export type H1Client = {
   status: string;
   expires_at: number;
   left_days: number;
+  links?: Record<string, string>;
+  channels?: string[] | null;
   inbound_links: H1InboundLink[];
   sub_url: string;
   traffic_used_bytes: number;
@@ -123,6 +125,13 @@ export class H1CloudService {
     }
 
     return node;
+  }
+
+  private getChannels(nodeKey: H1CloudNodeKey): string[] {
+    if (nodeKey === 'FI1') return ['bs'];
+    if (nodeKey === 'NL1') return ['wscdn'];
+
+    return [];
   }
 
   private getInboundIds(
@@ -231,7 +240,7 @@ export class H1CloudService {
           name: params.name,
           days: params.days,
           device_limit: params.deviceLimit ?? 1,
-          channels: [],
+          channels: this.getChannels(nodeKey),
           inbound_ids: this.getInboundIds(nodeKey, node),
           wg: false,
         }),
@@ -263,7 +272,7 @@ export class H1CloudService {
         body: JSON.stringify({
           traffic_limit_gb: 0,
           device_limit: 1,
-          channels: [],
+          channels: this.getChannels(nodeKey),
           inbound_ids: this.getInboundIds(nodeKey, node),
           wg: false,
           days,

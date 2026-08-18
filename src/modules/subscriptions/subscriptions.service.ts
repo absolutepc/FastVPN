@@ -900,24 +900,62 @@ const inbound =
         }
 
         if (node.key === "NL1" && h1Client.remoteUuid) {
+          const wsName = encodeURIComponent("🇳🇱 Netherlands WS");
+
           links.push(
             `vless://${h1Client.remoteUuid}@nl1.4stepsvpn.ru:25127` +
             `?encryption=none&security=none` +
             `&type=ws&host=ws-nl1.4stepsvpn.ru` +
             `&path=${encodeURIComponent("/ws-test")}` +
-            `#${name}`,
+            `#${wsName}`,
           );
 
           continue;
         }
 
         if (node.key === "ES1" && h1Client.remoteUuid) {
+          const mainName = encodeURIComponent("🇪🇸 Spain MAIN");
+          const xhttpName = encodeURIComponent("🇪🇸 Spain XHTTP");
+          const wsName = encodeURIComponent("🇪🇸 Spain WS");
+
+          links.push(
+            `vless://${h1Client.remoteUuid}@es1.4stepsvpn.ru:25487` +
+            `?encryption=none&security=reality&type=tcp` +
+            `&sni=www.microsoft.com&fp=chrome` +
+            `&pbk=f2Upi-L-eWMy5ID7W2MjX7dueWhq7rVrYyUsA-_u0Sg` +
+            `&sid=b7b834aac1aaf266&spx=%2F` +
+            `#${mainName}`,
+          );
+
+          try {
+            const remoteClient = await this.h1cloud.getClientByName(
+              `sub_${sub.id}`,
+              "ES1",
+            );
+
+            const xhttpLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_f1b9465174",
+            )?.link;
+
+            if (xhttpLink) {
+              const xhttpBase = xhttpLink.split("#")[0];
+              links.push(`${xhttpBase}#${xhttpName}`);
+            }
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+
+            this.logger.warn(
+              `Spain XHTTP link unavailable for subscription ${sub.id}: ${message}`,
+            );
+          }
+
           links.push(
             `vless://${h1Client.remoteUuid}@es1.4stepsvpn.ru:25488` +
             `?encryption=none&security=none` +
             `&type=ws&host=ws-es1.4stepsvpn.ru` +
             `&path=${encodeURIComponent("/ws-test")}` +
-            `#${name}`,
+            `#${wsName}`,
           );
 
           continue;

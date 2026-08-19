@@ -998,12 +998,48 @@ const inbound =
         }
 
         if (node.key === "PL1" && h1Client.remoteUuid) {
+          const mainName = encodeURIComponent("🇵🇱 Poland MAIN");
+          const xhttpName = encodeURIComponent("🇵🇱 Poland XHTTP");
+          const wsName = encodeURIComponent("🇵🇱 Poland WS");
+
+          try {
+            const remoteClient = await this.h1cloud.getClientByName(
+              `sub_${sub.id}`,
+              "PL1",
+            );
+
+            const mainLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_a1e9039f1e",
+            )?.link;
+
+            if (mainLink) {
+              const mainBase = mainLink.split("#")[0];
+              links.push(`${mainBase}#${mainName}`);
+            }
+
+            const xhttpLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_cb423d6ea6",
+            )?.link;
+
+            if (xhttpLink) {
+              const xhttpBase = xhttpLink.split("#")[0];
+              links.push(`${xhttpBase}#${xhttpName}`);
+            }
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+
+            this.logger.warn(
+              `Poland MAIN/XHTTP links unavailable for subscription ${sub.id}: ${message}`,
+            );
+          }
+
           links.push(
             `vless://${h1Client.remoteUuid}@pl1.4stepsvpn.ru:26548` +
             `?encryption=none&security=none` +
             `&type=ws&host=ws-pl1.4stepsvpn.ru` +
             `&path=${encodeURIComponent("/ws-test")}` +
-            `#${name}`,
+            `#${wsName}`,
           );
 
           continue;

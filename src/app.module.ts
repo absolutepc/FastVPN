@@ -1,15 +1,17 @@
-import { NodeTunnelService } from './node-tunnel.service';
-import { NodeRegisterController } from './node-register.controller';
-import { NodeInstallController } from './node-install.controller';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { PrismaModule } from './prisma/prisma.module';
+
 import { BotModule } from './bot/bot.module';
-import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
-import { XrayModule } from './modules/xray/xray.module';
+import { HealthController } from './health.controller';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { WebappModule } from './modules/webapp/webapp.module';
+import { XrayModule } from './modules/xray/xray.module';
+import { NodeInstallController } from './node-install.controller';
+import { NodeRegisterController } from './node-register.controller';
+import { NodeTunnelService } from './node-tunnel.service';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -24,11 +26,12 @@ import { WebappModule } from './modules/webapp/webapp.module';
     PaymentsModule,
     WebappModule,
     BotModule,
-    ],
+  ],
   providers: [
     NodeTunnelService,
-    ],
+  ],
   controllers: [
+    HealthController,
     NodeInstallController,
     NodeRegisterController,
   ],

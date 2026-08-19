@@ -974,12 +974,48 @@ const inbound =
         }
 
         if (node.key === "SE1" && h1Client.remoteUuid) {
+          const mainName = encodeURIComponent("🇸🇪 Sweden MAIN");
+          const xhttpName = encodeURIComponent("🇸🇪 Sweden XHTTP");
+          const wsName = encodeURIComponent("🇸🇪 Sweden WS");
+
+          links.push(
+            `vless://${h1Client.remoteUuid}@se1.4stepsvpn.ru:25234` +
+            `?encryption=none&security=reality&type=tcp` +
+            `&sni=www.cloudflare.com&fp=chrome` +
+            `&pbk=zS3Jxep7dgx-y7HjpubrT5oULEzdhwFTXbsvDhbSQGk` +
+            `&sid=94f138957076ee54&spx=%2F` +
+            `#${mainName}`,
+          );
+
+          try {
+            const remoteClient = await this.h1cloud.getClientByName(
+              `sub_${sub.id}`,
+              "SE1",
+            );
+
+            const xhttpLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_61c070c275",
+            )?.link;
+
+            if (xhttpLink) {
+              const xhttpBase = xhttpLink.split("#")[0];
+              links.push(`${xhttpBase}#${xhttpName}`);
+            }
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+
+            this.logger.warn(
+              `Sweden XHTTP link unavailable for subscription ${sub.id}: ${message}`,
+            );
+          }
+
           links.push(
             `vless://${h1Client.remoteUuid}@se1.4stepsvpn.ru:25235` +
             `?encryption=none&security=none` +
             `&type=ws&host=ws-se1.4stepsvpn.ru` +
             `&path=${encodeURIComponent("/ws-test")}` +
-            `#${name}`,
+            `#${wsName}`,
           );
 
           continue;

@@ -936,7 +936,41 @@ const inbound =
         }
 
         if (node.key === "NL1" && h1Client.remoteUuid) {
+          const mainName = encodeURIComponent("🇳🇱 Netherlands MAIN");
+          const xhttpName = encodeURIComponent("🇳🇱 Netherlands XHTTP");
           const wsName = encodeURIComponent("🇳🇱 Netherlands WS");
+
+          try {
+            const remoteClient = await this.h1cloud.getClientByName(
+              `sub_${sub.id}`,
+              "NL1",
+            );
+
+            const mainLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_cfbd2a1e52",
+            )?.link;
+
+            if (mainLink) {
+              const mainBase = mainLink.split("#")[0];
+              links.push(`${mainBase}#${mainName}`);
+            }
+
+            const xhttpLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_064e37e049",
+            )?.link;
+
+            if (xhttpLink) {
+              const xhttpBase = xhttpLink.split("#")[0];
+              links.push(`${xhttpBase}#${xhttpName}`);
+            }
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+
+            this.logger.warn(
+              `Netherlands MAIN/XHTTP links unavailable for subscription ${sub.id}: ${message}`,
+            );
+          }
 
           links.push(
             `vless://${h1Client.remoteUuid}@nl1.4stepsvpn.ru:25127` +

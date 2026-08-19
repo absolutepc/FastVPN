@@ -1093,11 +1093,42 @@ const inbound =
           continue;
         }
 
-        const base = h1Client.remoteLink.split("#")[0];
-        links.push(`${base}#${name}`);
-
         if (node.key === "FI1" && h1Client.remoteUuid) {
+          const mainName = encodeURIComponent("🇫🇮 Finland MAIN");
+          const xhttpName = encodeURIComponent("🇫🇮 Finland XHTTP");
           const wsName = encodeURIComponent("🇫🇮 Finland WS");
+
+          try {
+            const remoteClient = await this.h1cloud.getClientByName(
+              `sub_${sub.id}`,
+              "FI1",
+            );
+
+            const mainLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_7aac5e6b12",
+            )?.link;
+
+            if (mainLink) {
+              const mainBase = mainLink.split("#")[0];
+              links.push(`${mainBase}#${mainName}`);
+            }
+
+            const xhttpLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_cc89fe9508",
+            )?.link;
+
+            if (xhttpLink) {
+              const xhttpBase = xhttpLink.split("#")[0];
+              links.push(`${xhttpBase}#${xhttpName}`);
+            }
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+
+            this.logger.warn(
+              `Finland MAIN/XHTTP links unavailable for subscription ${sub.id}: ${message}`,
+            );
+          }
 
           links.push(
             `vless://${h1Client.remoteUuid}@fi1.4stepsvpn.ru:25827` +
@@ -1106,7 +1137,12 @@ const inbound =
             `&path=${encodeURIComponent("/ws-test")}` +
             `#${wsName}`,
           );
+
+          continue;
         }
+
+        const base = h1Client.remoteLink.split("#")[0];
+        links.push(`${base}#${name}`);
       }
     }
 

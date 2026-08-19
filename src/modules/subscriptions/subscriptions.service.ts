@@ -888,12 +888,48 @@ const inbound =
         const name = encodeURIComponent(node.name);
 
         if (node.key === "CH1" && h1Client.remoteUuid) {
+          const mainName = encodeURIComponent("🇨🇭 Switzerland MAIN");
+          const xhttpName = encodeURIComponent("🇨🇭 Switzerland XHTTP");
+          const wsName = encodeURIComponent("🇨🇭 Switzerland WS");
+
+          try {
+            const remoteClient = await this.h1cloud.getClientByName(
+              `sub_${sub.id}`,
+              "CH1",
+            );
+
+            const mainLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_0f67f5820b",
+            )?.link;
+
+            if (mainLink) {
+              const mainBase = mainLink.split("#")[0];
+              links.push(`${mainBase}#${mainName}`);
+            }
+
+            const xhttpLink = remoteClient?.inbound_links?.find(
+              (inbound) => inbound.id === "ib_d0aac15723",
+            )?.link;
+
+            if (xhttpLink) {
+              const xhttpBase = xhttpLink.split("#")[0];
+              links.push(`${xhttpBase}#${xhttpName}`);
+            }
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+
+            this.logger.warn(
+              `Switzerland MAIN/XHTTP links unavailable for subscription ${sub.id}: ${message}`,
+            );
+          }
+
           links.push(
             `vless://${h1Client.remoteUuid}@ch1.4stepsvpn.ru:25054` +
             `?encryption=none&security=none` +
             `&type=ws&host=ws-ch1.4stepsvpn.ru` +
             `&path=${encodeURIComponent("/ws-test")}` +
-            `#${name}`,
+            `#${wsName}`,
           );
 
           continue;

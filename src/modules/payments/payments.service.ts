@@ -101,7 +101,10 @@ export class PaymentsService {
 
     await this.prisma.payment.update({
       where: { id: payment.id },
-      data: { yookassaPaymentId: data.id },
+      data: {
+        providerPaymentId: data.id,
+        paymentProvider: 'YOOKASSA',
+      },
     });
 
     return {
@@ -112,18 +115,18 @@ export class PaymentsService {
     };
   }
 
-  async handleSucceeded(yookassaPaymentId: string, metadata?: Record<string, string>) {
+  async handleSucceeded(providerPaymentId: string, metadata?: Record<string, string>) {
     const payment = await this.prisma.payment.findFirst({
       where: {
         OR: [
-          { yookassaPaymentId },
+          { providerPaymentId },
           ...(metadata?.payment_id ? [{ id: metadata.payment_id }] : []),
         ],
       },
     });
 
     if (!payment) {
-      this.logger.warn(`Payment not found for yookassa id ${yookassaPaymentId}`);
+      this.logger.warn(`Payment not found for provider id ${providerPaymentId}`);
       return null;
     }
 
@@ -135,7 +138,8 @@ export class PaymentsService {
       where: { id: payment.id },
       data: {
         status: PaymentStatus.SUCCEEDED,
-        yookassaPaymentId,
+        providerPaymentId,
+        paymentProvider: 'YOOKASSA',
       },
     });
 
@@ -164,9 +168,9 @@ export class PaymentsService {
     return payment;
   }
 
-  async handleCanceled(yookassaPaymentId: string) {
+  async handleCanceled(providerPaymentId: string) {
     await this.prisma.payment.updateMany({
-      where: { yookassaPaymentId, status: PaymentStatus.PENDING },
+      where: { providerPaymentId, status: PaymentStatus.PENDING },
       data: { status: PaymentStatus.CANCELLED },
     });
 
@@ -182,10 +186,14 @@ export class PaymentsService {
     data: {
       userId: params.userId,
       amount,
+      baseAmount: amount,
+      feeAmount: 0,
+      feePercent: 0,
       currency: 'RUB',
       plan: params.plan,
       status: PaymentStatus.PENDING,
       paymentMethod: 'MANUAL_SBP',
+      paymentProvider: 'MANUAL',
       bank: params.bank,
       description: `4StepsVPN — Стандарт 30 дн. — ручная оплата`,
     },

@@ -1,0 +1,7 @@
+[Unit]
+Description=4StepsVPN backend health check
+After=network.target pm2-root.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/4stepsvpn-healthcheck.sh

@@ -3,6 +3,8 @@ import { BotService, BotContext } from './bot.service';
 import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from '../modules/payments/payments.service';
 import { PaymentStatus, PlanType } from '@prisma/client';
+import QRCode from 'qrcode';
+import { InputFile } from 'grammy';
 
 @Injectable()
 export class BotUpdate implements OnModuleInit {
@@ -142,14 +144,17 @@ export class BotUpdate implements OnModuleInit {
           reply_markup: {
             inline_keyboard: [
               [
+                { text: '🟣 INCY', callback_data: 'app:incy' },
                 { text: '🍏 Happ', callback_data: 'app:happ' },
-                { text: '📱 v2RayTun', callback_data: 'app:v2raytun' },
               ],
               [
+                { text: '📱 v2RayTun', callback_data: 'app:v2raytun' },
                 { text: '🤖 Hiddify', callback_data: 'app:hiddify' },
-                { text: '📷 QR', callback_data: 'app:qr' },
               ],
-              [{ text: '📋 Скопировать ссылку', callback_data: 'app:copy' }],
+              [
+                { text: '📷 QR', callback_data: 'app:qr' },
+                { text: '📋 Скопировать ссылку', callback_data: 'app:copy' },
+              ],
             ],
           },
         },
@@ -536,7 +541,7 @@ export class BotUpdate implements OnModuleInit {
       }
     });
 
-    bot.callbackQuery(/^app:(happ|v2raytun|hiddify|qr|copy)$/, async (ctx) => {
+    bot.callbackQuery(/^app:(incy|happ|v2raytun|hiddify|qr|copy)$/, async (ctx) => {
       await ctx.answerCallbackQuery();
       const app = ctx.match![1];
 
@@ -553,10 +558,43 @@ export class BotUpdate implements OnModuleInit {
       );
       const subUrl = `${appUrl}/sub/${sub.subToken}.txt`;
 
-      if (app === 'copy' || app === 'qr') {
+      if (app === 'copy') {
         return ctx.reply(`🔗 Ваша ссылка:\n<code>${subUrl}</code>`, {
           parse_mode: 'HTML',
         });
+      }
+
+      if (app === 'incy') {
+        return ctx.reply(
+          `🟣 <b>INCY</b>\n\n` +
+            `1. Откройте INCY\n` +
+            `2. Добавьте новую подписку по URL\n` +
+            `3. Вставьте ссылку ниже:\n\n` +
+            `<code>${subUrl}</code>\n\n` +
+            `После добавления обновите подписку в приложении.`,
+          {
+            parse_mode: 'HTML',
+          },
+        );
+      }
+
+      if (app === 'qr') {
+        const qr = await QRCode.toBuffer(subUrl, {
+          type: 'png',
+          width: 700,
+          margin: 2,
+          errorCorrectionLevel: 'M',
+        });
+
+        return ctx.replyWithPhoto(
+          new InputFile(qr, '4stepsvpn-subscription.png'),
+          {
+            caption:
+              '📷 QR-код подписки\n\n' +
+              'Отсканируйте его в поддерживаемом VPN-клиенте.\n\n' +
+              'Если QR не импортируется — используйте кнопку «📋 Скопировать ссылку».',
+          },
+        );
       }
 
       const instructions: Record<string, string> = {

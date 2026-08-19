@@ -174,7 +174,7 @@
     const subDays = $('days-num')?.closest('.sub-days');
 
     if (state === 'ACTIVE' && sub) {
-      const planName = sub.plan === 'PREMIUM' ? 'Премиум' : 'Стандарт';
+      const planName = 'Стандарт';
 
       if (subDays) subDays.style.display = '';
       $('greet-status').textContent = 'Ваш доступ активен';
@@ -197,8 +197,7 @@
       $('smart-desc').textContent = 'Нажмите, чтобы скопировать';
 
       $('sub-plan-name').textContent = planName;
-      $('sub-plan-desc').textContent =
-        sub.plan === 'PREMIUM' ? 'Максимум возможностей для вашего комфорта' : 'Базовый доступ';
+      $('sub-plan-desc').textContent = 'Доступ ко всем доступным серверам';
       $('sub-badge').hidden = false;
       $('days-num').textContent = pluralDays(left);
       $('days-until').textContent = 'До ' + formatDate(sub.expiresAt);
@@ -208,13 +207,37 @@
       $('dev-count').textContent = `${deviceUsed} из ${deviceLimit}`;
       $('dev-avail').textContent = 'Лимит тарифа';
       $('dev-bar').style.width = `${Math.min(100, Math.round((deviceUsed / Math.max(1, deviceLimit)) * 100))}%`;
-      $('btn-add-device').style.display = '';
-      $('dev-list').innerHTML =
-        '<div class="dev-item">' +
-        '<div class="dev-item-ico">📱</div>' +
-        '<div><div class="dev-item-name">1 устройство</div>' +
-        '<div class="dev-item-meta">Доступно по подписке · ' + planName + '</div></div>' +
-        '<span class="dev-online">Активно</span></div>';
+      const device = data.device;
+
+      if (device?.isActive) {
+        $('btn-add-device').style.display = 'none';
+
+        const deviceName = device.name || 'Моё устройство';
+        const devicePlatform = device.platform
+          ? ' · ' + device.platform
+          : '';
+
+        $('dev-list').innerHTML =
+          '<div class="dev-item">' +
+          '<div class="dev-item-ico">📱</div>' +
+          '<div><div class="dev-item-name"></div>' +
+          '<div class="dev-item-meta"></div></div>' +
+          '<span class="dev-online">Активно</span></div>';
+
+        const item = $('dev-list').querySelector('.dev-item');
+        item.querySelector('.dev-item-name').textContent = deviceName;
+        item.querySelector('.dev-item-meta').textContent =
+          'Привязано' + devicePlatform + ' · ' + planName;
+      } else {
+        $('btn-add-device').style.display = '';
+
+        $('dev-list').innerHTML =
+          '<div class="dev-empty" id="dev-empty">' +
+          'Устройство ещё не привязано.<br/>' +
+          'Нажмите «Привязать устройство» ниже.' +
+          '</div>';
+      }
+
       return;
     }
 
@@ -814,7 +837,55 @@
   $('btn-renew').onclick = () => openPurchaseModal('STANDARD');
   $('btn-copy-sub').onclick = copySub;
   $('btn-copy-sub-top').onclick = copySub;
-  $('btn-add-device').onclick = () => showScreen('servers');
+  $('btn-add-device').onclick = async () => {
+    const button = $('btn-add-device');
+
+    if (!cabinet?.subscription) {
+      toast('Сначала оформите подписку');
+      showScreen('sub');
+      return;
+    }
+
+    button.disabled = true;
+
+    const originalHtml = button.innerHTML;
+    button.textContent = 'Привязываем...';
+
+    try {
+      const response = await fetch(API_BASE + '/api/webapp/device/activate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          initData: getInitData(),
+          name: 'Моё устройство',
+          platform: tg?.platform || null,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Не удалось привязать устройство');
+      }
+
+      tg?.HapticFeedback?.notificationOccurred?.('success');
+
+      toast(
+        data.created
+          ? 'Устройство привязано'
+          : 'Устройство уже привязано',
+      );
+
+      await load();
+    } catch (error) {
+      toast(error.message || 'Ошибка привязки устройства');
+    } finally {
+      button.disabled = false;
+      button.innerHTML = originalHtml;
+    }
+  };
 
   document.querySelectorAll('.plan').forEach((row) => {
     row.onclick = () => openPurchaseModal(row.dataset.plan);

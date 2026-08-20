@@ -425,9 +425,11 @@
       $('days-until').textContent = 'До ' + formatDate(sub.expiresAt);
       $('progress-bar').style.width = Math.min(100, Math.round((left / 30) * 100)) + '%';
 
-      $('ps-plan').textContent = '1';
+      $('ps-plan').textContent = planName;
+      $('ps-devices').textContent = String(deviceUsed);
       $('dev-count').textContent = `${deviceUsed} из ${deviceLimit}`;
-      $('dev-avail').textContent = 'Лимит тарифа';
+      $('dev-avail').textContent =
+        `Доступно ещё ${Math.max(0, deviceLimit - deviceUsed)}`;
       $('dev-bar').style.width = `${Math.min(100, Math.round((deviceUsed / Math.max(1, deviceLimit)) * 100))}%`;
       const device = data.device;
 
@@ -474,7 +476,8 @@
     $('days-num').textContent = '—';
     $('days-until').textContent = '';
     $('progress-bar').style.width = '0%';
-    $('ps-plan').textContent = '0';
+    $('ps-plan').textContent = '—';
+    $('ps-devices').textContent = '0';
     $('dev-count').textContent = `0 из ${deviceLimit}`;
     $('dev-avail').textContent = `Доступно ещё ${deviceLimit}`;
     $('dev-bar').style.width = '0%';
@@ -490,7 +493,7 @@
       $('sub-url').textContent = 'Доступ приостановлен';
       $('sub-plan-name').textContent = 'Подписка истекла';
       $('sub-plan-desc').textContent = 'Продлите тариф, чтобы снова подключиться';
-      $('btn-renew').textContent = 'Купить подписку ›';
+      $('btn-renew').textContent = 'Продлить подписку ›';
       $('dev-list').innerHTML =
         '<div class="dev-empty" id="dev-empty">Подписка истекла.<br/>После продления доступ на устройстве восстановится.</div>';
       return;

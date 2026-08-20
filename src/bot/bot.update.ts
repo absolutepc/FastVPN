@@ -36,6 +36,39 @@ export class BotUpdate implements OnModuleInit {
       .filter((id) => Number.isFinite(id) && id > 0);
   }
 
+  private readonly legalVersion = '2026-08-20';
+
+  private readonly termsUrl =
+    'https://telegra.ph/PUBLICHNAYA-OFERTA-08-12-15';
+
+  private readonly privacyUrl =
+    'https://telegra.ph/POLITIKA-KONFIDENCIALNOSTI-08-12-99';
+
+  private getLegalKeyboard() {
+    return {
+      inline_keyboard: [
+        [
+          {
+            text: '📄 Пользовательское соглашение',
+            url: this.termsUrl,
+          },
+        ],
+        [
+          {
+            text: '🔒 Политика конфиденциальности',
+            url: this.privacyUrl,
+          },
+        ],
+        [
+          {
+            text: '✅ Согласиться',
+            callback_data: 'legal:accept',
+          },
+        ],
+      ],
+    };
+  }
+
   onModuleInit() {
     const bot = this.botService.bot;
 
@@ -61,12 +94,94 @@ export class BotUpdate implements OnModuleInit {
           `Нажмите «📱 Мои устройства», чтобы получить ссылку.`;
       }
 
+      const legalAccepted =
+        user.legalAcceptedAt &&
+        user.legalVersion === this.legalVersion;
+
+      if (!legalAccepted) {
+        welcome +=
+          `\n\nПеред использованием сервиса ознакомьтесь с документами ` +
+          `и подтвердите согласие.`;
+
+        await ctx.reply(welcome, {
+          parse_mode: 'HTML',
+          reply_markup: this.getLegalKeyboard(),
+        });
+
+        return;
+      }
+
       welcome += `\n\nВыберите действие:`;
 
       await ctx.reply(welcome, {
         parse_mode: 'HTML',
         reply_markup: this.botService.getMainKeyboard(),
       });
+    });
+
+    bot.callbackQuery('legal:accept', async (ctx) => {
+      const telegramId = BigInt(ctx.from.id);
+
+      const user = await this.botService.prismaService.user.findUnique({
+        where: {
+          telegramId,
+        },
+      });
+
+      if (!user) {
+        await ctx.answerCallbackQuery({
+          text: 'Сначала нажмите /start',
+          show_alert: true,
+        });
+        return;
+      }
+
+      if (user.isBlocked) {
+        await ctx.answerCallbackQuery({
+          text: 'Доступ ограничен',
+          show_alert: true,
+        });
+        return;
+      }
+
+      const alreadyAccepted =
+        user.legalAcceptedAt &&
+        user.legalVersion === this.legalVersion;
+
+      if (!alreadyAccepted) {
+        await this.botService.prismaService.user.update({
+          where: {
+            id: user.id,
+          },
+          data: {
+            legalAcceptedAt: new Date(),
+            legalVersion: this.legalVersion,
+          },
+        });
+      }
+
+      await ctx.answerCallbackQuery({
+        text: alreadyAccepted
+          ? 'Условия уже приняты'
+          : 'Спасибо! Согласие сохранено',
+      });
+
+      try {
+        await ctx.editMessageReplyMarkup({
+          reply_markup: {
+            inline_keyboard: [],
+          },
+        });
+      } catch {
+        // Сообщение могло быть изменено или устареть.
+      }
+
+      await ctx.reply(
+        '✅ Условия приняты. Теперь вам доступны все функции 4StepsVPN.',
+        {
+          reply_markup: this.botService.getMainKeyboard(),
+        },
+      );
     });
 
     bot.hears('🏠 Кабинет', async (ctx) => {

@@ -41,8 +41,10 @@ model User {
   referredById  String?
   referredBy    User?          @relation("Referrals", fields: [referredById], references: [id])
   referrals     User[]         @relation("Referrals")
-  isBlocked     Boolean        @default(false)
-  subscriptions Subscription[]
+  isBlocked       Boolean        @default(false)
+  legalAcceptedAt DateTime?
+  legalVersion    String?
+  subscriptions   Subscription[]
   payments      Payment[]
   devices       Device[]
   notificationReads UserNotification[]

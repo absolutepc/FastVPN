@@ -328,7 +328,7 @@ export class BotUpdate implements OnModuleInit {
 
     bot.hears('💬 Поддержка', async (ctx) => {
       await ctx.reply(
-        'Напишите ваш вопрос — мы ответим как можно скорее.\n\nИли свяжитесь: @your_support',
+        'Напишите ваш вопрос — мы ответим как можно скорее.\n\nПоддержка: @dakaev21',
       );
     });
 

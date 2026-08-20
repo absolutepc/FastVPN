@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>4StepsVPN</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/styles.css?v=9" />
+  <link rel="stylesheet" href="/styles.css?v=12" />
 </head>
 <body>
   <div id="app">
@@ -149,7 +149,7 @@
       </div>
     </section>
 
-    <!-- ========== SERVERS (connection / apps) ========== -->
+    <!-- ========== CONNECTION ========== -->
     <section id="screen-servers" class="screen hidden">
       <header class="page-head">
         <button type="button" class="top-btn" data-back="home">
@@ -159,37 +159,54 @@
         <div class="top-btn-ph"></div>
       </header>
 
-      <button type="button" class="smart-card" id="btn-copy-sub-top">
-        <div class="smart-ico">⚡</div>
-        <div class="smart-body">
-          <div class="smart-title">Subscription-ссылка</div>
-          <div class="smart-desc" id="smart-desc">Скопировать и вставить в клиент</div>
+      <div class="connection-intro">
+        <div class="connection-intro-icon">⚡</div>
+        <div>
+          <div class="connection-intro-title">Подключите VPN за минуту</div>
+          <div class="connection-intro-text">
+            Выберите приложение и добавьте в него свою subscription-ссылку.
+          </div>
         </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4af37" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-      </button>
-
-      <div class="seg">
-        <button type="button" class="seg-btn active">Клиенты</button>
-        <button type="button" class="seg-btn">Инструкция</button>
       </div>
 
-      <div class="srv-list">
-        <a class="srv-item active-srv" href="https://apps.apple.com/app/happ-proxy-utility/id6504287215" target="_blank" rel="noopener">
-          <div class="srv-flag">🍏</div>
+      <div class="srv-list connection-apps">
+        <button type="button" class="srv-item active-srv" id="btn-app-incy">
+          <div class="srv-flag">🟣</div>
           <div class="srv-info">
-            <div class="srv-name">Happ <span class="tag-rec">Рекомендуется</span></div>
+            <div class="srv-name">
+              INCY <span class="tag-rec">Рекомендуется</span>
+            </div>
             <div class="srv-meta">iOS / Android</div>
           </div>
-          <div class="srv-check">✓</div>
+          <div class="srv-check">›</div>
+        </button>
+
+        <a class="srv-item"
+           href="https://apps.apple.com/app/happ-proxy-utility/id6504287215"
+           target="_blank"
+           rel="noopener">
+          <div class="srv-flag">🍏</div>
+          <div class="srv-info">
+            <div class="srv-name">Happ</div>
+            <div class="srv-meta">iOS / Android</div>
+          </div>
         </a>
-        <a class="srv-item" href="https://apps.apple.com/app/v2raytun/id6476628951" target="_blank" rel="noopener">
+
+        <a class="srv-item"
+           href="https://apps.apple.com/app/v2raytun/id6476628951"
+           target="_blank"
+           rel="noopener">
           <div class="srv-flag">📱</div>
           <div class="srv-info">
             <div class="srv-name">v2RayTun</div>
             <div class="srv-meta">iOS / Android</div>
           </div>
         </a>
-        <a class="srv-item" href="https://hiddify.com/" target="_blank" rel="noopener">
+
+        <a class="srv-item"
+           href="https://hiddify.com/"
+           target="_blank"
+           rel="noopener">
           <div class="srv-flag">🤖</div>
           <div class="srv-info">
             <div class="srv-name">Hiddify</div>
@@ -198,10 +215,39 @@
         </a>
       </div>
 
+      <div class="connection-steps">
+        <div class="connection-step">
+          <span>1</span>
+          <div>
+            <strong>Установите приложение</strong>
+            <p>Рекомендуем INCY или Happ.</p>
+          </div>
+        </div>
+
+        <div class="connection-step">
+          <span>2</span>
+          <div>
+            <strong>Скопируйте subscription-ссылку</strong>
+            <p>Она содержит все доступные серверы и автоматически обновляется.</p>
+          </div>
+        </div>
+
+        <div class="connection-step">
+          <span>3</span>
+          <div>
+            <strong>Добавьте ссылку в приложение</strong>
+            <p>После импорта выберите любой доступный сервер.</p>
+          </div>
+        </div>
+      </div>
+
       <div class="link-box muted-box">
         <code id="sub-url">—</code>
       </div>
-      <button type="button" class="btn-gold" id="btn-copy-sub">Скопировать ссылку</button>
+
+      <button type="button" class="btn-gold" id="btn-copy-sub">
+        📋 Скопировать subscription-ссылку
+      </button>
     </section>
 
     <!-- ========== DEVICES ========== -->
@@ -397,68 +443,130 @@
       </div>
     </div>
 
-    <div class="admin-modal hidden" id="purchase-modal" role="dialog" aria-modal="true" aria-labelledby="purchase-modal-title">
-      <div class="admin-modal-card purchase-modal-card">
-        <div class="admin-modal-head">
-          <div class="purchase-modal-heading">
-            <span class="purchase-modal-icon">🛡️</span>
-            <div>
-              <h3 id="purchase-modal-title">Купить подписку</h3>
-              <p id="purchase-modal-description"></p>
-            </div>
-          </div>
-          <button type="button" class="admin-modal-close" id="purchase-modal-close" aria-label="Закрыть">×</button>
-        </div>
+    <!-- ========== PAYMENT ========== -->
+    <section id="screen-payment" class="screen hidden">
+      <header class="page-head">
+        <button type="button" class="top-btn" id="payment-back" aria-label="Назад">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
 
-        <div class="purchase-plan-summary">
-          <div>
-            <strong>Стандарт</strong>
-            <span>Все доступные серверы · 1 устройство</span>
-          </div>
-          <b>300 ₽</b>
-        </div>
+        <h2 id="purchase-modal-title">Купить подписку</h2>
 
-        <div id="purchase-step-bank">
-          <p class="purchase-step-title">Выберите банк для перевода</p>
-          <div class="purchase-bank-list">
-            <button type="button" class="purchase-bank" data-purchase-bank="TBANK">
-              <span>🟡</span><strong>Т-Банк</strong><i>›</i>
-            </button>
-            <button type="button" class="purchase-bank" data-purchase-bank="SBER">
-              <span>🟢</span><strong>Сбербанк</strong><i>›</i>
-            </button>
-          </div>
-          <button type="button" class="purchase-cancel" id="purchase-cancel">Отмена</button>
-        </div>
+        <div class="top-btn-ph"></div>
+      </header>
 
-        <div class="hidden" id="purchase-step-details">
-          <div class="admin-modal-details purchase-details">
-            <div class="admin-modal-row"><span>Банк</span><strong id="purchase-bank-name">—</strong></div>
-            <div class="admin-modal-row"><span>Сумма</span><strong id="purchase-amount">300 ₽</strong></div>
-            <div class="admin-modal-row"><span>Получатель</span><strong id="purchase-recipient">—</strong></div>
-            <div class="admin-modal-row"><span>Номер телефона</span><strong id="purchase-phone">—</strong></div>
-          </div>
-
-          <button type="button" class="btn-outline-gold purchase-copy" id="purchase-copy-phone">📋 Скопировать номер</button>
-          <p class="purchase-warning">Перед переводом проверьте банк и имя получателя. После перевода загрузите чек.</p>
-
-          <label class="purchase-upload">
-            <input type="file" id="purchase-proof" accept="image/jpeg,image/png,image/webp,application/pdf" />
-            <span>📎 Выбрать чек</span>
-            <small id="purchase-proof-name">JPEG, PNG, WebP или PDF · до 10 МБ</small>
-          </label>
-
-          <button type="button" class="btn-gold purchase-submit" id="purchase-submit-proof">✅ Отправить чек на проверку</button>
-        </div>
-
-        <div class="hidden purchase-success" id="purchase-step-success">
-          <div class="purchase-success-icon">✅</div>
-          <h3>Чек отправлен</h3>
-          <p>Администратор проверит перевод. После подтверждения подписка активируется или продлится автоматически.</p>
-          <button type="button" class="btn-gold" id="purchase-done">Готово</button>
+      <div class="payment-screen-intro">
+        <div class="payment-screen-icon">🛡️</div>
+        <div>
+          <strong id="payment-screen-title">Оформление подписки</strong>
+          <p id="purchase-modal-description"></p>
         </div>
       </div>
-    </div>
+
+      <div class="purchase-plan-summary">
+        <div>
+          <strong>Стандарт</strong>
+          <span>Все доступные серверы · 1 устройство</span>
+        </div>
+        <b>300 ₽</b>
+      </div>
+
+      <div id="purchase-step-bank">
+        <p class="purchase-step-title">Выберите банк для перевода</p>
+
+        <div class="purchase-bank-list">
+          <button type="button" class="purchase-bank" data-purchase-bank="TBANK">
+            <span>🟡</span>
+            <strong>Т-Банк</strong>
+            <i>›</i>
+          </button>
+
+          <button type="button" class="purchase-bank" data-purchase-bank="SBER">
+            <span>🟢</span>
+            <strong>Сбербанк</strong>
+            <i>›</i>
+          </button>
+        </div>
+      </div>
+
+      <div class="hidden" id="purchase-step-details">
+        <div class="admin-modal-details purchase-details">
+          <div class="admin-modal-row">
+            <span>Банк</span>
+            <strong id="purchase-bank-name">—</strong>
+          </div>
+
+          <div class="admin-modal-row">
+            <span>Сумма</span>
+            <strong id="purchase-amount">300 ₽</strong>
+          </div>
+
+          <div class="admin-modal-row">
+            <span>Получатель</span>
+            <strong id="purchase-recipient">—</strong>
+          </div>
+
+          <div class="admin-modal-row">
+            <span>Номер телефона</span>
+            <strong id="purchase-phone">—</strong>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="btn-outline-gold purchase-copy"
+          id="purchase-copy-phone"
+        >
+          📋 Скопировать номер
+        </button>
+
+        <p class="purchase-warning">
+          Перед переводом проверьте банк и имя получателя.
+          После перевода загрузите чек.
+        </p>
+
+        <label class="purchase-upload">
+          <input
+            type="file"
+            id="purchase-proof"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+          />
+
+          <span>📎 Выбрать чек</span>
+
+          <small id="purchase-proof-name">
+            JPEG, PNG, WebP или PDF · до 10 МБ
+          </small>
+        </label>
+
+        <button
+          type="button"
+          class="btn-gold purchase-submit"
+          id="purchase-submit-proof"
+        >
+          ✅ Отправить чек на проверку
+        </button>
+      </div>
+
+      <div class="hidden purchase-success" id="purchase-step-success">
+        <div class="purchase-success-icon">✅</div>
+
+        <h3>Чек отправлен</h3>
+
+        <p>
+          Администратор проверит перевод.
+          После подтверждения подписка активируется
+          или продлится автоматически.
+        </p>
+
+        <button type="button" class="btn-gold" id="purchase-done">
+          Готово
+        </button>
+      </div>
+    </section>
+
     <!-- TAB BAR -->
     <nav class="tabbar" id="tabbar">
       <button type="button" class="tab active" data-tab="home">
@@ -467,7 +575,7 @@
       </button>
       <button type="button" class="tab" data-tab="servers">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
-        <span>Серверы</span>
+        <span>VPN</span>
       </button>
       <button type="button" class="tab" data-tab="devices">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
@@ -489,6 +597,6 @@
       <button type="button" class="btn-gold" id="btn-retry">Повторить</button>
     </div>
   </div>
-  <script src="/app.js?v=14"></script>
+  <script src="/app.js?v=19"></script>
 </body>
 </html>

@@ -61,7 +61,7 @@
 
   function showScreen(name) {
     const main = ['home', 'servers', 'devices', 'sub', 'profile'];
-    const all = [...main, 'promo', 'ref', 'admin'];
+    const all = [...main, 'promo', 'ref', 'admin', 'payment'];
     all.forEach((s) => $(`screen-${s}`)?.classList.toggle('hidden', s !== name));
     document.querySelectorAll('.tab').forEach((t) => {
       t.classList.toggle('active', t.dataset.tab === name);
@@ -194,7 +194,6 @@
       $('stat-net-lbl').textContent = 'тариф';
 
       $('sub-url').textContent = sub.subUrl;
-      $('smart-desc').textContent = 'Нажмите, чтобы скопировать';
 
       $('sub-plan-name').textContent = planName;
       $('sub-plan-desc').textContent = 'Доступ ко всем доступным серверам';
@@ -268,7 +267,6 @@
       $('hero-title').textContent = 'Подписка истекла';
       $('hero-sub').textContent = 'Продлите подписку, чтобы восстановить доступ';
       $('sub-url').textContent = 'Доступ приостановлен';
-      $('smart-desc').textContent = 'Продлите подписку для получения доступа';
       $('sub-plan-name').textContent = 'Подписка истекла';
       $('sub-plan-desc').textContent = 'Продлите тариф, чтобы снова подключиться';
       $('btn-renew').textContent = 'Купить подписку ›';
@@ -282,7 +280,6 @@
     $('hero-title').textContent = 'Подписка не активна';
     $('hero-sub').textContent = 'Оформите тариф, чтобы начать';
     $('sub-url').textContent = 'Нет активной подписки';
-    $('smart-desc').textContent = 'Сначала оформите подписку';
     $('sub-plan-name').textContent = 'Нет подписки';
     $('sub-plan-desc').textContent = 'Выберите тариф ниже';
     $('btn-renew').textContent = 'Купить подписку ›';
@@ -352,7 +349,6 @@
     }
 
     $('admin-node-modal').classList.remove('hidden');
-    document.body.classList.add('admin-modal-open');
     tg?.HapticFeedback?.selectionChanged?.();
   }
 
@@ -694,12 +690,13 @@
   }
 
   function closePurchaseModal() {
-    $('purchase-modal').classList.add('hidden');
-    document.body.classList.remove('admin-modal-open');
-    manualPayment = null;
     selectedProof = null;
+
     $('purchase-proof').value = '';
-    $('purchase-proof-name').textContent = 'JPEG, PNG, WebP или PDF · до 10 МБ';
+    $('purchase-proof-name').textContent =
+      'JPEG, PNG, WebP или PDF · до 10 МБ';
+
+    showScreen('sub');
   }
 
   function openPurchaseModal(plan = 'STANDARD') {
@@ -728,8 +725,7 @@
     selectedProof = null;
     $('purchase-proof').value = '';
     setPurchaseStep('bank');
-    $('purchase-modal').classList.remove('hidden');
-    document.body.classList.add('admin-modal-open');
+    showScreen('payment');
     tg?.HapticFeedback?.selectionChanged?.();
   }
 
@@ -836,7 +832,28 @@
   $('btn-details').onclick = () => showScreen('servers');
   $('btn-renew').onclick = () => openPurchaseModal('STANDARD');
   $('btn-copy-sub').onclick = copySub;
-  $('btn-copy-sub-top').onclick = copySub;
+
+  $('btn-app-incy').onclick = () => {
+    const platform = String(tg?.platform || '').toLowerCase();
+
+    const iosUrl =
+      'https://apps.apple.com/app/incy/id6756943388';
+
+    const androidUrl =
+      'https://play.google.com/store/apps/details?id=llc.itdev.incy';
+
+    const url =
+      platform === 'android'
+        ? androidUrl
+        : iosUrl;
+
+    if (tg?.openLink) {
+      tg.openLink(url);
+    } else {
+      window.open(url, '_blank', 'noopener');
+    }
+  };
+
   $('btn-add-device').onclick = async () => {
     const button = $('btn-add-device');
 
@@ -903,9 +920,13 @@
     if (event.target === $('admin-node-modal')) closeAdminNodeModal();
   };
 
-  $('purchase-modal-close').onclick = closePurchaseModal;
-  $('purchase-cancel').onclick = closePurchaseModal;
-  $('purchase-done').onclick = closePurchaseModal;
+  $('purchase-done').onclick = () => {
+    closePurchaseModal();
+  };
+
+  $('payment-back').onclick = () => {
+    closePurchaseModal();
+  };
   $('purchase-copy-phone').onclick = () => {
     const phone = manualPayment?.phone;
     if (phone) copyText(phone);
@@ -920,14 +941,14 @@
       : 'JPEG, PNG, WebP или PDF · до 10 МБ';
   };
   $('purchase-submit-proof').onclick = submitManualProof;
-  $('purchase-modal').onclick = (event) => {
-    if (event.target === $('purchase-modal')) closePurchaseModal();
-  };
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       closeAdminNodeModal();
-      closePurchaseModal();
+
+      if (!$('screen-payment').classList.contains('hidden')) {
+        closePurchaseModal();
+      }
     }
   });
   $('btn-copy-ref').onclick = () => {

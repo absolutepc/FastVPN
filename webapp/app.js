@@ -219,9 +219,6 @@
       $('status-dot').className = 'status-dot on';
       $('hero-title').textContent = 'Подписка активна';
       $('hero-sub').textContent = sub.isTrial ? 'Пробный период · вы в безопасности' : 'Вы в безопасности';
-      $('server-chip').hidden = false;
-      $('server-chip').style.display = '';
-      $('server-chip-text').textContent = planName;
       $('btn-renew').textContent = 'Продлить подписку ›';
 
       $('stat-days').textContent = String(left);
@@ -279,8 +276,6 @@
 
     $('greet-status').className = 'hello-sub';
     $('status-dot').className = 'status-dot';
-    $('server-chip').hidden = true;
-    $('server-chip').style.display = 'none';
     $('stat-days').textContent = '0';
     $('stat-days-bar').style.width = '0%';
     $('stat-devices').textContent = `0 из ${deviceLimit}`;

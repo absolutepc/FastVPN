@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>4StepsVPN</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/styles.css?v=16" />
+  <link rel="stylesheet" href="/styles.css?v=17" />
 </head>
 <body>
   <div id="app">
@@ -13,9 +13,7 @@
     <!-- ========== HOME ========== -->
     <section id="screen-home" class="screen">
       <header class="top">
-        <button type="button" class="top-btn" id="btn-menu" aria-label="Меню">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </button>
+        <div class="top-btn-ph" aria-hidden="true"></div>
         <div class="brand">
           <svg class="brand-shield" width="20" height="22" viewBox="0 0 24 26" fill="none">
             <path d="M12 1L3 5v6c0 5.5 3.8 10.6 9 12 5.2-1.4 9-6.5 9-12V5L12 1z" stroke="url(#g1)" stroke-width="1.6" fill="rgba(212,175,55,0.15)"/>
@@ -53,10 +51,6 @@
         </div>
         <div class="status-title" id="hero-title">Подписка не активна</div>
         <div class="status-sub" id="hero-sub">Оформите тариф, чтобы начать</div>
-        <div class="server-chip" id="server-chip" hidden>
-          <span class="chip-dot"></span>
-          <span id="server-chip-text">Стандарт</span>
-        </div>
         <button type="button" class="btn-outline-gold" id="btn-details">
           Детали подключения
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
@@ -614,6 +608,6 @@
       <button type="button" class="btn-gold" id="btn-retry">Повторить</button>
     </div>
   </div>
-  <script src="/app.js?v=22"></script>
+  <script src="/app.js?v=23"></script>
 </body>
 </html>

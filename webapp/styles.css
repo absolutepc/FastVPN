@@ -178,25 +178,6 @@ body {
   font-size: 0.88rem;
   margin-bottom: 12px;
 }
-.server-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(212, 175, 55, 0.08);
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  color: var(--gold-l);
-  font-size: 0.78rem;
-  font-weight: 600;
-  margin-bottom: 14px;
-}
-.chip-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--gold);
-}
 
 .btn-outline-gold {
   display: inline-flex;

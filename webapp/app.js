@@ -868,6 +868,11 @@
 
   $('btn-add-device').onclick = async () => {
     const button = $('btn-add-device');
+    const initData = getInitData();
+
+    if (!initData) {
+      return toast('Откройте приложение из Telegram-бота');
+    }
 
     if (!cabinet?.subscription) {
       toast('Сначала оформите подписку');
@@ -887,7 +892,7 @@
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          initData: getInitData(),
+          initData,
           name: 'Моё устройство',
           platform: tg?.platform || null,
         }),

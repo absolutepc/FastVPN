@@ -887,290 +887,100 @@ const inbound =
 
         const name = encodeURIComponent(node.name);
 
-        if (node.key === "CH1" && h1Client.remoteUuid) {
-          const mainName = encodeURIComponent("🇨🇭 Switzerland MAIN");
-          const xhttpName = encodeURIComponent("🇨🇭 Switzerland XHTTP");
-          const wsName = encodeURIComponent("🇨🇭 Switzerland WS");
+        const inboundMap: Record<
+          string,
+          {
+            main: string;
+            ws: string;
+            xhttp: string;
+            label: string;
+          }
+        > = {
+          FI1: {
+            main: "ib_b283f216e2",
+            ws: "ib_9ce64d61e4",
+            xhttp: "ib_cc89fe9508",
+            label: "Finland",
+          },
+          ES1: {
+            main: "ib_5b91a687cd",
+            ws: "ib_408fbb730c",
+            xhttp: "ib_f1b9465174",
+            label: "Spain",
+          },
+          PL1: {
+            main: "ib_a1e9039f1e",
+            ws: "ib_770a3708ee",
+            xhttp: "ib_cb423d6ea6",
+            label: "Poland",
+          },
+          CH1: {
+            main: "ib_0f67f5820b",
+            ws: "ib_16f6636dbf",
+            xhttp: "ib_d0aac15723",
+            label: "Switzerland",
+          },
+          SE1: {
+            main: "ib_45aacac02b",
+            ws: "ib_5dd073a54a",
+            xhttp: "ib_61c070c275",
+            label: "Sweden",
+          },
+          NL1: {
+            main: "ib_cfbd2a1e52",
+            ws: "ib_13a2493c1f",
+            xhttp: "ib_064e37e049",
+            label: "Netherlands",
+          },
+        };
 
+        const inboundConfig = inboundMap[node.key];
+
+        if (inboundConfig && h1Client.remoteUuid) {
           try {
             const remoteClient = await this.h1cloud.getClientByName(
               `sub_${sub.id}`,
-              "CH1",
+              node.key,
             );
 
-            const mainLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_0f67f5820b",
-            )?.link;
-
-            if (mainLink) {
-              const mainBase = mainLink.split("#")[0];
-              links.push(`${mainBase}#${mainName}`);
+            if (!remoteClient) {
+              throw new Error("remote client not found");
             }
 
-            const xhttpLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_d0aac15723",
-            )?.link;
+            const appendInboundLink = (
+              inboundId: string,
+              suffix: string,
+            ) => {
+              const inboundLink = remoteClient.inbound_links?.find(
+                (inbound) => inbound.id === inboundId,
+              )?.link;
 
-            if (xhttpLink) {
-              const xhttpBase = xhttpLink.split("#")[0];
-              links.push(`${xhttpBase}#${xhttpName}`);
-            }
+              if (!inboundLink) {
+                this.logger.warn(
+                  `${inboundConfig.label} ${suffix} link missing for subscription ${sub.id}`,
+                );
+                return;
+              }
+
+              const linkName = encodeURIComponent(
+                `${node.name} ${suffix}`,
+              );
+
+              const base = inboundLink.split("#")[0];
+              links.push(`${base}#${linkName}`);
+            };
+
+            appendInboundLink(inboundConfig.main, "MAIN");
+            appendInboundLink(inboundConfig.xhttp, "XHTTP");
+            appendInboundLink(inboundConfig.ws, "WS");
           } catch (error) {
             const message =
               error instanceof Error ? error.message : String(error);
 
             this.logger.warn(
-              `Switzerland MAIN/XHTTP links unavailable for subscription ${sub.id}: ${message}`,
+              `${inboundConfig.label} H1Cloud links unavailable for subscription ${sub.id}: ${message}`,
             );
           }
-
-          links.push(
-            `vless://${h1Client.remoteUuid}@ch1.4stepsvpn.ru:25054` +
-            `?encryption=none&security=none` +
-            `&type=ws&host=ws-ch1.4stepsvpn.ru` +
-            `&path=${encodeURIComponent("/ws-test")}` +
-            `#${wsName}`,
-          );
-
-          continue;
-        }
-
-        if (node.key === "NL1" && h1Client.remoteUuid) {
-          const mainName = encodeURIComponent("🇳🇱 Netherlands MAIN");
-          const xhttpName = encodeURIComponent("🇳🇱 Netherlands XHTTP");
-          const wsName = encodeURIComponent("🇳🇱 Netherlands WS");
-
-          try {
-            const remoteClient = await this.h1cloud.getClientByName(
-              `sub_${sub.id}`,
-              "NL1",
-            );
-
-            const mainLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_cfbd2a1e52",
-            )?.link;
-
-            if (mainLink) {
-              const mainBase = mainLink.split("#")[0];
-              links.push(`${mainBase}#${mainName}`);
-            }
-
-            const xhttpLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_064e37e049",
-            )?.link;
-
-            if (xhttpLink) {
-              const xhttpBase = xhttpLink.split("#")[0];
-              links.push(`${xhttpBase}#${xhttpName}`);
-            }
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-
-            this.logger.warn(
-              `Netherlands MAIN/XHTTP links unavailable for subscription ${sub.id}: ${message}`,
-            );
-          }
-
-          links.push(
-            `vless://${h1Client.remoteUuid}@nl1.4stepsvpn.ru:25127` +
-            `?encryption=none&security=none` +
-            `&type=ws&host=ws-nl1.4stepsvpn.ru` +
-            `&path=${encodeURIComponent("/ws-test")}` +
-            `#${wsName}`,
-          );
-
-          continue;
-        }
-
-        if (node.key === "ES1" && h1Client.remoteUuid) {
-          const mainName = encodeURIComponent("🇪🇸 Spain MAIN");
-          const xhttpName = encodeURIComponent("🇪🇸 Spain XHTTP");
-          const wsName = encodeURIComponent("🇪🇸 Spain WS");
-
-          links.push(
-            `vless://${h1Client.remoteUuid}@es1.4stepsvpn.ru:25487` +
-            `?encryption=none&security=reality&type=tcp` +
-            `&sni=www.microsoft.com&fp=chrome` +
-            `&pbk=f2Upi-L-eWMy5ID7W2MjX7dueWhq7rVrYyUsA-_u0Sg` +
-            `&sid=b7b834aac1aaf266&spx=%2F` +
-            `#${mainName}`,
-          );
-
-          try {
-            const remoteClient = await this.h1cloud.getClientByName(
-              `sub_${sub.id}`,
-              "ES1",
-            );
-
-            const xhttpLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_f1b9465174",
-            )?.link;
-
-            if (xhttpLink) {
-              const xhttpBase = xhttpLink.split("#")[0];
-              links.push(`${xhttpBase}#${xhttpName}`);
-            }
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-
-            this.logger.warn(
-              `Spain XHTTP link unavailable for subscription ${sub.id}: ${message}`,
-            );
-          }
-
-          links.push(
-            `vless://${h1Client.remoteUuid}@es1.4stepsvpn.ru:25488` +
-            `?encryption=none&security=none` +
-            `&type=ws&host=ws-es1.4stepsvpn.ru` +
-            `&path=${encodeURIComponent("/ws-test")}` +
-            `#${wsName}`,
-          );
-
-          continue;
-        }
-
-        if (node.key === "PL1" && h1Client.remoteUuid) {
-          const mainName = encodeURIComponent("🇵🇱 Poland MAIN");
-          const xhttpName = encodeURIComponent("🇵🇱 Poland XHTTP");
-          const wsName = encodeURIComponent("🇵🇱 Poland WS");
-
-          try {
-            const remoteClient = await this.h1cloud.getClientByName(
-              `sub_${sub.id}`,
-              "PL1",
-            );
-
-            const mainLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_a1e9039f1e",
-            )?.link;
-
-            if (mainLink) {
-              const mainBase = mainLink.split("#")[0];
-              links.push(`${mainBase}#${mainName}`);
-            }
-
-            const xhttpLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_cb423d6ea6",
-            )?.link;
-
-            if (xhttpLink) {
-              const xhttpBase = xhttpLink.split("#")[0];
-              links.push(`${xhttpBase}#${xhttpName}`);
-            }
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-
-            this.logger.warn(
-              `Poland MAIN/XHTTP links unavailable for subscription ${sub.id}: ${message}`,
-            );
-          }
-
-          links.push(
-            `vless://${h1Client.remoteUuid}@pl1.4stepsvpn.ru:26548` +
-            `?encryption=none&security=none` +
-            `&type=ws&host=ws-pl1.4stepsvpn.ru` +
-            `&path=${encodeURIComponent("/ws-test")}` +
-            `#${wsName}`,
-          );
-
-          continue;
-        }
-
-        if (node.key === "SE1" && h1Client.remoteUuid) {
-          const mainName = encodeURIComponent("🇸🇪 Sweden MAIN");
-          const xhttpName = encodeURIComponent("🇸🇪 Sweden XHTTP");
-          const wsName = encodeURIComponent("🇸🇪 Sweden WS");
-
-          links.push(
-            `vless://${h1Client.remoteUuid}@se1.4stepsvpn.ru:25234` +
-            `?encryption=none&security=reality&type=tcp` +
-            `&sni=www.cloudflare.com&fp=chrome` +
-            `&pbk=zS3Jxep7dgx-y7HjpubrT5oULEzdhwFTXbsvDhbSQGk` +
-            `&sid=94f138957076ee54&spx=%2F` +
-            `#${mainName}`,
-          );
-
-          try {
-            const remoteClient = await this.h1cloud.getClientByName(
-              `sub_${sub.id}`,
-              "SE1",
-            );
-
-            const xhttpLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_61c070c275",
-            )?.link;
-
-            if (xhttpLink) {
-              const xhttpBase = xhttpLink.split("#")[0];
-              links.push(`${xhttpBase}#${xhttpName}`);
-            }
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-
-            this.logger.warn(
-              `Sweden XHTTP link unavailable for subscription ${sub.id}: ${message}`,
-            );
-          }
-
-          links.push(
-            `vless://${h1Client.remoteUuid}@se1.4stepsvpn.ru:25235` +
-            `?encryption=none&security=none` +
-            `&type=ws&host=ws-se1.4stepsvpn.ru` +
-            `&path=${encodeURIComponent("/ws-test")}` +
-            `#${wsName}`,
-          );
-
-          continue;
-        }
-
-        if (node.key === "FI1" && h1Client.remoteUuid) {
-          const mainName = encodeURIComponent("🇫🇮 Finland MAIN");
-          const xhttpName = encodeURIComponent("🇫🇮 Finland XHTTP");
-          const wsName = encodeURIComponent("🇫🇮 Finland WS");
-
-          try {
-            const remoteClient = await this.h1cloud.getClientByName(
-              `sub_${sub.id}`,
-              "FI1",
-            );
-
-            const mainLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_7aac5e6b12",
-            )?.link;
-
-            if (mainLink) {
-              const mainBase = mainLink.split("#")[0];
-              links.push(`${mainBase}#${mainName}`);
-            }
-
-            const xhttpLink = remoteClient?.inbound_links?.find(
-              (inbound) => inbound.id === "ib_cc89fe9508",
-            )?.link;
-
-            if (xhttpLink) {
-              const xhttpBase = xhttpLink.split("#")[0];
-              links.push(`${xhttpBase}#${xhttpName}`);
-            }
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-
-            this.logger.warn(
-              `Finland MAIN/XHTTP links unavailable for subscription ${sub.id}: ${message}`,
-            );
-          }
-
-          links.push(
-            `vless://${h1Client.remoteUuid}@fi1.4stepsvpn.ru:25827` +
-            `?encryption=none&security=none` +
-            `&type=ws&host=ws-fi1.4stepsvpn.ru` +
-            `&path=${encodeURIComponent("/ws-test")}` +
-            `#${wsName}`,
-          );
 
           continue;
         }

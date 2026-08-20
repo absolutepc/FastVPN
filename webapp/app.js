@@ -1140,29 +1140,68 @@
     b.onclick = () => showScreen(b.dataset.back);
   });
 
-  $('btn-details').onclick = () => showScreen('servers');
+  $('btn-details').onclick = () => {
+    if (cabinet?.subscriptionState !== 'ACTIVE') {
+      toast(
+        cabinet?.subscriptionState === 'EXPIRED'
+          ? 'Подписка истекла'
+          : 'Сначала оформите подписку',
+      );
+      showScreen('sub');
+      return;
+    }
+
+    showScreen('servers');
+  };
+
   $('btn-renew').onclick = () => openPurchaseModal('STANDARD');
   $('btn-copy-sub').onclick = copySub;
 
-  $('btn-app-incy').onclick = () => {
+  function openExternalAppLink(iosUrl, androidUrl, fallbackUrl = iosUrl) {
     const platform = String(tg?.platform || '').toLowerCase();
-
-    const iosUrl =
-      'https://apps.apple.com/app/incy/id6756943388';
-
-    const androidUrl =
-      'https://play.google.com/store/apps/details?id=llc.itdev.incy';
 
     const url =
       platform === 'android'
         ? androidUrl
-        : iosUrl;
+        : platform === 'ios'
+          ? iosUrl
+          : fallbackUrl;
 
     if (tg?.openLink) {
       tg.openLink(url);
     } else {
       window.open(url, '_blank', 'noopener');
     }
+  }
+
+  $('btn-app-incy').onclick = () => {
+    openExternalAppLink(
+      'https://apps.apple.com/app/incy/id6756943388',
+      'https://play.google.com/store/apps/details?id=llc.itdev.incy',
+    );
+  };
+
+  $('btn-app-happ').onclick = () => {
+    openExternalAppLink(
+      'https://apps.apple.com/app/happ-proxy-utility/id6504287215',
+      'https://play.google.com/store/apps/details?id=com.happproxy',
+      'https://happ.info/',
+    );
+  };
+
+  $('btn-app-v2raytun').onclick = () => {
+    openExternalAppLink(
+      'https://apps.apple.com/app/v2raytun/id6476628951',
+      'https://play.google.com/store/apps/details?id=com.v2raytun.android',
+    );
+  };
+
+  $('btn-app-hiddify').onclick = () => {
+    openExternalAppLink(
+      'https://hiddify.com/',
+      'https://play.google.com/store/apps/details?id=app.hiddify.com',
+      'https://hiddify.com/',
+    );
   };
 
   $('btn-add-device').onclick = async () => {

@@ -730,6 +730,12 @@
   }
 
   async function startManualPayment(bank) {
+    const initData = getInitData();
+
+    if (!initData) {
+      return toast('Откройте приложение из Telegram-бота');
+    }
+
     const buttons = document.querySelectorAll('[data-purchase-bank]');
     buttons.forEach((button) => (button.disabled = true));
 
@@ -738,7 +744,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          initData: getInitData(),
+          initData,
           plan: 'STANDARD',
           bank,
         }),
@@ -766,6 +772,12 @@
   }
 
   async function submitManualProof() {
+    const initData = getInitData();
+
+    if (!initData) {
+      return toast('Откройте приложение из Telegram-бота');
+    }
+
     if (!manualPayment?.paymentId) {
       return toast('Сначала создайте заявку');
     }
@@ -784,7 +796,7 @@
 
     try {
       const form = new FormData();
-      form.append('initData', getInitData());
+      form.append('initData', initData);
       form.append('proof', selectedProof);
 
       const response = await fetch(

@@ -19,6 +19,16 @@ import { XrayService } from '../xray/xray.service';
 export class WebappService {
   private readonly logger = new Logger(WebappService.name);
 
+  private networkStatusCache: {
+    expiresAt: number;
+    value: {
+      status: 'OK' | 'DEGRADED' | 'DOWN' | 'UNKNOWN';
+      available: number;
+      total: number;
+      message: string;
+    };
+  } | null = null;
+
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
@@ -105,6 +115,128 @@ export class WebappService {
     return user;
   }
 
+  private async getPublicNetworkStatus(): Promise<{
+    status: 'OK' | 'DEGRADED' | 'DOWN' | 'UNKNOWN';
+    available: number;
+    total: number;
+    message: string;
+  }> {
+    const now = Date.now();
+
+    if (
+      this.networkStatusCache &&
+      this.networkStatusCache.expiresAt > now
+    ) {
+      return this.networkStatusCache.value;
+    }
+
+    const maintenanceNodes = new Set(
+      (this.config.get<string>('H1CLOUD_MAINTENANCE_NODES') || '')
+        .split(',')
+        .map((value) => value.trim().toUpperCase())
+        .filter(Boolean),
+    );
+
+    const locationNames: Record<string, string> = {
+      FI1: 'Финляндия',
+      ES1: 'Испания',
+      PL1: 'Польша',
+      CH1: 'Швейцария',
+      SE1: 'Швеция',
+      NL1: 'Нидерланды',
+    };
+
+    const networkNodes: Array<{
+      nodeKey: string;
+      name: string;
+      apiOk: boolean;
+      inbound: {
+        enabled: boolean;
+      } | null;
+    }> = await this.subscriptions
+      .getH1CloudMonitoringStatuses()
+      .catch((error) => {
+        this.logger.warn(
+          `WebApp network status unavailable: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+
+        return [];
+      });
+
+    const total = networkNodes.length;
+
+    let value: {
+      status: 'OK' | 'DEGRADED' | 'DOWN' | 'UNKNOWN';
+      available: number;
+      total: number;
+      message: string;
+    };
+
+    if (total === 0) {
+      value = {
+        status: 'UNKNOWN',
+        available: 0,
+        total: 0,
+        message: 'Статус сети временно недоступен',
+      };
+    } else {
+      const maintenance = networkNodes.filter((node) =>
+        maintenanceNodes.has(String(node.nodeKey).toUpperCase()),
+      );
+
+      const available = networkNodes.filter(
+        (node) =>
+          !maintenanceNodes.has(String(node.nodeKey).toUpperCase()) &&
+          node.apiOk === true &&
+          node.inbound?.enabled === true,
+      ).length;
+
+      const maintenanceNames = maintenance.map(
+        (node) =>
+          locationNames[String(node.nodeKey).toUpperCase()] ||
+          String(node.name || node.nodeKey),
+      );
+
+      if (available === total && maintenance.length === 0) {
+        value = {
+          status: 'OK',
+          available,
+          total,
+          message: 'Все локации работают',
+        };
+      } else if (available > 0) {
+        value = {
+          status: 'DEGRADED',
+          available,
+          total,
+          message:
+            maintenanceNames.length > 0
+              ? `Техработы: ${maintenanceNames.join(', ')}`
+              : 'Часть локаций временно недоступна',
+        };
+      } else {
+        value = {
+          status: 'DOWN',
+          available: 0,
+          total,
+          message:
+            maintenanceNames.length === total
+              ? 'Все локации временно на техработах'
+              : 'Сеть временно недоступна',
+        };
+      }
+    }
+
+    this.networkStatusCache = {
+      expiresAt: now + 60_000,
+      value,
+    };
+
+    return value;
+  }
+
   async getCabinet(initData: string) {
     const tg = this.validateInitData(initData);
     const user = await this.findOrCreateFromTelegram(tg);
@@ -120,6 +252,9 @@ export class WebappService {
     const appUrl = (this.config.get<string>('APP_URL') || 'http://localhost:3000').replace(/\/$/, '');
     const botUsername = this.config.get<string>('BOT_USERNAME') || 'FourStepsVPNbot';
 
+    const networkStatus =
+      await this.getPublicNetworkStatus();
+
     return {
       user: { id: user.id, firstName: user.firstName, username: user.username, referralCode: user.referralCode },
       isAdmin: this.isAdminTelegramId(tg.id),
@@ -127,6 +262,7 @@ export class WebappService {
       daysLeft,
       deviceLimit: 1,
       deviceUsed: device?.isActive ? 1 : 0,
+      networkStatus,
       device: device
         ? {
             id: device.id,

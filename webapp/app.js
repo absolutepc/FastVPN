@@ -166,6 +166,43 @@
     $('ref-link').textContent = data.referralLink || '—';
     $('menu-admin').style.display = data.isAdmin ? '' : 'none';
 
+    const network = data.networkStatus || {
+      status: 'UNKNOWN',
+      available: 0,
+      total: 0,
+      message: 'Статус сети временно недоступен',
+    };
+
+    const networkBox = $('network-status');
+    const networkTitle = $('network-status-title');
+    const networkText = $('network-status-text');
+    const networkCount = $('network-status-count');
+
+    if (networkBox && networkTitle && networkText && networkCount) {
+      const networkState = String(network.status || 'UNKNOWN').toUpperCase();
+
+      networkBox.className =
+        'network-status network-status-' + networkState.toLowerCase();
+
+      if (networkState === 'OK') {
+        networkTitle.textContent = 'Сеть работает';
+      } else if (networkState === 'DEGRADED') {
+        networkTitle.textContent = 'Есть ограничения';
+      } else if (networkState === 'DOWN') {
+        networkTitle.textContent = 'Сеть недоступна';
+      } else {
+        networkTitle.textContent = 'Статус сети неизвестен';
+      }
+
+      networkText.textContent =
+        network.message || 'Статус сети временно недоступен';
+
+      networkCount.textContent =
+        Number(network.total) > 0
+          ? String(network.available ?? 0) + '/' + String(network.total)
+          : '—';
+    }
+
     const sub = data.subscription;
     const state = data.subscriptionState || (sub ? 'ACTIVE' : 'NONE');
     const deviceLimit = data.deviceLimit ?? 1;

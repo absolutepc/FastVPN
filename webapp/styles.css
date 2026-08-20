@@ -1256,6 +1256,71 @@ body.admin-modal-open { overflow: hidden; }
   line-height: 1.4;
 }
 
+/* Network status */
+.network-status {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.network-status-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #888;
+  box-shadow: 0 0 0 4px rgba(136, 136, 136, 0.1);
+}
+
+.network-status-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.network-status-title {
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.network-status-text {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.network-status-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.network-status-ok .network-status-dot {
+  background: #45c97a;
+  box-shadow: 0 0 0 4px rgba(69, 201, 122, 0.12);
+}
+
+.network-status-degraded .network-status-dot {
+  background: #d4af37;
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.12);
+}
+
+.network-status-down .network-status-dot {
+  background: #e45b5b;
+  box-shadow: 0 0 0 4px rgba(228, 91, 91, 0.12);
+}
+
+.network-status-unknown .network-status-dot {
+  background: #888;
+}
+
 /* Payment screen */
 .payment-screen-intro {
   display: flex;

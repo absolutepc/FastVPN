@@ -1389,3 +1389,32 @@ body.admin-modal-open { overflow: hidden; }
 #screen-payment .purchase-success-icon {
   font-size: 3rem;
 }
+
+/* Payment bank logos */
+.purchase-bank-logo {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 11px;
+}
+
+.purchase-bank-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Space after bank selection list */
+#purchase-step-bank .purchase-bank-list {
+  margin-bottom: 8px;
+}
+
+/* Generic visibility helper */
+.hidden {
+  display: none !important;
+}

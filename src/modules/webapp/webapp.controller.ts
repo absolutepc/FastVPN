@@ -19,9 +19,41 @@ export class WebappController {
   }
 
 
+  @Post('notifications')
+  async notifications(@Body() body: { initData?: string }) {
+    return this.webapp.getNotifications(body.initData || '');
+  }
+
+  @Post('notifications/:id/read')
+  async markNotificationRead(
+    @Param('id') id: string,
+    @Body() body: { initData?: string },
+  ) {
+    return this.webapp.markNotificationRead(
+      body.initData || '',
+      id,
+    );
+  }
+
   @Post('admin/dashboard')
   async adminDashboard(@Body() body: { initData?: string }) {
     return this.webapp.getAdminDashboard(body.initData || '');
+  }
+
+  @Post('admin/notifications')
+  async createAdminNotification(
+    @Body()
+    body: {
+      initData?: string;
+      title?: string;
+      body?: string;
+    },
+  ) {
+    return this.webapp.createAdminNotification(
+      body.initData || '',
+      body.title || '',
+      body.body || '',
+    );
   }
 
   @Post('device/activate')

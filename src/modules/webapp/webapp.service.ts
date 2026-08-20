@@ -291,6 +291,102 @@ export class WebappService {
   }
 
 
+  async getNotifications(initData: string) {
+    const tg = this.validateInitData(initData);
+    const user = await this.findOrCreateFromTelegram(tg);
+
+    const notifications = await this.prisma.notification.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        reads: {
+          where: {
+            userId: user.id,
+          },
+          select: {
+            readAt: true,
+          },
+        },
+      },
+    });
+
+    const items = notifications.map((notification) => {
+      const readAt = notification.reads[0]?.readAt ?? null;
+
+      return {
+        id: notification.id,
+        title: notification.title,
+        body: notification.body,
+        createdAt: notification.createdAt.toISOString(),
+        readAt: readAt?.toISOString() ?? null,
+        isRead: Boolean(readAt),
+      };
+    });
+
+    const unreadCount = items.filter(
+      (notification) => !notification.isRead,
+    ).length;
+
+    return {
+      unreadCount,
+      notifications: items,
+    };
+  }
+
+  async markNotificationRead(
+    initData: string,
+    notificationId: string,
+  ) {
+    const tg = this.validateInitData(initData);
+    const user = await this.findOrCreateFromTelegram(tg);
+
+    const notification = await this.prisma.notification.findFirst({
+      where: {
+        id: notificationId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!notification) {
+      throw new BadRequestException('Notification not found');
+    }
+
+    const now = new Date();
+
+    const read = await this.prisma.userNotification.upsert({
+      where: {
+        userId_notificationId: {
+          userId: user.id,
+          notificationId,
+        },
+      },
+      create: {
+        userId: user.id,
+        notificationId,
+        readAt: now,
+      },
+      update: {
+        readAt: now,
+      },
+      select: {
+        readAt: true,
+      },
+    });
+
+    return {
+      ok: true,
+      notificationId,
+      readAt: read.readAt?.toISOString() ?? null,
+    };
+  }
+
   private getNodeMetrics(host: string): Promise<Record<string, any> | null> {
     return new Promise((resolve) => {
       execFile(
@@ -325,6 +421,61 @@ export class WebappService {
       );
     });
   }
+
+  async createAdminNotification(
+    initData: string,
+    titleRaw: string,
+    bodyRaw: string,
+  ) {
+    this.requireAdmin(initData);
+
+    const title = titleRaw.trim();
+    const body = bodyRaw.trim();
+
+    if (!title) {
+      throw new BadRequestException('Введите заголовок уведомления');
+    }
+
+    if (!body) {
+      throw new BadRequestException('Введите текст уведомления');
+    }
+
+    if (title.length > 120) {
+      throw new BadRequestException(
+        'Заголовок уведомления слишком длинный',
+      );
+    }
+
+    if (body.length > 4000) {
+      throw new BadRequestException(
+        'Текст уведомления слишком длинный',
+      );
+    }
+
+    const notification = await this.prisma.notification.create({
+      data: {
+        title,
+        body,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        title: true,
+        body: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      ok: true,
+      notification: {
+        ...notification,
+        createdAt: notification.createdAt.toISOString(),
+      },
+    };
+  }
+
 
   async getAdminDashboard(initData: string) {
     const admin = this.requireAdmin(initData);

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>4StepsVPN</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/styles.css?v=18" />
+  <link rel="stylesheet" href="/styles.css?v=20" />
 </head>
 <body>
   <div id="app">
@@ -22,8 +22,9 @@
           </svg>
           <span>4STEPS VPN</span>
         </div>
-        <button type="button" class="top-btn" aria-label="Уведомления">
+        <button type="button" class="top-btn notification-bell" id="btn-notifications" aria-label="Уведомления">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
+          <span class="notification-badge hidden" id="notification-badge">0</span>
         </button>
       </header>
 
@@ -144,6 +145,44 @@
     </section>
 
     <!-- ========== CONNECTION ========== -->
+    <!-- ========== NOTIFICATIONS ========== -->
+    <section id="screen-notifications" class="screen hidden">
+      <div class="page-head">
+        <button
+          type="button"
+          class="top-btn"
+          data-back="home"
+          aria-label="Назад"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+
+        <h2>Уведомления</h2>
+
+        <div class="page-head-spacer" aria-hidden="true"></div>
+      </div>
+
+      <div class="notifications-intro">
+        <strong>Центр уведомлений</strong>
+        <p>Важные сообщения, обновления и информация о работе сервиса.</p>
+      </div>
+
+      <div class="notifications-list" id="notifications-list">
+        <div class="notifications-empty">
+          Загрузка уведомлений...
+        </div>
+      </div>
+    </section>
+
     <section id="screen-servers" class="screen hidden">
       <header class="page-head">
         <button type="button" class="top-btn" data-back="home">
@@ -437,6 +476,45 @@
         <div class="admin-loading">Получение данных...</div>
       </div>
       <button type="button" class="btn-outline-gold admin-refresh" id="btn-admin-refresh">🔄 Обновить</button>
+
+      <div class="admin-notification-panel">
+        <div class="admin-section-head admin-notification-head">
+          <div>
+            <h3>Уведомление пользователям</h3>
+            <p>Сообщение появится в центре уведомлений WebApp.</p>
+          </div>
+        </div>
+
+        <label class="admin-notification-field">
+          <span>Заголовок</span>
+          <input
+            type="text"
+            class="input"
+            id="admin-notification-title"
+            maxlength="120"
+            placeholder="Например: Обновление сервиса"
+          />
+        </label>
+
+        <label class="admin-notification-field">
+          <span>Сообщение</span>
+          <textarea
+            class="input admin-notification-textarea"
+            id="admin-notification-body"
+            maxlength="4000"
+            rows="5"
+            placeholder="Введите текст уведомления"
+          ></textarea>
+        </label>
+
+        <button
+          type="button"
+          class="btn-gold admin-notification-send"
+          id="btn-admin-notification-send"
+        >
+          Отправить уведомление
+        </button>
+      </div>
     </section>
 
     <div class="admin-modal hidden" id="admin-node-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
@@ -616,6 +694,34 @@
       <button type="button" class="btn-gold" id="btn-retry">Повторить</button>
     </div>
   </div>
-  <script src="/app.js?v=23"></script>
+  <div class="notification-modal hidden" id="notification-modal">
+    <div class="notification-modal-card" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
+      <button
+        type="button"
+        class="notification-modal-close"
+        id="notification-modal-close"
+        aria-label="Закрыть"
+      >×</button>
+
+      <div class="notification-modal-label">Уведомление</div>
+
+      <h3 id="notification-modal-title">—</h3>
+
+      <div
+        class="notification-modal-body"
+        id="notification-modal-body"
+      ></div>
+
+      <button
+        type="button"
+        class="btn-gold notification-modal-done"
+        id="notification-modal-done"
+      >
+        Понятно
+      </button>
+    </div>
+  </div>
+
+  <script src="/app.js?v=25"></script>
 </body>
 </html>

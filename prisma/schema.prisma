@@ -45,10 +45,38 @@ model User {
   subscriptions Subscription[]
   payments      Payment[]
   devices       Device[]
+  notificationReads UserNotification[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
   @@map("users")
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  title     String
+  body      String
+  isActive  Boolean            @default(true)
+  reads     UserNotification[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([isActive, createdAt])
+  @@map("notifications")
+}
+
+model UserNotification {
+  id             String       @id @default(cuid())
+  userId         String
+  notificationId String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@unique([userId, notificationId])
+  @@index([notificationId])
+  @@map("user_notifications")
 }
 
 model Subscription {

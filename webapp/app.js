@@ -61,7 +61,7 @@
 
   function showScreen(name) {
     const main = ['home', 'servers', 'devices', 'sub', 'profile'];
-    const all = [...main, 'promo', 'ref', 'admin', 'payment'];
+    const all = [...main, 'promo', 'ref', 'admin', 'payment', 'notifications'];
     all.forEach((s) => $(`screen-${s}`)?.classList.toggle('hidden', s !== name));
     document.querySelectorAll('.tab').forEach((t) => {
       t.classList.toggle('active', t.dataset.tab === name);
@@ -69,6 +69,195 @@
     $('tabbar').style.display = main.includes(name) ? 'flex' : 'none';
     window.scrollTo(0, 0);
   }
+
+  let notifications = [];
+
+  function updateNotificationBadge() {
+    const badge = $('notification-badge');
+    if (!badge) return;
+
+    const unread = notifications.filter((item) => !item.readAt).length;
+
+    badge.textContent = unread > 99 ? '99+' : String(unread);
+    badge.classList.toggle('hidden', unread === 0);
+  }
+
+  function renderNotifications() {
+    const list = $('notifications-list');
+    if (!list) return;
+
+    if (!notifications.length) {
+      list.innerHTML = `
+        <div class="notifications-empty">
+          У вас пока нет уведомлений
+        </div>
+      `;
+      updateNotificationBadge();
+      return;
+    }
+
+    list.innerHTML = '';
+
+    notifications.forEach((item) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className =
+        'notification-item' + (item.readAt ? ' is-read' : ' is-unread');
+
+      const title = document.createElement('strong');
+      title.textContent = item.title || 'Уведомление';
+
+      const arrow = document.createElement('span');
+      arrow.className = 'notification-item-arrow';
+      arrow.textContent = '›';
+
+      button.appendChild(title);
+      button.appendChild(arrow);
+
+      button.onclick = () => openNotification(item);
+
+      list.appendChild(button);
+    });
+
+    updateNotificationBadge();
+  }
+
+  function openNotification(item) {
+    const modal = $('notification-modal');
+    if (!modal) return;
+
+    $('notification-modal-title').textContent =
+      item.title || 'Уведомление';
+
+    $('notification-modal-body').textContent =
+      item.body || '';
+
+    modal.dataset.notificationId = item.id || '';
+    modal.classList.remove('hidden');
+
+    document.body.classList.add('notification-modal-open');
+
+    if (!item.readAt) {
+      markNotificationRead(item);
+    }
+  }
+
+  function closeNotification() {
+    const modal = $('notification-modal');
+    if (!modal) return;
+
+    modal.classList.add('hidden');
+    modal.dataset.notificationId = '';
+
+    document.body.classList.remove('notification-modal-open');
+  }
+
+  async function markNotificationRead(item) {
+    const initData = getInitData();
+
+    if (!initData || !item?.id) return;
+
+    try {
+      const response = await fetch(
+        API_BASE +
+          '/api/webapp/notifications/' +
+          encodeURIComponent(item.id) +
+          '/read',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ initData }),
+        },
+      );
+
+      if (!response.ok) return;
+
+      item.readAt = new Date().toISOString();
+
+      renderNotifications();
+    } catch (_) {
+      // Не закрываем уведомление из-за сетевой ошибки.
+    }
+  }
+
+  async function loadNotifications() {
+    const initData = getInitData();
+    const list = $('notifications-list');
+
+    if (!initData) {
+      if (list) {
+        list.innerHTML = `
+          <div class="notifications-empty">
+            Откройте приложение из Telegram-бота
+          </div>
+        `;
+      }
+      return;
+    }
+
+    if (list) {
+      list.innerHTML = `
+        <div class="notifications-empty">
+          Загрузка уведомлений...
+        </div>
+      `;
+    }
+
+    try {
+      const response = await fetch(
+        API_BASE + '/api/webapp/notifications',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ initData }),
+        },
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || 'Не удалось загрузить уведомления',
+        );
+      }
+
+      notifications = Array.isArray(data)
+        ? data
+        : Array.isArray(data.notifications)
+          ? data.notifications
+          : [];
+
+      renderNotifications();
+    } catch (error) {
+      if (list) {
+        list.innerHTML = `
+          <div class="notifications-empty">
+            Не удалось загрузить уведомления
+          </div>
+        `;
+      }
+
+      console.error('Notifications load failed:', error);
+    }
+  }
+
+  $('btn-notifications').onclick = async () => {
+    showScreen('notifications');
+    await loadNotifications();
+  };
+
+  $('notification-modal-close').onclick = closeNotification;
+  $('notification-modal-done').onclick = closeNotification;
+
+  $('notification-modal').addEventListener('click', (event) => {
+    if (event.target === $('notification-modal')) {
+      closeNotification();
+    }
+  });
 
   /* ----- Banner carousel ----- */
   function initBannerCarousel() {
@@ -662,6 +851,80 @@
       : '';
   }
 
+  async function createAdminNotification() {
+    if (!cabinet?.isAdmin) {
+      return toast('Нет доступа');
+    }
+
+    const titleInput = $('admin-notification-title');
+    const bodyInput = $('admin-notification-body');
+    const button = $('btn-admin-notification-send');
+
+    const title = titleInput.value.trim();
+    const body = bodyInput.value.trim();
+
+    if (!title) {
+      titleInput.focus();
+      return toast('Введите заголовок');
+    }
+
+    if (!body) {
+      bodyInput.focus();
+      return toast('Введите текст уведомления');
+    }
+
+    const originalText = button.textContent;
+
+    button.disabled = true;
+    button.textContent = 'Отправка...';
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/webapp/admin/notifications`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            initData: tg.initData,
+            title,
+            body,
+          }),
+        },
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(
+          data.message || `Ошибка ${res.status}`,
+        );
+      }
+
+      titleInput.value = '';
+      bodyInput.value = '';
+
+      await loadNotifications();
+
+      toast('Уведомление отправлено');
+    } catch (error) {
+      console.error(
+        'Admin notification create failed:',
+        error,
+      );
+
+      toast(
+        error.message ||
+          'Не удалось отправить уведомление',
+      );
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+
+
   async function loadAdminDashboard() {
     if (!cabinet?.isAdmin) return toast('Нет доступа');
     const button = $('btn-admin-refresh');
@@ -705,6 +968,7 @@
         throw new Error(err.message || 'Ошибка ' + res.status);
       }
       render(await res.json());
+      await loadNotifications();
       showScreen('home');
     } catch (e) {
       $('error-text').textContent = e.message || 'Ошибка загрузки';
@@ -964,6 +1228,7 @@
     loadAdminDashboard();
   };
   $('btn-admin-refresh').onclick = loadAdminDashboard;
+  $('btn-admin-notification-send').onclick = createAdminNotification;
   $('admin-modal-close').onclick = closeAdminNodeModal;
   $('admin-node-modal').onclick = (event) => {
     if (event.target === $('admin-node-modal')) closeAdminNodeModal();

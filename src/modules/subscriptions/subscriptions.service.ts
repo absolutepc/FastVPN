@@ -27,7 +27,6 @@ export class SubscriptionsService {
     name: string;
   }> = [
     { key: "FI1", name: "🇫🇮 Finland" },
-    { key: "ES1", name: "🇪🇸 Spain" },
     { key: "PL1", name: "🇵🇱 Poland" },
     { key: "CH1", name: "🇨🇭 Switzerland" },
     { key: "SE1", name: "🇸🇪 Sweden" },

@@ -493,8 +493,58 @@ export class WebappService {
   }
 
 
+  private getSignedSupportFileUrl(
+    attachmentUrl: string | null,
+  ): string | null {
+    if (!attachmentUrl) {
+      return null;
+    }
+
+    const fileName =
+      attachmentUrl.split('/').pop();
+
+    if (
+      !fileName ||
+      !/^[a-zA-Z0-9._-]+\.(jpg|jpeg|png|webp)$/.test(
+        fileName,
+      )
+    ) {
+      return null;
+    }
+
+    const botToken =
+      this.config.get<string>('BOT_TOKEN') || '';
+
+    if (!botToken) {
+      throw new Error(
+        'BOT_TOKEN is required for support file signing',
+      );
+    }
+
+    const exp =
+      Math.floor(Date.now() / 1000) + 300;
+
+    const payload =
+      `${fileName}:${exp}`;
+
+    const signature =
+      createHmac('sha256', botToken)
+        .update('4steps-support-file-v1')
+        .update('\0')
+        .update(payload)
+        .digest('hex');
+
+    return (
+      `/api/webapp/support-file/${fileName}` +
+      `?exp=${exp}&sig=${signature}`
+    );
+  }
+
+
   async sendSupportFile(
     fileName: string,
+    expRaw: string,
+    signature: string,
     res: Response,
   ) {
     if (
@@ -507,12 +557,68 @@ export class WebappService {
       );
     }
 
+    const exp =
+      Number(expRaw);
+
+    const now =
+      Math.floor(Date.now() / 1000);
+
+    if (
+      !Number.isInteger(exp) ||
+      exp < now ||
+      exp > now + 600
+    ) {
+      throw new UnauthorizedException(
+        'Support file link expired',
+      );
+    }
+
+    const botToken =
+      this.config.get<string>('BOT_TOKEN') || '';
+
+    if (!botToken || !signature) {
+      throw new UnauthorizedException(
+        'Invalid support file link',
+      );
+    }
+
+    const expected =
+      createHmac('sha256', botToken)
+        .update('4steps-support-file-v1')
+        .update('\0')
+        .update(`${fileName}:${exp}`)
+        .digest('hex');
+
+    const expectedBuffer =
+      Buffer.from(expected, 'hex');
+
+    const providedBuffer =
+      Buffer.from(signature, 'hex');
+
+    if (
+      expectedBuffer.length !==
+        providedBuffer.length ||
+      !timingSafeEqual(
+        expectedBuffer,
+        providedBuffer,
+      )
+    ) {
+      throw new UnauthorizedException(
+        'Invalid support file link',
+      );
+    }
+
     const absolutePath = join(
       process.cwd(),
       'webapp',
       'uploads',
       'support',
       fileName,
+    );
+
+    res.setHeader(
+      'Cache-Control',
+      'private, no-store',
     );
 
     return res.sendFile(absolutePath);
@@ -637,7 +743,9 @@ export class WebappService {
         body: ticket.body,
         status: ticket.status,
         attachmentUrl:
-          ticket.attachmentUrl,
+          this.getSignedSupportFileUrl(
+            ticket.attachmentUrl,
+          ),
         createdAt:
           ticket.createdAt.toISOString(),
         updatedAt:
@@ -678,7 +786,9 @@ export class WebappService {
           body: ticket.body,
           status: ticket.status,
           attachmentUrl:
-            ticket.attachmentUrl,
+            this.getSignedSupportFileUrl(
+              ticket.attachmentUrl,
+            ),
           createdAt:
             ticket.createdAt.toISOString(),
           updatedAt:
@@ -2116,7 +2226,9 @@ export class WebappService {
           body: ticket.body,
           status: ticket.status,
           attachmentUrl:
-            ticket.attachmentUrl,
+            this.getSignedSupportFileUrl(
+              ticket.attachmentUrl,
+            ),
           createdAt:
             ticket.createdAt.toISOString(),
           updatedAt:

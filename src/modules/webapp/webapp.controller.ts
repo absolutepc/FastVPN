@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Res,
   UploadedFile,
   UseInterceptors,
@@ -109,10 +110,14 @@ export class WebappController {
   @Get('support-file/:fileName')
   async supportFile(
     @Param('fileName') fileName: string,
+    @Query('exp') exp: string | undefined,
+    @Query('sig') sig: string | undefined,
     @Res() res: Response,
   ) {
     return this.webapp.sendSupportFile(
       fileName,
+      exp || '',
+      sig || '',
       res,
     );
   }

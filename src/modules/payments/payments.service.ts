@@ -252,24 +252,42 @@ async approveManualPayment(
         | 'RESTORED'
         | 'EXTENDED';
 
-      const active = await tx.subscription.findFirst({
-        where: {
-          userId: payment.userId,
-          plan: payment.plan,
-          status: {
-            in: [
-              SubscriptionStatus.ACTIVE,
-              SubscriptionStatus.TRIAL,
-            ],
+      const occupying =
+        await tx.subscription.findFirst({
+          where: {
+            userId: payment.userId,
+            status: {
+              in: [
+                SubscriptionStatus.ACTIVE,
+                SubscriptionStatus.TRIAL,
+              ],
+            },
           },
-          expiresAt: {
-            gt: now,
+          orderBy: {
+            expiresAt: 'desc',
           },
-        },
-        orderBy: {
-          expiresAt: 'desc',
-        },
-      });
+        });
+
+      if (
+        occupying &&
+        occupying.plan !== payment.plan
+      ) {
+        if (occupying.expiresAt <= now) {
+          throw new Error(
+            'ACTIVE_SUBSCRIPTION_EXPIRY_PENDING',
+          );
+        }
+
+        throw new Error(
+          'ACTIVE_SUBSCRIPTION_PLAN_CONFLICT',
+        );
+      }
+
+      const active =
+        occupying &&
+        occupying.expiresAt > now
+          ? occupying
+          : null;
 
       if (active) {
         const newExpires = new Date(active.expiresAt);

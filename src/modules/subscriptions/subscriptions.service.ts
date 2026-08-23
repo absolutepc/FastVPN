@@ -273,12 +273,101 @@ export class SubscriptionsService {
   };
 }
 
+  private async finalizeSubscriptionVpnSync(
+    subscriptionId: string,
+  ) {
+    try {
+      await this.syncSubscriptionState(
+        subscriptionId,
+      );
+
+      await this.prisma.subscription.updateMany({
+        where: {
+          id: subscriptionId,
+          vpnSyncPending: true,
+        },
+        data: {
+          vpnSyncPending: false,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Subscription ${subscriptionId} VPN sync failed after DB commit: ${
+          error instanceof Error
+            ? error.message
+            : String(error)
+        }`,
+      );
+    }
+  }
+
   async createSubscription(params: {
     userId: string;
     plan: PlanType;
     days: number;
     isTrial?: boolean;
   }) {
+    if (
+      !Number.isInteger(params.days) ||
+      params.days <= 0
+    ) {
+      throw new Error(
+        'INVALID_SUBSCRIPTION_DAYS',
+      );
+    }
+
+    const now = new Date();
+
+    const existing =
+      await this.prisma.subscription.findFirst({
+        where: {
+          userId: params.userId,
+          status: {
+            in: [
+              SubscriptionStatus.ACTIVE,
+              SubscriptionStatus.TRIAL,
+            ],
+          },
+        },
+        orderBy: {
+          expiresAt: 'desc',
+        },
+      });
+
+    if (existing) {
+      if (existing.expiresAt <= now) {
+        throw new Error(
+          'ACTIVE_SUBSCRIPTION_EXPIRY_PENDING',
+        );
+      }
+
+      if (existing.plan !== params.plan) {
+        throw new Error(
+          'ACTIVE_SUBSCRIPTION_PLAN_CONFLICT',
+        );
+      }
+
+      await this.prisma.subscription.update({
+        where: {
+          id: existing.id,
+        },
+        data: {
+          vpnSyncPending: true,
+        },
+      });
+
+      await this.finalizeSubscriptionVpnSync(
+        existing.id,
+      );
+
+      return this.prisma.subscription
+        .findUniqueOrThrow({
+          where: {
+            id: existing.id,
+          },
+        });
+    }
+
     if (params.plan === PlanType.PREMIUM) {
       const can = await this.xray.canAcceptPremium();
       if (!can) {
@@ -315,23 +404,24 @@ export class SubscriptionsService {
           startsAt,
           expiresAt,
           isTrial: params.isTrial ?? false,
+          vpnSyncPending: true,
         },
       });
 
-      await this.xray.addUserToPlanNodes({
-        uuid: restored.uuid,
-        plan: restored.plan,
-      });
-
-      if (restored.plan === PlanType.STANDARD) {
-        await this.provisionH1Cloud(restored);
-      }
+      await this.finalizeSubscriptionVpnSync(
+        restored.id,
+      );
 
       this.logger.log(
         `Subscription restored: user=${params.userId} plan=${params.plan} days=${params.days} uuid=${restored.uuid}`,
       );
 
-      return restored;
+      return this.prisma.subscription
+        .findUniqueOrThrow({
+          where: {
+            id: restored.id,
+          },
+        });
     }
 
     // Первая подписка пользователя — создаём UUID и постоянный token.
@@ -347,6 +437,7 @@ export class SubscriptionsService {
         startsAt,
         expiresAt,
         isTrial: params.isTrial ?? false,
+        vpnSyncPending: true,
       },
     });
 
@@ -354,16 +445,16 @@ export class SubscriptionsService {
       `Subscription created: user=${params.userId} plan=${params.plan} days=${params.days} trial=${!!params.isTrial}`,
     );
 
-    await this.xray.addUserToPlanNodes({
-      uuid: sub.uuid,
-      plan: sub.plan,
-    });
+    await this.finalizeSubscriptionVpnSync(
+      sub.id,
+    );
 
-    if (sub.plan === PlanType.STANDARD) {
-      await this.provisionH1Cloud(sub);
-    }
-
-    return sub;
+    return this.prisma.subscription
+      .findUniqueOrThrow({
+        where: {
+          id: sub.id,
+        },
+      });
   }
 
   async syncPaymentSubscription(
@@ -485,6 +576,34 @@ export class SubscriptionsService {
                   },
                 });
 
+            const conflicting =
+              await tx.subscription.findFirst({
+                where: {
+                  userId:
+                    sub.userId,
+                  id: {
+                    not:
+                      sub.id,
+                  },
+                  status: {
+                    in: [
+                      SubscriptionStatus.ACTIVE,
+                      SubscriptionStatus.TRIAL,
+                    ],
+                  },
+                },
+                select: {
+                  id:
+                    true,
+                },
+              });
+
+            if (conflicting) {
+              throw new Error(
+                'ACTIVE_SUBSCRIPTION_CONFLICT',
+              );
+            }
+
             const now =
               new Date();
 
@@ -517,6 +636,8 @@ export class SubscriptionsService {
                     SubscriptionStatus.ACTIVE,
                   isTrial:
                     false,
+                  vpnSyncPending:
+                    true,
                 },
               });
 
@@ -538,28 +659,23 @@ export class SubscriptionsService {
       result.subscription;
 
     /*
-     * Внешние Xray/H1Cloud операции выполняем
-     * только после успешного commit БД.
+     * После commit выполняем абсолютную
+     * синхронизацию из состояния БД.
+     *
+     * Это crash-safe: повтор recovery
+     * не начисляет дополнительные дни.
      */
-    if (result.wasExpired) {
-      await this.xray.addUserToPlanNodes({
-        uuid: updated.uuid,
-        plan: updated.plan,
+    await this.finalizeSubscriptionVpnSync(
+      updated.id,
+    );
+
+    return this.prisma.subscription
+      .findUniqueOrThrow({
+        where: {
+          id:
+            updated.id,
+        },
       });
-    }
-
-    if (
-      updated.plan ===
-      PlanType.STANDARD
-    ) {
-      await this.extendH1Cloud(
-        updated.id,
-        days,
-        updated.expiresAt,
-      );
-    }
-
-    return updated;
   }
 
   async syncSubscriptionExpiry(

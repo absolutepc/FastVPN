@@ -412,11 +412,4 @@ export class WebappController {
     );
   }
 
-  @Post('payment')
-  async payment(@Body() body: { initData?: string; plan?: string }) {
-    return this.webapp.createPayment(
-      body.initData || '',
-      body.plan || 'STANDARD',
-    );
-  }
 }

@@ -3043,11 +3043,4 @@ export class WebappService {
     return { device, created: true };
   }
 
-  async createPayment(initData: string, planKey: string) {
-    const tg = this.validateInitData(initData);
-    const user = await this.findOrCreateFromTelegram(tg);
-    const plan = planKey === 'PREMIUM' || planKey === 'premium' ? PlanType.PREMIUM : PlanType.STANDARD;
-    const result = await this.payments.createPayment({ userId: user.id, plan });
-    return { confirmationUrl: result.confirmationUrl, amount: result.amount, plan };
-  }
 }

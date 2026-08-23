@@ -1043,20 +1043,31 @@ export class WebappService {
     const user =
       await this.findOrCreateFromTelegram(tg);
 
+    /*
+     * Существующий claim означает, что право
+     * на бонус уже было использовано.
+     */
     const existing =
       await this.prisma.bonusClaim.findUnique({
         where: {
           userId_type: {
-            userId: user.id,
-            type: BonusType.TELEGRAM_CHANNEL,
+            userId:
+              user.id,
+
+            type:
+              BonusType.TELEGRAM_CHANNEL,
           },
         },
       });
 
     if (existing) {
       return {
-        ok: true,
-        alreadyClaimed: true,
+        ok:
+          true,
+
+        alreadyClaimed:
+          true,
+
         bonus:
           this.serializeChannelBonus(
             existing,
@@ -1064,6 +1075,11 @@ export class WebappService {
       };
     }
 
+    /*
+     * Telegram API вызываем ДО DB transaction:
+     * не держим транзакцию открытой во время
+     * внешнего сетевого запроса.
+     */
     const isMember =
       await this.isBonusChannelMember(
         user.telegramId,
@@ -1075,127 +1091,299 @@ export class WebappService {
       );
     }
 
-    const subscription =
-      await this.subscriptions
-        .getActiveSubscription(
-          user.id,
-        );
+    let result:
+      | {
+          claimId: string;
+          processed: boolean;
+        }
+      | undefined;
 
-    if (!subscription) {
-      throw new BadRequestException(
-        'Для получения бонуса нужна активная подписка',
+    for (
+      let attempt = 1;
+      attempt <= 3;
+      attempt++
+    ) {
+      try {
+        result =
+          await this.prisma.$transaction(
+            async (tx) => {
+              /*
+               * Повторно проверяем claim уже внутри
+               * Serializable transaction.
+               *
+               * Это закрывает race между двумя
+               * одновременными запросами claim.
+               */
+              const currentClaim =
+                await tx.bonusClaim.findUnique({
+                  where: {
+                    userId_type: {
+                      userId:
+                        user.id,
+
+                      type:
+                        BonusType.TELEGRAM_CHANNEL,
+                    },
+                  },
+                });
+
+              if (currentClaim) {
+                return {
+                  claimId:
+                    currentClaim.id,
+
+                  processed:
+                    false,
+                };
+              }
+
+              const now =
+                new Date();
+
+              const subscription =
+                await tx.subscription.findFirst({
+                  where: {
+                    userId:
+                      user.id,
+
+                    status: {
+                      in: [
+                        SubscriptionStatus.ACTIVE,
+                        SubscriptionStatus.TRIAL,
+                      ],
+                    },
+
+                    expiresAt: {
+                      gt:
+                        now,
+                    },
+                  },
+
+                  orderBy: {
+                    expiresAt:
+                      'desc',
+                  },
+                });
+
+              if (!subscription) {
+                throw new BadRequestException(
+                  'Для получения бонуса нужна активная подписка',
+                );
+              }
+
+              const baseExpiresAt =
+                new Date(
+                  subscription.expiresAt,
+                );
+
+              const targetExpiresAt =
+                new Date(
+                  baseExpiresAt.getTime() +
+                  7 *
+                    24 *
+                    60 *
+                    60 *
+                    1000,
+                );
+
+              const confirmAfter =
+                new Date(
+                  now.getTime() +
+                  7 *
+                    24 *
+                    60 *
+                    60 *
+                    1000,
+                );
+
+              /*
+               * КРИТИЧЕСКИ ВАЖНО:
+               *
+               * entitlement (+7) и claim фиксируются
+               * одной DB transaction.
+               *
+               * Поэтому crash не может оставить
+               * подписку продлённой без durable claim
+               * или claim без продления.
+               */
+              const claim =
+                await tx.bonusClaim.create({
+                  data: {
+                    userId:
+                      user.id,
+
+                    subscriptionId:
+                      subscription.id,
+
+                    type:
+                      BonusType.TELEGRAM_CHANNEL,
+
+                    status:
+                      BonusClaimStatus.PENDING,
+
+                    bonusDays:
+                      7,
+
+                    channelUsername:
+                      this.getBonusChannel()
+                        .username,
+
+                    baseExpiresAt,
+                    targetExpiresAt,
+
+                    grantedAt:
+                      now,
+
+                    confirmAfter,
+
+                    syncPending:
+                      true,
+                  },
+                });
+
+              await tx.subscription.update({
+                where: {
+                  id:
+                    subscription.id,
+                },
+
+                data: {
+                  expiresAt:
+                    targetExpiresAt,
+
+                  /*
+                   * Сохраняем прежнюю семантику
+                   * extendSubscription().
+                   */
+                  status:
+                    SubscriptionStatus.ACTIVE,
+
+                  isTrial:
+                    false,
+                },
+              });
+
+              return {
+                claimId:
+                  claim.id,
+
+                processed:
+                  true,
+              };
+            },
+            {
+              isolationLevel:
+                Prisma
+                  .TransactionIsolationLevel
+                  .Serializable,
+            },
+          );
+
+        break;
+      } catch (error) {
+        const retryable =
+          error instanceof
+            Prisma.PrismaClientKnownRequestError &&
+          (
+            error.code === 'P2034' ||
+            error.code === 'P2002'
+          );
+
+        if (
+          !retryable ||
+          attempt === 3
+        ) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Serializable Telegram bonus conflict; retry ${attempt}/3`,
+        );
+      }
+    }
+
+    if (!result) {
+      throw new Error(
+        'TELEGRAM_BONUS_PROCESSING_FAILED',
       );
     }
 
-    const now =
-      new Date();
-
-    const confirmAfter =
-      new Date(
-        now.getTime() +
-        7 * 24 * 60 * 60 * 1000,
-      );
-
-    const baseExpiresAt =
-      new Date(
-        subscription.expiresAt,
-      );
-
-    const targetExpiresAt =
-      new Date(
-        baseExpiresAt.getTime() +
-        7 * 24 * 60 * 60 * 1000,
-      );
-
-    /*
-     * Сначала фиксируем уникальное право на бонус.
-     * @@unique([userId, type]) не позволит получить
-     * его повторно.
-     */
-    const claim =
-      await this.prisma.bonusClaim.create({
-        data: {
-          userId:
-            user.id,
-
-          subscriptionId:
-            subscription.id,
-
-          type:
-            BonusType.TELEGRAM_CHANNEL,
-
-          status:
-            BonusClaimStatus.APPLYING,
-
-          bonusDays:
-            7,
-
-          channelUsername:
-            this.getBonusChannel()
-              .username,
-
-          baseExpiresAt,
-          targetExpiresAt,
-        },
-      });
-
-    try {
-      /*
-       * Используем штатное продление:
-       * оно обновляет expiresAt и H1Cloud.
-       */
-      await this.subscriptions
-        .extendSubscription(
-          subscription.id,
-          7,
-        );
-
-      const completed =
-        await this.prisma.bonusClaim.update({
+    let claim =
+      await this.prisma.bonusClaim
+        .findUniqueOrThrow({
           where: {
-            id: claim.id,
-          },
-
-          data: {
-            status:
-              BonusClaimStatus.PENDING,
-
-            grantedAt:
-              now,
-
-            confirmAfter,
+            id:
+              result.claimId,
           },
         });
 
-      this.logger.log(
-        `Telegram bonus +7 days: user=${user.id}`,
-      );
-
+    if (!result.processed) {
       return {
-        ok: true,
+        ok:
+          true,
+
+        alreadyClaimed:
+          true,
+
         bonus:
           this.serializeChannelBonus(
-            completed,
+            claim,
           ),
       };
-    } catch (error) {
-      /*
-       * Если продление не состоялось,
-       * удаляем незавершённую заявку,
-       * чтобы пользователь мог повторить попытку.
-       */
-      await this.prisma.bonusClaim
-        .delete({
-          where: {
-            id: claim.id,
-          },
-        })
-        .catch(() => {});
-
-      throw error;
     }
-  }
 
+    /*
+     * DB entitlement уже committed.
+     *
+     * Ниже только внешняя синхронизация
+     * H1Cloud по абсолютному expiresAt.
+     *
+     * Ошибка здесь НЕ откатывает бонус и
+     * НЕ удаляет claim. syncPending позволит
+     * cron безопасно повторить операцию.
+     */
+    try {
+      await this.subscriptions
+        .syncSubscriptionExpiry(
+          claim.subscriptionId,
+        );
+
+      claim =
+        await this.prisma.bonusClaim.update({
+          where: {
+            id:
+              claim.id,
+          },
+
+          data: {
+            syncPending:
+              false,
+          },
+        });
+    } catch (error) {
+      this.logger.warn(
+        `Telegram bonus sync pending ${claim.id}: ${
+          error instanceof Error
+            ? error.message
+            : String(error)
+        }`,
+      );
+    }
+
+    this.logger.log(
+      `Telegram bonus +7 days: user=${user.id}`,
+    );
+
+    return {
+      ok:
+        true,
+
+      bonus:
+        this.serializeChannelBonus(
+          claim,
+        ),
+    };
+  }
 
   private async revokeTelegramBonus(
     claimId: string,
@@ -1452,8 +1640,12 @@ export class WebappService {
     const syncClaims =
       await this.prisma.bonusClaim.findMany({
         where: {
-          status:
-            BonusClaimStatus.REVOKED,
+          status: {
+            in: [
+              BonusClaimStatus.PENDING,
+              BonusClaimStatus.REVOKED,
+            ],
+          },
 
           syncPending:
             true,

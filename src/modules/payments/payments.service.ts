@@ -286,6 +286,7 @@ async approveManualPayment(
               expiresAt: newExpires,
               status: SubscriptionStatus.ACTIVE,
               isTrial: false,
+              vpnSyncPending: true,
             },
           });
 
@@ -324,6 +325,7 @@ async approveManualPayment(
                 startsAt: now,
                 expiresAt,
                 isTrial: false,
+                vpnSyncPending: true,
               },
             });
 
@@ -341,6 +343,7 @@ async approveManualPayment(
                 startsAt: now,
                 expiresAt,
                 isTrial: false,
+                vpnSyncPending: true,
               },
             });
 
@@ -380,18 +383,27 @@ async approveManualPayment(
     result.mode
   ) {
     try {
-      await this.subscriptions.syncPaymentSubscription(
+      await this.subscriptions.syncSubscriptionState(
         result.subscriptionId,
-        PLAN_DAYS,
-        result.mode,
       );
+
+      await this.prisma.subscription.updateMany({
+        where: {
+          id: result.subscriptionId,
+          vpnSyncPending: true,
+        },
+        data: {
+          vpnSyncPending: false,
+        },
+      });
     } catch (error) {
       /*
        * PostgreSQL уже является источником истины.
-       * Ошибка Xray/H1Cloud не должна отменять
-       * подтверждённую оплату.
        *
-       * Recovery-механизмы синхронизируют ноды позже.
+       * vpnSyncPending остаётся true,
+       * поэтому общий recovery-cron позже
+       * повторит абсолютную синхронизацию
+       * Xray/H1Cloud из состояния БД.
        */
       this.logger.error(
         `Payment ${paymentId} VPN sync failed after DB commit: ${

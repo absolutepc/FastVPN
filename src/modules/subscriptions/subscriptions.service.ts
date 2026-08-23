@@ -161,10 +161,19 @@ export class SubscriptionsService {
   id: string;
   expiresAt: Date;
 }) {
-  for (const node of this.getConfiguredH1Nodes()) {
+  const nodes = this.getConfiguredH1Nodes();
+  let ok = 0;
+  let fail = 0;
+  const failedNodeKeys: string[] = [];
+
+  for (const node of nodes) {
     try {
       await this.provisionH1CloudNode(node.key, subscription);
+      ok++;
     } catch (error) {
+      fail++;
+      failedNodeKeys.push(node.key);
+
       const message =
         error instanceof Error ? error.message : String(error);
 
@@ -173,6 +182,13 @@ export class SubscriptionsService {
       );
     }
   }
+
+  return {
+    total: nodes.length,
+    ok,
+    fail,
+    failedNodeKeys,
+  };
 }
 
   private async extendH1Cloud(
@@ -219,6 +235,7 @@ export class SubscriptionsService {
 
   let ok = 0;
   let fail = 0;
+  const failedNodeKeys: string[] = [];
 
   for (const client of clients) {
     try {
@@ -237,6 +254,7 @@ export class SubscriptionsService {
       ok++;
     } catch (error) {
       fail++;
+      failedNodeKeys.push(client.nodeKey);
 
       const message =
         error instanceof Error ? error.message : String(error);
@@ -251,6 +269,7 @@ export class SubscriptionsService {
     total: clients.length,
     ok,
     fail,
+    failedNodeKeys,
   };
 }
 
@@ -557,25 +576,55 @@ export class SubscriptionsService {
       return subscription;
     }
 
-    /*
-     * H1Cloud не должен продолжать жить со старым
-     * бонусным сроком после отзыва бонуса.
-     *
-     * Поэтому пересоздаём его с актуальным expiresAt.
-     */
-    await this.removeH1Cloud(subscription.id);
-
-    if (
+    const active =
       subscription.expiresAt > new Date() &&
       (
         subscription.status === SubscriptionStatus.ACTIVE ||
         subscription.status === SubscriptionStatus.TRIAL
-      )
-    ) {
+      );
+
+    const maintenance =
+      this.getMaintenanceH1Nodes();
+
+    const removed =
+      await this.removeH1Cloud(subscription.id);
+
+    if (!active) {
+      if (removed.fail > 0) {
+        throw new Error(
+          `H1CLOUD_REMOVE_INCOMPLETE:${removed.failedNodeKeys.join(',')}`,
+        );
+      }
+
+      return subscription;
+    }
+
+    const blockingRemoveFailures =
+      removed.failedNodeKeys.filter(
+        nodeKey =>
+          !maintenance.has(nodeKey.toUpperCase()),
+      );
+
+    const provisioned =
       await this.provisionH1Cloud({
         id: subscription.id,
         expiresAt: subscription.expiresAt,
       });
+
+    if (
+      blockingRemoveFailures.length > 0 ||
+      provisioned.fail > 0
+    ) {
+      const failed = [
+        ...blockingRemoveFailures,
+        ...provisioned.failedNodeKeys,
+      ];
+
+      throw new Error(
+        `H1CLOUD_SYNC_INCOMPLETE:${[
+          ...new Set(failed),
+        ].join(',')}`,
+      );
     }
 
     return subscription;
@@ -610,31 +659,41 @@ export class SubscriptionsService {
      * Поэтому повтор после crash не выдаст
      * пользователю дополнительные дни.
      */
-    await this.xray
-      .removeUserFromPlanNodes({
-        uuid:
-          subscription.uuid,
-        plan:
-          subscription.plan,
-      })
-      .catch(error => {
-        this.logger.warn(
-          `Subscription Xray pre-sync remove failed ${subscription.id}: ${
-            error instanceof Error
-              ? error.message
-              : String(error)
-          }`,
-        );
-      });
-
-    if (active) {
+    const removed =
       await this.xray
-        .addUserToPlanNodes({
+        .removeUserFromPlanNodes({
           uuid:
             subscription.uuid,
           plan:
             subscription.plan,
         });
+
+    if (!active) {
+      if (removed.fail > 0) {
+        throw new Error(
+          `XRAY_REMOVE_INCOMPLETE:${removed.fail}`,
+        );
+      }
+    } else {
+      const added =
+        await this.xray
+          .addUserToPlanNodes({
+            uuid:
+              subscription.uuid,
+            plan:
+              subscription.plan,
+            skipCapacityCheck:
+              true,
+          });
+
+      if (
+        removed.fail > 0 ||
+        added.fail > 0
+      ) {
+        throw new Error(
+          `XRAY_SYNC_INCOMPLETE:remove=${removed.fail},add=${added.fail}`,
+        );
+      }
     }
 
     /*

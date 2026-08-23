@@ -67,8 +67,12 @@ export class XrayService {
     uuid: string;
     plan: PlanType;
     flow?: VlessFlow;
+    skipCapacityCheck?: boolean;
   }): Promise<{ ok: number; fail: number }> {
-    if (params.plan === PlanType.PREMIUM) {
+    if (
+      params.plan === PlanType.PREMIUM &&
+      params.skipCapacityCheck !== true
+    ) {
       const allowed = await this.canAcceptPremium();
       if (!allowed) {
         this.logger.warn('Premium capacity full — skip addUser');
@@ -196,6 +200,8 @@ export class XrayService {
             `removeUser soft-fail on ${node.name} inbound=${tag}`,
             result,
           );
+
+          success = false;
         }
       } catch (e) {
         this.logger.error(

@@ -1682,3 +1682,6745 @@ body.notification-modal-open {
   opacity: 0.55;
   cursor: default;
 }
+
+/* ===== HOME REFERENCE REDESIGN START ===== */
+
+/*
+ * Главная страница в стиле нового 4StepsVPN.
+ * Карусель баннеров ниже stats-row намеренно не меняется.
+ */
+
+:root {
+  --gold: #e9b80f;
+  --gold-l: #ffd74a;
+  --gold-d: #a87800;
+  --text: #f7f7f7;
+  --muted: #8f8f93;
+}
+
+/* HOME container */
+#screen-home {
+  padding-top: 2px;
+}
+
+/* Верхняя строка: 4STEPS VPN + уведомления */
+#screen-home .top {
+  min-height: 64px;
+  padding: 8px 2px 12px;
+}
+
+#screen-home .brand {
+  gap: 10px;
+  color: #f3bf18;
+  font-size: 0.96rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 18px rgba(233, 184, 15, 0.16);
+}
+
+#screen-home .brand-shield {
+  width: 25px;
+  height: 28px;
+}
+
+#screen-home .notification-bell {
+  width: 44px;
+  height: 44px;
+  color: #ededed;
+}
+
+#screen-home .notification-bell svg {
+  width: 25px;
+  height: 25px;
+}
+
+#screen-home .notification-badge {
+  border: 2px solid #050505;
+}
+
+/* Приветствие */
+#screen-home .hello {
+  padding: 10px 2px 0;
+}
+
+#screen-home .hello h1 {
+  margin-bottom: 5px;
+  color: #f8f8f8;
+  font-size: clamp(1.7rem, 7.5vw, 2rem);
+  font-weight: 780;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+
+#screen-home .hello-sub {
+  margin-bottom: 21px;
+  color: #929292;
+  font-size: 1.02rem;
+  font-weight: 450;
+}
+
+#screen-home .hello-sub.on {
+  color: #e5ae00;
+}
+
+/* Большая карточка подписки */
+#screen-home .status-card {
+  min-height: 338px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 12px;
+  padding: 31px 20px 23px;
+
+  border: 1px solid rgba(225, 170, 0, 0.72);
+  border-radius: 22px;
+
+  background:
+    radial-gradient(
+      circle at 51% 42%,
+      rgba(255, 196, 0, 0.26) 0,
+      rgba(255, 184, 0, 0.10) 16%,
+      transparent 34%
+    ),
+    radial-gradient(
+      ellipse at -6% 22%,
+      rgba(255, 194, 0, 0.24),
+      transparent 34%
+    ),
+    radial-gradient(
+      ellipse at 108% 68%,
+      rgba(244, 173, 0, 0.22),
+      transparent 36%
+    ),
+    linear-gradient(
+      152deg,
+      #171104 0%,
+      #0b0904 34%,
+      #070707 60%,
+      #0c0902 100%
+    );
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 216, 80, 0.03),
+    inset 0 0 65px rgba(206, 148, 0, 0.06),
+    0 13px 34px rgba(0, 0, 0, 0.48),
+    0 0 22px rgba(196, 139, 0, 0.04);
+}
+
+/* Золотые световые линии без отдельной картинки */
+#screen-home .status-card::before,
+#screen-home .status-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+#screen-home .status-card::before {
+  width: 122%;
+  height: 48%;
+  left: -35%;
+  top: 4%;
+  border-bottom: 1px solid rgba(255, 200, 28, 0.54);
+  transform: rotate(-11deg);
+  filter: drop-shadow(0 0 7px rgba(255, 188, 0, 0.45));
+  opacity: 0.9;
+}
+
+#screen-home .status-card::after {
+  width: 118%;
+  height: 52%;
+  right: -41%;
+  bottom: 1%;
+  border-top: 1px solid rgba(255, 188, 0, 0.47);
+  transform: rotate(-13deg);
+  filter: drop-shadow(0 0 7px rgba(255, 177, 0, 0.42));
+  opacity: 0.8;
+}
+
+/* Индикатор активности */
+#screen-home .status-dot {
+  z-index: 5;
+  top: 17px;
+  right: 18px;
+  width: 13px;
+  height: 13px;
+  background: #464646;
+  box-shadow:
+    0 0 0 7px rgba(65, 65, 65, 0.25);
+}
+
+#screen-home .status-dot.on {
+  background: #00dc68;
+  box-shadow:
+    0 0 0 7px rgba(0, 199, 89, 0.24),
+    0 0 14px rgba(0, 235, 105, 0.65);
+}
+
+/* Щит */
+#screen-home .shield-wrap {
+  z-index: 3;
+  width: 158px;
+  height: 158px;
+  margin: 2px auto 15px;
+}
+
+#screen-home .ring {
+  width: 82px;
+  height: 82px;
+  margin-left: -41px;
+  margin-top: -41px;
+
+  border-color: rgba(236, 179, 0, 0.29);
+
+  box-shadow:
+    0 0 12px rgba(239, 176, 0, 0.12),
+    inset 0 0 12px rgba(239, 176, 0, 0.05);
+}
+
+#screen-home .shield-core {
+  filter:
+    drop-shadow(0 0 17px rgba(255, 194, 0, 0.55))
+    drop-shadow(0 0 36px rgba(255, 184, 0, 0.16));
+}
+
+#screen-home .shield-core svg {
+  width: 61px;
+  height: 66px;
+}
+
+/* Тексты hero */
+#screen-home .status-title {
+  position: relative;
+  z-index: 4;
+
+  margin-bottom: 5px;
+
+  color: #f5f5f5;
+  font-size: 1.34rem;
+  font-weight: 780;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+#screen-home .status-sub {
+  position: relative;
+  z-index: 4;
+
+  margin-bottom: 16px;
+
+  color: #909093;
+  font-size: 0.96rem;
+}
+
+/* Кнопка "Детали подключения" */
+#screen-home .btn-outline-gold {
+  position: relative;
+  z-index: 4;
+
+  min-height: 48px;
+  padding: 11px 23px;
+
+  border: 1.3px solid rgba(239, 179, 0, 0.92);
+  border-radius: 999px;
+
+  background: rgba(6, 6, 6, 0.55);
+  color: #f1bf20;
+
+  font-size: 0.95rem;
+  font-weight: 680;
+
+  box-shadow:
+    inset 0 0 18px rgba(214, 156, 0, 0.035),
+    0 0 18px rgba(208, 151, 0, 0.035);
+}
+
+#screen-home .btn-outline-gold svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2.6;
+}
+
+/* Три информационные карточки */
+#screen-home .stats-row {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+#screen-home .stat-card {
+  position: relative;
+  min-width: 0;
+  min-height: 118px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 15px 7px 10px;
+
+  border: 1px solid #202020;
+  border-radius: 17px;
+
+  background:
+    linear-gradient(
+      155deg,
+      rgba(19, 17, 10, 0.94),
+      rgba(8, 8, 8, 0.98) 52%,
+      #070707
+    );
+
+  box-shadow:
+    0 9px 25px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 210, 70, 0.025);
+}
+
+#screen-home .stat-ico {
+  min-height: 25px;
+  margin-bottom: 4px;
+
+  font-size: 1.35rem;
+  line-height: 1;
+  filter: saturate(1.15);
+}
+
+#screen-home .stat-val {
+  width: 100%;
+  margin-bottom: 4px;
+
+  overflow: hidden;
+
+  color: #f5f5f5;
+  font-size: clamp(0.94rem, 4.4vw, 1.22rem);
+  font-weight: 760;
+  line-height: 1.05;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#screen-home .stat-lbl {
+  margin-top: auto;
+
+  color: #828284;
+  font-size: 0.72rem;
+  line-height: 1.18;
+}
+
+#screen-home .stat-bar {
+  width: calc(100% - 6px);
+  height: 4px;
+  margin-top: 10px;
+
+  border-radius: 100px;
+  background: #242424;
+}
+
+#screen-home .stat-bar i {
+  background: linear-gradient(
+    90deg,
+    #e9aa00,
+    #ffd84d
+  );
+
+  box-shadow: 0 0 7px rgba(255, 198, 0, 0.28);
+}
+
+/* Нижнее меню */
+.tabbar {
+  min-height: 72px;
+
+  padding:
+    7px
+    5px
+    calc(7px + env(safe-area-inset-bottom, 0px));
+
+  background: rgba(5, 5, 5, 0.975);
+  border-top-color: #202020;
+
+  box-shadow:
+    0 -9px 28px rgba(0, 0, 0, 0.55);
+
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.tab {
+  gap: 4px;
+  padding: 5px 1px;
+
+  color: #77777b;
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+
+.tab svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 1.65;
+}
+
+.tab.active {
+  color: #ffc515;
+}
+
+.tab.active svg {
+  filter: drop-shadow(0 0 5px rgba(255, 193, 0, 0.18));
+}
+
+/* Мелкие экраны */
+@media (max-width: 365px) {
+  #app {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  #screen-home .hello h1 {
+    font-size: 1.55rem;
+  }
+
+  #screen-home .status-card {
+    min-height: 315px;
+  }
+
+  #screen-home .stat-card {
+    min-height: 110px;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  #screen-home .stat-val {
+    font-size: 0.94rem;
+  }
+
+  #screen-home .stat-lbl {
+    font-size: 0.65rem;
+  }
+}
+
+/* ===== HOME REFERENCE REDESIGN END ===== */
+
+/* ===== HOME COMPACT HEIGHT ===== */
+
+/* Большой блок "Подписка активна" */
+#screen-home .status-card {
+  min-height: 0;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+/* Три маленьких блока */
+#screen-home .stat-card {
+  min-height: 0;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* ===== HOME COMPACT HEIGHT END ===== */
+
+/* ===== HOME GREETING SIZE FIX ===== */
+#screen-home .hello h1 {
+  font-size: calc(clamp(1.7rem, 7.5vw, 2rem) - 4px) !important;
+}
+/* ===== HOME GREETING SIZE FIX END ===== */
+
+/* ===== HOME STAT CARD ACCENT BORDER ===== */
+#screen-home .stat-card {
+  border-color: #e9aa00 !important;
+}
+/* ===== HOME STAT CARD ACCENT BORDER END ===== */
+
+/* ===== HOME UNIFIED BORDERS ===== */
+
+#screen-home .status-card,
+#screen-home .stat-card,
+#screen-home .banner {
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: rgba(233, 170, 0, 0.72) !important;
+}
+
+/* ===== HOME UNIFIED BORDERS END ===== */
+
+/* ===== HOME MAIN BACKGROUND IMAGE ===== */
+
+#screen-home .status-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.03) 0%,
+      rgba(0, 0, 0, 0.08) 100%
+    ),
+    url("./assets/home-main-bg.jpg") center center / cover no-repeat;
+}
+
+#screen-home .status-card::before,
+#screen-home .status-card::after {
+  display: none;
+}
+
+/* ===== HOME MAIN BACKGROUND IMAGE END ===== */
+
+/* ===== HOME STAT SVG ICONS ===== */
+
+#screen-home .stat-ico-svg {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  margin-bottom: 6px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #e9aa00;
+  filter: drop-shadow(0 0 6px rgba(233, 170, 0, 0.18));
+}
+
+#screen-home .stat-ico-svg svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+/* ===== HOME STAT SVG ICONS END ===== */
+
+/* ===== PROFILE REDESIGN ===== */
+
+.profile-screen {
+  padding-bottom: 18px;
+}
+
+.profile-top {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.profile-top h2 {
+  font-size: 1.8rem;
+  font-weight: 760;
+  letter-spacing: -0.04em;
+}
+
+.profile-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-icon-btn {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  background: transparent;
+  color: #f2f2f2;
+  display: grid;
+  place-items: center;
+}
+
+.profile-icon-btn svg {
+  width: 26px;
+  height: 26px;
+}
+
+.profile-main-card,
+.profile-traffic-card {
+  border: 1px solid rgba(var(--accent-rgb), 0.72);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.055),
+      rgba(12,12,12,0.98) 40%,
+      rgba(7,7,7,0.98)
+    );
+  overflow: hidden;
+}
+
+.profile-main-card {
+  margin-bottom: 11px;
+}
+
+.profile-user-row {
+  min-height: 126px;
+  display: flex;
+  align-items: center;
+  padding: 18px 18px;
+  position: relative;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-avatar {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(
+      145deg,
+      var(--accent-light),
+      var(--accent)
+    );
+  color: #090909;
+  font-size: 2.25rem;
+  font-weight: 760;
+  box-shadow:
+    0 0 0 6px rgba(var(--accent-rgb), 0.11),
+    inset 0 0 0 1px rgba(255,255,255,0.2);
+}
+
+.profile-avatar-status {
+  position: absolute;
+  right: 0px;
+  bottom: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #111;
+}
+
+.profile-user-info {
+  min-width: 0;
+  margin-left: 18px;
+}
+
+.profile-user-name {
+  font-size: 1.55rem;
+  font-weight: 750;
+  line-height: 1.05;
+}
+
+.profile-user-meta {
+  margin-top: 5px;
+  color: #9d9d9f;
+  font-size: 0.95rem;
+}
+
+.profile-plan-badge {
+  display: inline-flex;
+  margin-top: 9px;
+  padding: 4px 9px;
+  border: 1px solid rgba(var(--accent-rgb), 0.42);
+  border-radius: 8px;
+  color: var(--accent-light);
+  background: rgba(var(--accent-rgb), 0.08);
+  font-size: 0.75rem;
+}
+
+.profile-user-chevron {
+  margin-left: auto;
+  color: #9f9f9f;
+  font-size: 2rem;
+}
+
+.profile-main-divider {
+  height: 1px;
+  background: #242424;
+}
+
+.profile-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.profile-summary-item {
+  min-width: 0;
+  padding: 16px 7px 18px;
+  text-align: center;
+  position: relative;
+}
+
+.profile-summary-item + .profile-summary-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: #292929;
+}
+
+.profile-summary-icon {
+  height: 29px;
+  color: var(--accent-light);
+}
+
+.profile-summary-icon svg {
+  width: 27px;
+  height: 27px;
+}
+
+.profile-summary-label {
+  margin-top: 6px;
+  color: #9b9b9d;
+  font-size: 0.72rem;
+}
+
+.profile-summary-value {
+  margin-top: 5px;
+  color: #f4f4f4;
+  font-size: 0.92rem;
+  font-weight: 630;
+}
+
+.profile-summary-date {
+  font-size: 0.78rem;
+}
+
+.profile-summary-accent {
+  margin-top: 4px;
+  color: var(--accent-light);
+  font-size: 0.7rem;
+}
+
+.profile-traffic-card {
+  padding: 18px;
+  margin-bottom: 11px;
+}
+
+.profile-traffic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-traffic-label,
+.profile-traffic-limit {
+  color: #99999b;
+  font-size: 0.8rem;
+}
+
+.profile-traffic-value {
+  margin-top: 8px;
+  font-size: 1.9rem;
+  font-weight: 720;
+}
+
+.profile-infinity {
+  color: var(--accent-light);
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.profile-traffic-bar {
+  height: 7px;
+  margin: 15px 0 11px;
+  border-radius: 100px;
+  background: #292929;
+  overflow: hidden;
+}
+
+.profile-traffic-bar i {
+  display: block;
+  width: 78%;
+  height: 100%;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      90deg,
+      var(--accent-light),
+      var(--accent)
+    );
+}
+
+.profile-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 11px;
+}
+
+.profile-action-card {
+  min-height: 80px;
+  padding: 13px;
+  border: 1px solid rgba(var(--accent-rgb), 0.72);
+  border-radius: 17px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.04),
+      #0a0a0a
+    );
+  color: #f3f3f3;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font: inherit;
+}
+
+.profile-action-icon {
+  width: 29px;
+  flex-shrink: 0;
+  font-size: 1.35rem;
+}
+
+.profile-action-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.profile-action-text strong {
+  font-size: 0.82rem;
+  font-weight: 660;
+}
+
+.profile-action-text small {
+  color: #8f8f92;
+  font-size: 0.65rem;
+  white-space: nowrap;
+}
+
+.profile-action-arrow {
+  margin-left: auto;
+  color: #8e8e90;
+  font-size: 1.5rem;
+}
+
+.profile-ref-banner {
+  width: 100%;
+  min-height: 132px;
+  border: 1px solid rgba(var(--accent-rgb), 0.72);
+  border-radius: 20px;
+  padding: 18px;
+  background:
+    radial-gradient(
+      circle at 78% 50%,
+      rgba(var(--accent-rgb), 0.18),
+      transparent 35%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.06),
+      #090909
+    );
+  color: #f5f5f5;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.profile-ref-banner strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.profile-ref-banner span {
+  display: block;
+  margin-top: 7px;
+  color: #97979a;
+  font-size: 0.75rem;
+}
+
+.profile-ref-banner b {
+  display: inline-block;
+  margin-top: 11px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #090909;
+  font-size: 0.75rem;
+}
+
+.profile-ref-gift {
+  font-size: 3.5rem;
+  filter:
+    drop-shadow(
+      0 0 16px rgba(var(--accent-rgb), 0.18)
+    );
+}
+
+.profile-admin-link {
+  margin-top: 10px;
+}
+
+/* ===== PROFILE REDESIGN END ===== */
+
+/* ===== PROFILE ACCENT FALLBACK ===== */
+
+/*
+ * Базовая золотая тема.
+ * Позже эти значения будут переключаться через
+ * Профиль -> Настройки.
+ */
+:root {
+  --accent: #e9aa00;
+  --accent-light: #ffd45a;
+  --accent-dark: #a87800;
+  --accent-rgb: 233, 170, 0;
+}
+
+/* Верхние иконки */
+#screen-profile .profile-icon-btn {
+  color: #f5f5f5;
+}
+
+/* Основные карточки профиля */
+#screen-profile .profile-main-card,
+#screen-profile .profile-traffic-card,
+#screen-profile .profile-action-card,
+#screen-profile .profile-ref-banner {
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(var(--accent-rgb), 0.72);
+}
+
+/* Золотые SVG */
+#screen-profile .profile-summary-icon {
+  color: var(--accent-light);
+}
+
+/* Золотые подписи */
+#screen-profile .profile-summary-accent,
+#screen-profile .profile-infinity {
+  color: var(--accent-light);
+}
+
+/* Badge тарифа */
+#screen-profile .profile-plan-badge {
+  color: var(--accent-light);
+  border-color: rgba(var(--accent-rgb), 0.55);
+  background: rgba(var(--accent-rgb), 0.10);
+}
+
+/* Avatar */
+#screen-profile .profile-avatar {
+  background:
+    linear-gradient(
+      145deg,
+      var(--accent-light),
+      var(--accent)
+    );
+}
+
+/* Прогресс */
+#screen-profile .profile-traffic-bar i {
+  background:
+    linear-gradient(
+      90deg,
+      var(--accent-light),
+      var(--accent)
+    );
+}
+
+/* Акцентная кнопка в реферальном баннере */
+#screen-profile .profile-ref-banner b {
+  background: var(--accent);
+  color: #090909;
+}
+
+/* ===== PROFILE ACCENT FALLBACK END ===== */
+
+/* ===== PROFILE LAYOUT FIX ===== */
+
+/* 1. Вся страница профиля строго внутри ширины экрана */
+#screen-profile {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 2. Сетка кнопок больше не может вылезать вправо */
+#screen-profile .profile-actions-grid {
+  width: 100%;
+  max-width: 100%;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 9px;
+}
+
+#screen-profile .profile-action-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#screen-profile .profile-action-text {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#screen-profile .profile-action-text strong,
+#screen-profile .profile-action-text small {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+#screen-profile .profile-action-arrow {
+  flex: 0 0 auto;
+}
+
+/* 3. Большие карточки тоже не выходят за контейнер */
+#screen-profile .profile-main-card,
+#screen-profile .profile-traffic-card,
+#screen-profile .profile-ref-banner {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 4. Убираем пустую служебную кнопку admin.
+      Реальная кнопка Админ-панель — profile-admin-btn */
+#screen-profile #menu-admin {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+/* 5. Верхний профильный блок примерно на 15% компактнее */
+#screen-profile .profile-user-row {
+  min-height: 106px;
+  padding: 14px 16px;
+}
+
+#screen-profile .profile-avatar {
+  width: 68px;
+  height: 68px;
+  font-size: 1.95rem;
+}
+
+#screen-profile .profile-user-info {
+  margin-left: 15px;
+}
+
+#screen-profile .profile-user-name {
+  font-size: 1.38rem;
+}
+
+#screen-profile .profile-summary-item {
+  padding-top: 12px;
+  padding-bottom: 14px;
+}
+
+#screen-profile .profile-summary-item + .profile-summary-item::before {
+  top: 11px;
+  bottom: 11px;
+}
+
+/* На очень узких экранах */
+@media (max-width: 370px) {
+  #screen-profile .profile-actions-grid {
+    gap: 7px;
+  }
+
+  #screen-profile .profile-action-card {
+    padding: 11px 9px;
+  }
+
+  #screen-profile .profile-action-text strong {
+    font-size: 0.76rem;
+  }
+
+  #screen-profile .profile-action-text small {
+    font-size: 0.60rem;
+  }
+}
+
+/* ===== PROFILE LAYOUT FIX END ===== */
+
+/* ===== PROFILE MAIN BACKGROUND IMAGE ===== */
+
+#screen-profile .profile-main-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.06) 0%,
+      rgba(0, 0, 0, 0.16) 100%
+    ),
+    url("./assets/profile-main-bg.jpg") center center / cover no-repeat;
+}
+
+/* ===== PROFILE MAIN BACKGROUND IMAGE END ===== */
+
+/* ===== PROFILE REMOVE CHEVRON ===== */
+
+#screen-profile .profile-user-chevron {
+  display: none !important;
+}
+
+/* ===== PROFILE REMOVE CHEVRON END ===== */
+
+/* ===== SETTINGS AND GLOBAL THEMES START ===== */
+
+/* -------------------------
+   THEME TOKENS
+------------------------- */
+
+:root,
+html[data-theme="gold"] {
+  --accent: #e9aa00;
+  --accent-light: #ffd45a;
+  --accent-dark: #a87800;
+  --accent-rgb: 233, 170, 0;
+}
+
+html[data-theme="blue"] {
+  --accent: #3478f6;
+  --accent-light: #75a8ff;
+  --accent-dark: #174eb5;
+  --accent-rgb: 52, 120, 246;
+}
+
+html[data-theme="purple"] {
+  --accent: #925cff;
+  --accent-light: #bc95ff;
+  --accent-dark: #6531ca;
+  --accent-rgb: 146, 92, 255;
+}
+
+html[data-theme="green"] {
+  --accent: #22c55e;
+  --accent-light: #6ee7a0;
+  --accent-dark: #147a3a;
+  --accent-rgb: 34, 197, 94;
+}
+
+html[data-theme="red"] {
+  --accent: #ef4444;
+  --accent-light: #ff8585;
+  --accent-dark: #ad2020;
+  --accent-rgb: 239, 68, 68;
+}
+
+html[data-theme="cyan"] {
+  --accent: #08b8d4;
+  --accent-light: #6ee7f2;
+  --accent-dark: #087c91;
+  --accent-rgb: 8, 184, 212;
+}
+
+/*
+ * Совместимость со старой системой.
+ * Всё, что уже использует --gold,
+ * автоматически будет переключаться.
+ */
+html[data-theme] {
+  --gold: var(--accent);
+  --gold-l: var(--accent-light);
+  --gold-d: var(--accent-dark);
+}
+
+
+/* -------------------------
+   SETTINGS SCREEN
+------------------------- */
+
+.settings-screen {
+  width: 100%;
+  max-width: 100%;
+}
+
+.settings-page-head {
+  margin-bottom: 12px;
+}
+
+.settings-section {
+  width: 100%;
+
+  padding: 17px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.72);
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.055),
+      rgba(10,10,10,0.98) 45%,
+      #070707
+    );
+}
+
+.settings-section-head {
+  margin-bottom: 15px;
+}
+
+.settings-section-head h3 {
+  margin: 0 0 5px;
+
+  color: #f4f4f4;
+
+  font-size: 1rem;
+  font-weight: 680;
+}
+
+.settings-section-head p {
+  margin: 0;
+
+  color: #8f8f93;
+
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+
+.theme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+.theme-choice {
+  width: 100%;
+  min-height: 66px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 11px 13px;
+
+  border: 1px solid #242424;
+  border-radius: 15px;
+
+  background: #0b0b0b;
+
+  color: #f3f3f3;
+
+  font: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.15s ease;
+}
+
+.theme-choice:active {
+  transform: scale(0.985);
+}
+
+.theme-choice.active {
+  border-color: var(--accent);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.14),
+      #0b0b0b 65%
+    );
+
+  box-shadow:
+    inset 0 0 0 1px
+      rgba(var(--accent-rgb), 0.05),
+    0 0 18px
+      rgba(var(--accent-rgb), 0.08);
+}
+
+
+.theme-preview {
+  width: 31px;
+  height: 31px;
+
+  flex: 0 0 31px;
+
+  border-radius: 50%;
+
+  box-shadow:
+    inset 0 0 0 1px
+      rgba(255,255,255,0.16),
+    0 0 12px
+      rgba(255,255,255,0.04);
+}
+
+.theme-preview-gold {
+  background:
+    linear-gradient(
+      145deg,
+      #ffd45a,
+      #e9aa00
+    );
+}
+
+.theme-preview-blue {
+  background:
+    linear-gradient(
+      145deg,
+      #75a8ff,
+      #3478f6
+    );
+}
+
+.theme-preview-purple {
+  background:
+    linear-gradient(
+      145deg,
+      #bc95ff,
+      #925cff
+    );
+}
+
+.theme-preview-green {
+  background:
+    linear-gradient(
+      145deg,
+      #6ee7a0,
+      #22c55e
+    );
+}
+
+.theme-preview-red {
+  background:
+    linear-gradient(
+      145deg,
+      #ff8585,
+      #ef4444
+    );
+}
+
+.theme-preview-cyan {
+  background:
+    linear-gradient(
+      145deg,
+      #6ee7f2,
+      #08b8d4
+    );
+}
+
+
+.theme-choice-body {
+  min-width: 0;
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.theme-choice-body strong {
+  color: #f5f5f5;
+
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.theme-choice-body small {
+  color: #858589;
+
+  font-size: 0.66rem;
+  line-height: 1.25;
+}
+
+
+.theme-choice-check {
+  width: 25px;
+  height: 25px;
+
+  flex: 0 0 25px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(var(--accent-rgb), 0.14);
+
+  color: var(--accent-light);
+
+  font-size: 0.82rem;
+  font-weight: 800;
+
+  opacity: 0;
+
+  transition: opacity 0.15s ease;
+}
+
+.theme-choice.active
+.theme-choice-check {
+  opacity: 1;
+}
+
+
+.settings-current-card {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 10px;
+
+  padding: 15px 17px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.72);
+
+  border-radius: 17px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.04),
+      #090909
+    );
+}
+
+.settings-current-card span {
+  color: #909094;
+
+  font-size: 0.78rem;
+}
+
+.settings-current-card strong {
+  color: var(--accent-light);
+
+  font-size: 0.82rem;
+}
+
+
+/* -------------------------
+   NEW SCREENS: LIVE THEME
+------------------------- */
+
+/* PROFILE */
+
+#screen-profile .profile-main-card,
+#screen-profile .profile-traffic-card,
+#screen-profile .profile-action-card,
+#screen-profile .profile-ref-banner {
+  border-color:
+    rgba(var(--accent-rgb), 0.72)
+    !important;
+}
+
+#screen-profile .profile-summary-icon,
+#screen-profile .profile-summary-accent,
+#screen-profile .profile-infinity,
+#screen-profile .profile-plan-badge {
+  color:
+    var(--accent-light)
+    !important;
+}
+
+#screen-profile .profile-avatar {
+  background:
+    linear-gradient(
+      145deg,
+      var(--accent-light),
+      var(--accent)
+    )
+    !important;
+}
+
+#screen-profile .profile-avatar-status {
+  background:
+    var(--accent)
+    !important;
+}
+
+#screen-profile .profile-plan-badge {
+  border-color:
+    rgba(var(--accent-rgb), 0.5)
+    !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.09)
+    !important;
+}
+
+#screen-profile .profile-traffic-bar i {
+  background:
+    linear-gradient(
+      90deg,
+      var(--accent-light),
+      var(--accent)
+    )
+    !important;
+}
+
+#screen-profile .profile-ref-banner b {
+  background:
+    var(--accent)
+    !important;
+}
+
+
+/* HOME */
+
+#screen-home .status-card,
+#screen-home .stat-card,
+#screen-home .banner {
+  border-color:
+    rgba(var(--accent-rgb), 0.72)
+    !important;
+}
+
+#screen-home .stat-ico-svg,
+#screen-home .btn-outline-gold,
+#screen-home .brand {
+  color:
+    var(--accent)
+    !important;
+}
+
+#screen-home .stat-bar i {
+  background:
+    linear-gradient(
+      90deg,
+      var(--accent-dark),
+      var(--accent-light)
+    )
+    !important;
+}
+
+
+/* TAB BAR */
+
+.tab.active {
+  color:
+    var(--accent)
+    !important;
+}
+
+
+/* COMMON */
+
+.btn-gold {
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-light),
+      var(--accent)
+    )
+    !important;
+}
+
+.progress-bar {
+  background:
+    linear-gradient(
+      90deg,
+      var(--accent-dark),
+      var(--accent-light)
+    )
+    !important;
+}
+
+/* ===== SETTINGS AND GLOBAL THEMES END ===== */
+
+/* ===== PROFILE THEME BACKGROUNDS ===== */
+
+/* GOLD */
+html[data-theme="gold"] #screen-profile .profile-main-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.06) 0%,
+      rgba(0, 0, 0, 0.16) 100%
+    ),
+    url("./assets/profile-main-bg.jpg") center center / cover no-repeat;
+}
+
+/* BLUE */
+html[data-theme="blue"] #screen-profile .profile-main-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.06) 0%,
+      rgba(0, 0, 0, 0.16) 100%
+    ),
+    url("./assets/profile-main-bg-blue.jpg") center center / cover no-repeat;
+}
+
+/* ===== PROFILE THEME BACKGROUNDS END ===== */
+
+/* GREEN PROFILE BACKGROUND */
+html[data-theme="green"] #screen-profile .profile-main-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.06) 0%,
+      rgba(0, 0, 0, 0.16) 100%
+    ),
+    url("./assets/profile-main-bg-green.jpg") center center / cover no-repeat;
+}
+
+/* ===== GREEN NEON PROFILE THEME ===== */
+
+html[data-theme="green"] {
+  --accent: #39ff14;
+  --accent-light: #8cff73;
+  --accent-dark: #129800;
+  --accent-rgb: 57, 255, 20;
+}
+
+/* Чуть более яркое свечение зелёной темы */
+html[data-theme="green"] #screen-profile .profile-main-card,
+html[data-theme="green"] #screen-profile .profile-traffic-card,
+html[data-theme="green"] #screen-profile .profile-action-card,
+html[data-theme="green"] #screen-profile .profile-ref-banner {
+  border-color: rgba(57, 255, 20, 0.72) !important;
+  box-shadow:
+    0 0 10px rgba(57, 255, 20, 0.035),
+    inset 0 0 12px rgba(57, 255, 20, 0.025);
+}
+
+html[data-theme="green"] #screen-profile .profile-summary-icon,
+html[data-theme="green"] #screen-profile .profile-summary-accent,
+html[data-theme="green"] #screen-profile .profile-infinity {
+  color: #8cff73 !important;
+}
+
+html[data-theme="green"] #screen-profile .profile-traffic-bar i {
+  background:
+    linear-gradient(
+      90deg,
+      #129800 0%,
+      #39ff14 55%,
+      #8cff73 100%
+    ) !important;
+
+  box-shadow:
+    0 0 9px rgba(57, 255, 20, 0.28);
+}
+
+html[data-theme="green"] #screen-profile .profile-plan-badge {
+  color: #8cff73 !important;
+  border-color: rgba(57, 255, 20, 0.55) !important;
+  background: rgba(57, 255, 20, 0.10) !important;
+}
+
+/* ===== GREEN NEON PROFILE THEME END ===== */
+
+/* ===== RED NEON PROFILE THEME ===== */
+
+html[data-theme="red"] {
+  --accent: #ff2a2a;
+  --accent-light: #ff7a7a;
+  --accent-dark: #9f0000;
+  --accent-rgb: 255, 42, 42;
+}
+
+html[data-theme="red"] #screen-profile .profile-main-card {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 42, 42, 0.06),
+      rgba(10, 10, 10, 0.92) 36%,
+      rgba(5, 5, 5, 0.97)
+    ),
+    url('/assets/profile-main-bg-red.jpg') center center / cover no-repeat !important;
+}
+
+html[data-theme="red"] #screen-profile .profile-main-card,
+html[data-theme="red"] #screen-profile .profile-traffic-card,
+html[data-theme="red"] #screen-profile .profile-action-card,
+html[data-theme="red"] #screen-profile .profile-ref-banner {
+  border-color: rgba(255, 42, 42, 0.72) !important;
+  box-shadow:
+    0 0 10px rgba(255, 42, 42, 0.04),
+    inset 0 0 12px rgba(255, 42, 42, 0.025);
+}
+
+html[data-theme="red"] #screen-profile .profile-summary-icon,
+html[data-theme="red"] #screen-profile .profile-summary-accent,
+html[data-theme="red"] #screen-profile .profile-infinity,
+html[data-theme="red"] #screen-profile .profile-main-arrow,
+html[data-theme="red"] #screen-profile .profile-action-arrow {
+  color: #ff7a7a !important;
+}
+
+html[data-theme="red"] #screen-profile .profile-traffic-bar i {
+  background:
+    linear-gradient(
+      90deg,
+      #9f0000 0%,
+      #ff2a2a 55%,
+      #ff7a7a 100%
+    ) !important;
+  box-shadow:
+    0 0 9px rgba(255, 42, 42, 0.28);
+}
+
+html[data-theme="red"] #screen-profile .profile-plan-badge {
+  color: #ff9c9c !important;
+  border-color: rgba(255, 42, 42, 0.55) !important;
+  background: rgba(255, 42, 42, 0.10) !important;
+}
+
+html[data-theme="red"] #screen-profile .profile-ref-btn {
+  background: linear-gradient(180deg, #ff6767, #ff2a2a) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 22px rgba(255, 42, 42, 0.24);
+}
+
+/* ===== RED NEON PROFILE THEME END ===== */
+
+/* ===== RED NEON PROFILE THEME ===== */
+
+html[data-theme="red"] {
+  --accent: #ff2a2a;
+  --accent-light: #ff7a7a;
+  --accent-dark: #9f0000;
+  --accent-rgb: 255, 42, 42;
+}
+
+html[data-theme="red"] #screen-profile .profile-main-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.06) 0%,
+      rgba(0, 0, 0, 0.16) 100%
+    ),
+    url("./assets/profile-main-bg-red.jpg") center center / cover no-repeat !important;
+}
+
+html[data-theme="red"] #screen-profile .profile-main-card,
+html[data-theme="red"] #screen-profile .profile-traffic-card,
+html[data-theme="red"] #screen-profile .profile-action-card,
+html[data-theme="red"] #screen-profile .profile-ref-banner {
+  border-color: rgba(255, 42, 42, 0.72) !important;
+  box-shadow:
+    0 0 10px rgba(255, 42, 42, 0.04),
+    inset 0 0 12px rgba(255, 42, 42, 0.025);
+}
+
+html[data-theme="red"] #screen-profile .profile-summary-icon,
+html[data-theme="red"] #screen-profile .profile-summary-accent,
+html[data-theme="red"] #screen-profile .profile-infinity {
+  color: #ff7a7a !important;
+}
+
+html[data-theme="red"] #screen-profile .profile-traffic-bar i {
+  background:
+    linear-gradient(
+      90deg,
+      #9f0000 0%,
+      #ff2a2a 55%,
+      #ff7a7a 100%
+    ) !important;
+
+  box-shadow:
+    0 0 9px rgba(255, 42, 42, 0.28);
+}
+
+html[data-theme="red"] #screen-profile .profile-plan-badge {
+  color: #ff9a9a !important;
+  border-color: rgba(255, 42, 42, 0.55) !important;
+  background: rgba(255, 42, 42, 0.10) !important;
+}
+
+/* ===== RED NEON PROFILE THEME END ===== */
+
+/* ===== CYAN NEON PROFILE THEME ===== */
+
+html[data-theme="cyan"] {
+  --accent: #00e5ff;
+  --accent-light: #7df4ff;
+  --accent-dark: #008fa3;
+  --accent-rgb: 0, 229, 255;
+}
+
+html[data-theme="cyan"] #screen-profile .profile-main-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.06) 0%,
+      rgba(0, 0, 0, 0.16) 100%
+    ),
+    url("./assets/profile-main-bg-cyan.jpg") center center / cover no-repeat !important;
+}
+
+html[data-theme="cyan"] #screen-profile .profile-main-card,
+html[data-theme="cyan"] #screen-profile .profile-traffic-card,
+html[data-theme="cyan"] #screen-profile .profile-action-card,
+html[data-theme="cyan"] #screen-profile .profile-ref-banner {
+  border-color: rgba(0, 229, 255, 0.72) !important;
+  box-shadow:
+    0 0 10px rgba(0, 229, 255, 0.04),
+    inset 0 0 12px rgba(0, 229, 255, 0.025);
+}
+
+html[data-theme="cyan"] #screen-profile .profile-summary-icon,
+html[data-theme="cyan"] #screen-profile .profile-summary-accent,
+html[data-theme="cyan"] #screen-profile .profile-infinity {
+  color: #7df4ff !important;
+}
+
+html[data-theme="cyan"] #screen-profile .profile-traffic-bar i {
+  background:
+    linear-gradient(
+      90deg,
+      #008fa3 0%,
+      #00e5ff 55%,
+      #7df4ff 100%
+    ) !important;
+
+  box-shadow:
+    0 0 9px rgba(0, 229, 255, 0.28);
+}
+
+html[data-theme="cyan"] #screen-profile .profile-plan-badge {
+  color: #9ff8ff !important;
+  border-color: rgba(0, 229, 255, 0.55) !important;
+  background: rgba(0, 229, 255, 0.10) !important;
+}
+
+/* ===== CYAN NEON PROFILE THEME END ===== */
+
+/* ===== CYAN NEON PROFILE THEME V2 ===== */
+
+html[data-theme="cyan"] {
+  --accent: #1ff5e8;
+  --accent-light: #7dfff8;
+  --accent-dark: #0aa39c;
+  --accent-rgb: 31, 245, 232;
+}
+
+html[data-theme="cyan"] #screen-profile .profile-main-card,
+html[data-theme="cyan"] #screen-profile .profile-traffic-card,
+html[data-theme="cyan"] #screen-profile .profile-action-card,
+html[data-theme="cyan"] #screen-profile .profile-ref-banner {
+  border-color: rgba(31, 245, 232, 0.72) !important;
+  box-shadow:
+    0 0 10px rgba(31, 245, 232, 0.04),
+    inset 0 0 12px rgba(31, 245, 232, 0.025);
+}
+
+html[data-theme="cyan"] #screen-profile .profile-summary-icon,
+html[data-theme="cyan"] #screen-profile .profile-summary-accent,
+html[data-theme="cyan"] #screen-profile .profile-infinity {
+  color: #7dfff8 !important;
+}
+
+html[data-theme="cyan"] #screen-profile .profile-traffic-bar i {
+  background:
+    linear-gradient(
+      90deg,
+      #0aa39c 0%,
+      #1ff5e8 55%,
+      #7dfff8 100%
+    ) !important;
+
+  box-shadow:
+    0 0 9px rgba(31, 245, 232, 0.28);
+}
+
+html[data-theme="cyan"] #screen-profile .profile-plan-badge {
+  color: #9ffff9 !important;
+  border-color: rgba(31, 245, 232, 0.55) !important;
+  background: rgba(31, 245, 232, 0.10) !important;
+}
+
+/* ===== CYAN NEON PROFILE THEME V2 END ===== */
+
+/* ===== HOME BLUE BACKGROUND ===== */
+
+html[data-theme="blue"] #screen-home .status-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.03) 0%,
+      rgba(0, 0, 0, 0.08) 100%
+    ),
+    url("./assets/home-main-bg-blue.jpg") center center / cover no-repeat !important;
+}
+
+/* ===== HOME BLUE BACKGROUND END ===== */
+
+/* ===== HOME BLUE THEME ACCENTS ===== */
+
+html[data-theme="blue"] {
+  --accent: #3478f6;
+  --accent-light: #75a8ff;
+  --accent-dark: #174eb5;
+  --accent-rgb: 52, 120, 246;
+}
+
+/* Основные обводки */
+html[data-theme="blue"] #screen-home .status-card,
+html[data-theme="blue"] #screen-home .stat-card,
+html[data-theme="blue"] #screen-home .banner {
+  border-color: rgba(52, 120, 246, 0.72) !important;
+}
+
+/* "Ваш доступ активен" */
+html[data-theme="blue"] #screen-home .status-card .status-ok,
+html[data-theme="blue"] #screen-home .status-card .status-active,
+html[data-theme="blue"] #screen-home .status-card .status-badge,
+html[data-theme="blue"] #screen-home .status-card .active {
+  color: #75a8ff !important;
+}
+
+/* Все SVG-акценты внутри главного блока:
+   щит, волны и другие декоративные элементы */
+html[data-theme="blue"] #screen-home .status-card svg {
+  color: #75a8ff !important;
+}
+
+html[data-theme="blue"] #screen-home .status-card svg path,
+html[data-theme="blue"] #screen-home .status-card svg circle,
+html[data-theme="blue"] #screen-home .status-card svg rect,
+html[data-theme="blue"] #screen-home .status-card svg line,
+html[data-theme="blue"] #screen-home .status-card svg polyline {
+  stroke: currentColor;
+}
+
+/* Щит возле 4STEPS VPN */
+html[data-theme="blue"] #screen-home .brand svg,
+html[data-theme="blue"] #screen-home .brand-icon,
+html[data-theme="blue"] #screen-home .brand-ico {
+  color: #75a8ff !important;
+}
+
+/* Щит по центру блока "Подписка активна" */
+html[data-theme="blue"] #screen-home .status-icon,
+html[data-theme="blue"] #screen-home .status-shield,
+html[data-theme="blue"] #screen-home .shield-icon {
+  color: #75a8ff !important;
+}
+
+/* Волны */
+html[data-theme="blue"] #screen-home .waves,
+html[data-theme="blue"] #screen-home .wave,
+html[data-theme="blue"] #screen-home .status-waves {
+  color: #3478f6 !important;
+  border-color: rgba(52, 120, 246, 0.65) !important;
+}
+
+/* Кнопка "Детали подключения" */
+html[data-theme="blue"] #screen-home .btn-outline-gold,
+html[data-theme="blue"] #screen-home #btn-details {
+  color: #75a8ff !important;
+  border-color: rgba(52, 120, 246, 0.78) !important;
+  background: rgba(52, 120, 246, 0.05) !important;
+}
+
+/* SVG внутри кнопки деталей */
+html[data-theme="blue"] #screen-home #btn-details svg {
+  color: #75a8ff !important;
+}
+
+/* Иконки нижних статистических блоков */
+html[data-theme="blue"] #screen-home .stat-ico-svg {
+  color: #75a8ff !important;
+  filter:
+    drop-shadow(
+      0 0 6px rgba(52, 120, 246, 0.20)
+    ) !important;
+}
+
+/* Прогресс / декоративные полосы */
+html[data-theme="blue"] #screen-home .stat-bar i,
+html[data-theme="blue"] #screen-home .progress-bar i,
+html[data-theme="blue"] #screen-home .progress-fill {
+  background:
+    linear-gradient(
+      90deg,
+      #174eb5,
+      #3478f6,
+      #75a8ff
+    ) !important;
+}
+
+/* Общие золотые тексты внутри Home */
+html[data-theme="blue"] #screen-home .gold,
+html[data-theme="blue"] #screen-home .accent,
+html[data-theme="blue"] #screen-home .accent-text {
+  color: #75a8ff !important;
+}
+
+/* ===== HOME BLUE THEME ACCENTS END ===== */
+
+/* ===== HOME BLUE REMAINING ACCENTS FIX ===== */
+
+/* Текст "Ваш доступ активен" */
+html[data-theme="blue"] #screen-home .hello p,
+html[data-theme="blue"] #screen-home .hello-sub,
+html[data-theme="blue"] #screen-home .hello-status,
+html[data-theme="blue"] #screen-home .access-status {
+  color: #75a8ff !important;
+}
+
+/* Логотип/щит возле 4STEPS VPN */
+html[data-theme="blue"] #screen-home .brand {
+  color: #3478f6 !important;
+}
+
+html[data-theme="blue"] #screen-home .brand svg {
+  color: #75a8ff !important;
+}
+
+html[data-theme="blue"] #screen-home .brand svg [stroke] {
+  stroke: #75a8ff !important;
+}
+
+html[data-theme="blue"] #screen-home .brand svg [fill]:not([fill="none"]) {
+  fill: rgba(117, 168, 255, 0.22) !important;
+}
+
+/* Центральный щит */
+html[data-theme="blue"] #screen-home .status-card .status-icon,
+html[data-theme="blue"] #screen-home .status-card .status-shield,
+html[data-theme="blue"] #screen-home .status-card .shield,
+html[data-theme="blue"] #screen-home .status-card .shield-icon {
+  color: #75a8ff !important;
+}
+
+html[data-theme="blue"] #screen-home .status-card .status-icon svg [stroke],
+html[data-theme="blue"] #screen-home .status-card .status-shield svg [stroke],
+html[data-theme="blue"] #screen-home .status-card .shield svg [stroke],
+html[data-theme="blue"] #screen-home .status-card .shield-icon svg [stroke] {
+  stroke: #75a8ff !important;
+}
+
+html[data-theme="blue"] #screen-home .status-card .status-icon svg [fill]:not([fill="none"]),
+html[data-theme="blue"] #screen-home .status-card .status-shield svg [fill]:not([fill="none"]),
+html[data-theme="blue"] #screen-home .status-card .shield svg [fill]:not([fill="none"]),
+html[data-theme="blue"] #screen-home .status-card .shield-icon svg [fill]:not([fill="none"]) {
+  fill: #3478f6 !important;
+}
+
+/* Кольца / волны вокруг центрального щита */
+html[data-theme="blue"] #screen-home .status-card .wave,
+html[data-theme="blue"] #screen-home .status-card .waves,
+html[data-theme="blue"] #screen-home .status-card .ring,
+html[data-theme="blue"] #screen-home .status-card .rings,
+html[data-theme="blue"] #screen-home .status-card [class*="wave"],
+html[data-theme="blue"] #screen-home .status-card [class*="ring"] {
+  border-color: rgba(52, 120, 246, 0.32) !important;
+  color: rgba(117, 168, 255, 0.42) !important;
+}
+
+/* Если кольца нарисованы через псевдоэлементы */
+html[data-theme="blue"] #screen-home .status-card .status-icon::before,
+html[data-theme="blue"] #screen-home .status-card .status-icon::after,
+html[data-theme="blue"] #screen-home .status-card .status-shield::before,
+html[data-theme="blue"] #screen-home .status-card .status-shield::after {
+  border-color: rgba(52, 120, 246, 0.30) !important;
+}
+
+/* ===== HOME BLUE REMAINING ACCENTS FIX END ===== */
+
+/* ===== UNIVERSAL HOME CENTER SHIELD ===== */
+
+#screen-home .status-card .status-icon,
+#screen-home .status-card .status-shield,
+#screen-home .status-card .shield,
+#screen-home .status-card .shield-icon {
+  color: #e6e8eb !important;
+}
+
+#screen-home .status-card .status-icon svg [stroke],
+#screen-home .status-card .status-shield svg [stroke],
+#screen-home .status-card .shield svg [stroke],
+#screen-home .status-card .shield-icon svg [stroke] {
+  stroke: #e6e8eb !important;
+}
+
+#screen-home .status-card .status-icon svg [fill]:not([fill="none"]),
+#screen-home .status-card .status-shield svg [fill]:not([fill="none"]),
+#screen-home .status-card .shield svg [fill]:not([fill="none"]),
+#screen-home .status-card .shield-icon svg [fill]:not([fill="none"]) {
+  fill: #e6e8eb !important;
+}
+
+#screen-home .status-card .status-icon svg,
+#screen-home .status-card .status-shield svg,
+#screen-home .status-card .shield svg,
+#screen-home .status-card .shield-icon svg {
+  filter:
+    drop-shadow(
+      0 0 8px rgba(255, 255, 255, 0.18)
+    );
+}
+
+/* ===== UNIVERSAL HOME CENTER SHIELD END ===== */
+
+/* ===== UNIVERSAL CENTER SHIELD FIX ===== */
+
+/* Сам центральный щит */
+#screen-home .shield-core {
+  color: #e6e8eb !important;
+
+  filter:
+    drop-shadow(0 0 12px rgba(255,255,255,0.22))
+    drop-shadow(0 0 28px rgba(255,255,255,0.08))
+    !important;
+
+  animation: none !important;
+}
+
+/* Контуры SVG */
+#screen-home .shield-core svg [stroke] {
+  stroke: #e6e8eb !important;
+}
+
+/* Основная заливка щита */
+#screen-home .shield-core svg [fill]:not([fill="none"]) {
+  fill: #e6e8eb !important;
+}
+
+/* Если SVG использует currentColor */
+#screen-home .shield-core svg {
+  color: #e6e8eb !important;
+}
+
+/* Галочка внутри щита — чуть темнее */
+#screen-home .shield-core svg path:last-child {
+  stroke: #9ba3ad !important;
+}
+
+/* ===== UNIVERSAL CENTER SHIELD FIX END ===== */
+
+/* ===== UNIVERSAL CENTER SHIELD V2 ===== */
+
+#screen-home .shield-core {
+  color: #8f98a3 !important;
+
+  filter:
+    drop-shadow(0 0 8px rgba(170, 180, 190, 0.14))
+    drop-shadow(0 0 18px rgba(170, 180, 190, 0.06))
+    !important;
+
+  animation: none !important;
+}
+
+#screen-home .shield-core svg {
+  color: #8f98a3 !important;
+}
+
+/* Не делаем весь щит одним цветом */
+#screen-home .shield-core svg [fill]:not([fill="none"]) {
+  fill: #8f98a3 !important;
+}
+
+/* Более светлый внешний контур */
+#screen-home .shield-core svg [stroke] {
+  stroke: #c8ced6 !important;
+}
+
+/* Внутренний элемент / галочка */
+#screen-home .shield-core svg path:last-child {
+  stroke: #dfe4ea !important;
+  fill: none !important;
+}
+
+/* Чуть глубины через первый крупный path */
+#screen-home .shield-core svg path:first-child {
+  fill: #68727d !important;
+  stroke: #b9c0c8 !important;
+}
+
+/* ===== UNIVERSAL CENTER SHIELD V2 END ===== */
+
+/* ===== PURPLE NEON THEME ===== */
+
+html[data-theme="purple"] {
+  --accent: #9a5cff;
+  --accent-light: #c49cff;
+  --accent-dark: #5f24c7;
+  --accent-rgb: 154, 92, 255;
+}
+
+/* PROFILE BACKGROUND */
+html[data-theme="purple"] #screen-profile .profile-main-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.06) 0%,
+      rgba(0, 0, 0, 0.16) 100%
+    ),
+    url("./assets/profile-main-bg-purple.jpg") center center / cover no-repeat !important;
+}
+
+/* PROFILE ACCENTS */
+html[data-theme="purple"] #screen-profile .profile-main-card,
+html[data-theme="purple"] #screen-profile .profile-traffic-card,
+html[data-theme="purple"] #screen-profile .profile-action-card,
+html[data-theme="purple"] #screen-profile .profile-ref-banner {
+  border-color: rgba(154, 92, 255, 0.72) !important;
+  box-shadow:
+    0 0 10px rgba(154, 92, 255, 0.04),
+    inset 0 0 12px rgba(154, 92, 255, 0.025);
+}
+
+html[data-theme="purple"] #screen-profile .profile-summary-icon,
+html[data-theme="purple"] #screen-profile .profile-summary-accent,
+html[data-theme="purple"] #screen-profile .profile-infinity {
+  color: #c49cff !important;
+}
+
+html[data-theme="purple"] #screen-profile .profile-traffic-bar i {
+  background:
+    linear-gradient(
+      90deg,
+      #5f24c7 0%,
+      #9a5cff 55%,
+      #c49cff 100%
+    ) !important;
+
+  box-shadow:
+    0 0 9px rgba(154, 92, 255, 0.28);
+}
+
+html[data-theme="purple"] #screen-profile .profile-plan-badge {
+  color: #d8bdff !important;
+  border-color: rgba(154, 92, 255, 0.55) !important;
+  background: rgba(154, 92, 255, 0.10) !important;
+}
+
+/* HOME BACKGROUND */
+html[data-theme="purple"] #screen-home .status-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.03) 0%,
+      rgba(0, 0, 0, 0.08) 100%
+    ),
+    url("./assets/home-main-bg-purple.jpg") center center / cover no-repeat !important;
+}
+
+/* HOME BORDERS */
+html[data-theme="purple"] #screen-home .status-card,
+html[data-theme="purple"] #screen-home .stat-card,
+html[data-theme="purple"] #screen-home .banner {
+  border-color: rgba(154, 92, 255, 0.72) !important;
+}
+
+/* "Ваш доступ активен" */
+html[data-theme="purple"] #screen-home .hello p,
+html[data-theme="purple"] #screen-home .hello-sub,
+html[data-theme="purple"] #screen-home .hello-status,
+html[data-theme="purple"] #screen-home .access-status {
+  color: #c49cff !important;
+}
+
+/* Щит возле 4STEPS VPN */
+html[data-theme="purple"] #screen-home .brand,
+html[data-theme="purple"] #screen-home .brand svg {
+  color: #c49cff !important;
+}
+
+html[data-theme="purple"] #screen-home .brand svg [stroke] {
+  stroke: #c49cff !important;
+}
+
+/* Волны вокруг центрального щита */
+html[data-theme="purple"] #screen-home .ring {
+  border-color: rgba(154, 92, 255, 0.30) !important;
+
+  box-shadow:
+    0 0 12px rgba(154, 92, 255, 0.12),
+    inset 0 0 12px rgba(154, 92, 255, 0.05)
+    !important;
+}
+
+/* Кнопка "Детали подключения" */
+html[data-theme="purple"] #screen-home #btn-details,
+html[data-theme="purple"] #screen-home .btn-outline-gold {
+  color: #c49cff !important;
+  border-color: rgba(154, 92, 255, 0.78) !important;
+  background: rgba(154, 92, 255, 0.05) !important;
+}
+
+/* Иконки нижних блоков */
+html[data-theme="purple"] #screen-home .stat-ico-svg {
+  color: #c49cff !important;
+
+  filter:
+    drop-shadow(
+      0 0 6px rgba(154, 92, 255, 0.20)
+    ) !important;
+}
+
+/* Полосы */
+html[data-theme="purple"] #screen-home .stat-bar i,
+html[data-theme="purple"] #screen-home .progress-bar i,
+html[data-theme="purple"] #screen-home .progress-fill {
+  background:
+    linear-gradient(
+      90deg,
+      #5f24c7,
+      #9a5cff,
+      #c49cff
+    ) !important;
+}
+
+/* ===== PURPLE NEON THEME END ===== */
+
+/* ===== HOME GREEN THEME ===== */
+
+html[data-theme="green"] #screen-home .status-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.03) 0%,
+      rgba(0, 0, 0, 0.08) 100%
+    ),
+    url("./assets/home-main-bg-green.jpg") center center / cover no-repeat !important;
+}
+
+/* Обводки */
+html[data-theme="green"] #screen-home .status-card,
+html[data-theme="green"] #screen-home .stat-card,
+html[data-theme="green"] #screen-home .banner {
+  border-color: rgba(57, 255, 20, 0.72) !important;
+}
+
+/* "Ваш доступ активен" */
+html[data-theme="green"] #screen-home .hello p,
+html[data-theme="green"] #screen-home .hello-sub,
+html[data-theme="green"] #screen-home .hello-status,
+html[data-theme="green"] #screen-home .access-status {
+  color: #8cff73 !important;
+}
+
+/* Щит возле 4STEPS VPN */
+html[data-theme="green"] #screen-home .brand,
+html[data-theme="green"] #screen-home .brand svg {
+  color: #8cff73 !important;
+}
+
+html[data-theme="green"] #screen-home .brand svg [stroke] {
+  stroke: #8cff73 !important;
+}
+
+/* Волны */
+html[data-theme="green"] #screen-home .ring {
+  border-color: rgba(57, 255, 20, 0.30) !important;
+
+  box-shadow:
+    0 0 12px rgba(57, 255, 20, 0.12),
+    inset 0 0 12px rgba(57, 255, 20, 0.05)
+    !important;
+}
+
+/* Детали подключения */
+html[data-theme="green"] #screen-home #btn-details,
+html[data-theme="green"] #screen-home .btn-outline-gold {
+  color: #8cff73 !important;
+  border-color: rgba(57, 255, 20, 0.78) !important;
+  background: rgba(57, 255, 20, 0.05) !important;
+}
+
+/* Нижние иконки */
+html[data-theme="green"] #screen-home .stat-ico-svg {
+  color: #8cff73 !important;
+
+  filter:
+    drop-shadow(
+      0 0 6px rgba(57, 255, 20, 0.20)
+    ) !important;
+}
+
+/* Полосы */
+html[data-theme="green"] #screen-home .stat-bar i,
+html[data-theme="green"] #screen-home .progress-bar i,
+html[data-theme="green"] #screen-home .progress-fill {
+  background:
+    linear-gradient(
+      90deg,
+      #129800,
+      #39ff14,
+      #8cff73
+    ) !important;
+}
+
+/* ===== HOME GREEN THEME END ===== */
+
+/* ===== HOME RED THEME ===== */
+
+html[data-theme="red"] #screen-home .status-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.03) 0%,
+      rgba(0, 0, 0, 0.08) 100%
+    ),
+    url("./assets/home-main-bg-red.jpg") center center / cover no-repeat !important;
+}
+
+/* Обводки */
+html[data-theme="red"] #screen-home .status-card,
+html[data-theme="red"] #screen-home .stat-card,
+html[data-theme="red"] #screen-home .banner {
+  border-color: rgba(255, 42, 42, 0.72) !important;
+}
+
+/* "Ваш доступ активен" */
+html[data-theme="red"] #screen-home .hello p,
+html[data-theme="red"] #screen-home .hello-sub,
+html[data-theme="red"] #screen-home .hello-status,
+html[data-theme="red"] #screen-home .access-status {
+  color: #ff7a7a !important;
+}
+
+/* Щит возле 4STEPS VPN */
+html[data-theme="red"] #screen-home .brand,
+html[data-theme="red"] #screen-home .brand svg {
+  color: #ff7a7a !important;
+}
+
+html[data-theme="red"] #screen-home .brand svg [stroke] {
+  stroke: #ff7a7a !important;
+}
+
+/* Волны вокруг центрального щита */
+html[data-theme="red"] #screen-home .ring {
+  border-color: rgba(255, 42, 42, 0.30) !important;
+
+  box-shadow:
+    0 0 12px rgba(255, 42, 42, 0.12),
+    inset 0 0 12px rgba(255, 42, 42, 0.05)
+    !important;
+}
+
+/* Детали подключения */
+html[data-theme="red"] #screen-home #btn-details,
+html[data-theme="red"] #screen-home .btn-outline-gold {
+  color: #ff7a7a !important;
+  border-color: rgba(255, 42, 42, 0.78) !important;
+  background: rgba(255, 42, 42, 0.05) !important;
+}
+
+/* Нижние иконки */
+html[data-theme="red"] #screen-home .stat-ico-svg {
+  color: #ff7a7a !important;
+
+  filter:
+    drop-shadow(
+      0 0 6px rgba(255, 42, 42, 0.20)
+    ) !important;
+}
+
+/* Полосы */
+html[data-theme="red"] #screen-home .stat-bar i,
+html[data-theme="red"] #screen-home .progress-bar i,
+html[data-theme="red"] #screen-home .progress-fill {
+  background:
+    linear-gradient(
+      90deg,
+      #9f0000,
+      #ff2a2a,
+      #ff7a7a
+    ) !important;
+}
+
+/* ===== HOME RED THEME END ===== */
+
+/* ===== HOME CYAN THEME ===== */
+
+html[data-theme="cyan"] #screen-home .status-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.03) 0%,
+      rgba(0, 0, 0, 0.08) 100%
+    ),
+    url("./assets/home-main-bg-cyan.jpg") center center / cover no-repeat !important;
+}
+
+/* Обводки */
+html[data-theme="cyan"] #screen-home .status-card,
+html[data-theme="cyan"] #screen-home .stat-card,
+html[data-theme="cyan"] #screen-home .banner {
+  border-color: rgba(31, 245, 232, 0.72) !important;
+}
+
+/* "Ваш доступ активен" */
+html[data-theme="cyan"] #screen-home .hello p,
+html[data-theme="cyan"] #screen-home .hello-sub,
+html[data-theme="cyan"] #screen-home .hello-status,
+html[data-theme="cyan"] #screen-home .access-status {
+  color: #7dfff8 !important;
+}
+
+/* Щит возле 4STEPS VPN */
+html[data-theme="cyan"] #screen-home .brand,
+html[data-theme="cyan"] #screen-home .brand svg {
+  color: #7dfff8 !important;
+}
+
+html[data-theme="cyan"] #screen-home .brand svg [stroke] {
+  stroke: #7dfff8 !important;
+}
+
+/* Волны вокруг центрального щита */
+html[data-theme="cyan"] #screen-home .ring {
+  border-color: rgba(31, 245, 232, 0.30) !important;
+
+  box-shadow:
+    0 0 12px rgba(31, 245, 232, 0.12),
+    inset 0 0 12px rgba(31, 245, 232, 0.05)
+    !important;
+}
+
+/* Детали подключения */
+html[data-theme="cyan"] #screen-home #btn-details,
+html[data-theme="cyan"] #screen-home .btn-outline-gold {
+  color: #7dfff8 !important;
+  border-color: rgba(31, 245, 232, 0.78) !important;
+  background: rgba(31, 245, 232, 0.05) !important;
+}
+
+/* Нижние иконки */
+html[data-theme="cyan"] #screen-home .stat-ico-svg {
+  color: #7dfff8 !important;
+
+  filter:
+    drop-shadow(
+      0 0 6px rgba(31, 245, 232, 0.20)
+    ) !important;
+}
+
+/* Полосы */
+html[data-theme="cyan"] #screen-home .stat-bar i,
+html[data-theme="cyan"] #screen-home .progress-bar i,
+html[data-theme="cyan"] #screen-home .progress-fill {
+  background:
+    linear-gradient(
+      90deg,
+      #0aa39c,
+      #1ff5e8,
+      #7dfff8
+    ) !important;
+}
+
+/* ===== HOME CYAN THEME END ===== */
+
+/* ===== VPN SCREEN DYNAMIC THEME ===== */
+
+/*
+ * Раздел VPN автоматически использует
+ * цвет выбранной темы:
+ * gold / blue / purple / green / red / cyan
+ */
+
+/* Верхний информационный блок */
+#screen-servers .connection-intro {
+  border-color:
+    rgba(var(--accent-rgb), 0.62) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.07),
+      rgba(10, 10, 10, 0.96) 55%,
+      rgba(6, 6, 6, 0.98)
+    ) !important;
+}
+
+/* Иконка молнии */
+#screen-servers .connection-intro-icon {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.45) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.10) !important;
+
+  box-shadow:
+    0 0 12px
+    rgba(var(--accent-rgb), 0.12) !important;
+}
+
+/* Статус сети */
+#screen-servers .network-status {
+  border-color:
+    rgba(var(--accent-rgb), 0.52) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.055),
+      rgba(9, 9, 9, 0.98)
+    ) !important;
+}
+
+#screen-servers .network-status-dot {
+  background: var(--accent) !important;
+
+  box-shadow:
+    0 0 0 5px rgba(var(--accent-rgb), 0.12),
+    0 0 10px rgba(var(--accent-rgb), 0.32)
+    !important;
+}
+
+#screen-servers .network-status-count {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.42) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.08) !important;
+}
+
+/* Карточки приложений */
+#screen-servers .srv-item {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Активное приложение */
+#screen-servers .srv-item.active-srv {
+  border-color:
+    rgba(var(--accent-rgb), 0.72) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.11),
+      rgba(9, 9, 9, 0.98) 65%
+    ) !important;
+
+  box-shadow:
+    0 0 14px
+    rgba(var(--accent-rgb), 0.06) !important;
+}
+
+/* Стрелка активного приложения */
+#screen-servers .srv-item.active-srv .srv-check {
+  color: var(--accent-light) !important;
+}
+
+/* Бейдж "Рекомендуется" */
+#screen-servers .tag-rec {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.48) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.10) !important;
+}
+
+/* Название выбранного приложения */
+#screen-servers .active-srv .srv-name {
+  color: #f5f5f5 !important;
+}
+
+/* Все тематические SVG */
+#screen-servers svg.accent-icon,
+#screen-servers .accent-icon svg {
+  color: var(--accent-light) !important;
+}
+
+#screen-servers svg.accent-icon [stroke],
+#screen-servers .accent-icon svg [stroke] {
+  stroke: var(--accent-light) !important;
+}
+
+/* Золотые outline-кнопки внутри VPN */
+#screen-servers .btn-outline-gold {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.72) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.045) !important;
+}
+
+/* Основные золотые кнопки */
+#screen-servers .btn-gold {
+  color: #070707 !important;
+
+  border-color: var(--accent) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-light),
+      var(--accent)
+    ) !important;
+
+  box-shadow:
+    0 8px 20px
+    rgba(var(--accent-rgb), 0.16) !important;
+}
+
+/* Ссылки и акцентные подписи */
+#screen-servers .gold,
+#screen-servers .accent,
+#screen-servers .accent-text {
+  color: var(--accent-light) !important;
+}
+
+/* Активные radio/check элементы */
+#screen-servers input[type="radio"]:checked,
+#screen-servers input[type="checkbox"]:checked {
+  accent-color: var(--accent) !important;
+}
+
+/* ===== VPN SCREEN DYNAMIC THEME END ===== */
+
+/* ===== VPN SCREEN REMAINING THEME FIX ===== */
+
+/* Круглая стрелка справа у активного приложения */
+#screen-servers .srv-item.active-srv .srv-check {
+  color: #071010 !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-light),
+      var(--accent)
+    ) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.78) !important;
+
+  box-shadow:
+    0 0 12px
+    rgba(var(--accent-rgb), 0.18) !important;
+}
+
+/* Нумерованные шаги 1 / 2 / 3 */
+#screen-servers .step-num,
+#screen-servers .instruction-num,
+#screen-servers .guide-num,
+#screen-servers [class*="step"][class*="num"],
+#screen-servers [class*="instruction"][class*="num"] {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.62) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.10) !important;
+
+  box-shadow:
+    inset 0 0 10px
+    rgba(var(--accent-rgb), 0.05) !important;
+}
+
+/* Карточки шагов */
+#screen-servers .step-card,
+#screen-servers .instruction-card,
+#screen-servers .guide-card,
+#screen-servers [class*="step-card"],
+#screen-servers [class*="instruction-card"] {
+  border-color:
+    rgba(var(--accent-rgb), 0.24) !important;
+}
+
+/* Subscription-ссылка */
+#screen-servers .subscription-link,
+#screen-servers .sub-link,
+#screen-servers .copy-link,
+#screen-servers code,
+#screen-servers pre {
+  color: var(--accent-light) !important;
+}
+
+/* Кнопка копирования, если она есть */
+#screen-servers .copy-btn,
+#screen-servers [class*="copy-btn"] {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.58) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.07) !important;
+}
+
+/* Любые оставшиеся gold-border элементы только внутри VPN */
+#screen-servers .gold-border,
+#screen-servers [class*="gold-border"] {
+  border-color:
+    rgba(var(--accent-rgb), 0.62) !important;
+}
+
+/* ===== VPN SCREEN REMAINING THEME FIX END ===== */
+
+/* ===== VPN STEP CIRCLES THEME FIX ===== */
+
+#screen-servers .connection-step > span {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.68) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.10) !important;
+
+  box-shadow:
+    inset 0 0 10px rgba(var(--accent-rgb), 0.05),
+    0 0 8px rgba(var(--accent-rgb), 0.06)
+    !important;
+}
+
+/* ===== VPN STEP CIRCLES THEME FIX END ===== */
+
+/* ===== HOME BANNER DYNAMIC THEME ===== */
+
+/* Общий фон слайдов */
+#screen-home .banner {
+  background:
+    radial-gradient(
+      circle at 82% 18%,
+      rgba(var(--accent-rgb), 0.14),
+      transparent 34%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.07),
+      rgba(10, 10, 10, 0.97) 45%,
+      rgba(6, 6, 6, 0.99)
+    ) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.62) !important;
+
+  box-shadow:
+    inset 0 0 20px
+      rgba(var(--accent-rgb), 0.025),
+    0 0 14px
+      rgba(var(--accent-rgb), 0.025)
+    !important;
+}
+
+/* Заголовок слайда */
+#screen-home .banner-title {
+  color: #f5f5f5 !important;
+}
+
+/* Описание */
+#screen-home .banner-desc {
+  color: #8f8f93 !important;
+}
+
+/* Иконка слева */
+#screen-home .banner-ico {
+  color: var(--accent-light) !important;
+}
+
+/* Стрелка справа */
+#screen-home .banner-chev {
+  color: var(--accent-light) !important;
+}
+
+/* Точки карусели */
+#screen-home .banner-dots .dot {
+  background:
+    rgba(var(--accent-rgb), 0.24) !important;
+}
+
+#screen-home .banner-dots .dot.active {
+  background:
+    var(--accent) !important;
+
+  box-shadow:
+    0 0 7px
+      rgba(var(--accent-rgb), 0.32) !important;
+}
+
+/* SVG-арт внутри баннеров */
+#screen-home .banner-art svg {
+  color: var(--accent) !important;
+}
+
+/* Серверные стойки — обводки */
+#screen-home .banner-art svg rect[stroke] {
+  stroke:
+    var(--accent) !important;
+}
+
+/* Серверные стойки — золотые заливки */
+#screen-home .banner-art svg rect[fill="#d4af37"],
+#screen-home .banner-art svg rect[fill="#f0d78c"] {
+  fill:
+    var(--accent) !important;
+}
+
+/* Золотые индикаторы */
+#screen-home .banner-art svg circle[fill="#d4af37"] {
+  fill:
+    var(--accent) !important;
+}
+
+/* ===== HOME BANNER DYNAMIC THEME END ===== */
+
+/* ===== DYNAMIC THEME TOAST ===== */
+
+.toast {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.16),
+      rgba(12, 12, 12, 0.97) 58%,
+      rgba(7, 7, 7, 0.99)
+    ) !important;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.62)
+    !important;
+
+  color: #f5f5f5 !important;
+
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.50),
+    0 0 14px rgba(var(--accent-rgb), 0.10)
+    !important;
+}
+
+/* ===== DYNAMIC THEME TOAST END ===== */
+
+/* ===== SUBSCRIPTION DYNAMIC THEME ===== */
+
+/* Главная карточка подписки */
+#screen-sub .sub-card {
+  border-color:
+    rgba(var(--accent-rgb), 0.68) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.07),
+      rgba(10, 10, 10, 0.97) 42%,
+      rgba(6, 6, 6, 0.99)
+    ) !important;
+
+  box-shadow:
+    inset 0 0 18px
+      rgba(var(--accent-rgb), 0.025),
+    0 0 14px
+      rgba(var(--accent-rgb), 0.025)
+    !important;
+}
+
+/* Корона */
+#screen-sub .sub-crown {
+  color: var(--accent-light) !important;
+
+  filter:
+    drop-shadow(
+      0 0 7px rgba(var(--accent-rgb), 0.20)
+    ) !important;
+}
+
+/* Название тарифа */
+#screen-sub .sub-name {
+  color: #f5f5f5 !important;
+}
+
+/* Badge "Текущий" */
+#screen-sub .badge {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.55) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.10) !important;
+}
+
+/* Блок оставшегося времени */
+#screen-sub .sub-days {
+  border-color:
+    rgba(var(--accent-rgb), 0.22) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.035) !important;
+}
+
+/* Количество дней */
+#screen-sub .sub-days-num {
+  color: var(--accent-light) !important;
+}
+
+/* Дата окончания */
+#screen-sub .sub-days-until {
+  color:
+    rgba(var(--accent-rgb), 0.82) !important;
+}
+
+/* Полоса прогресса */
+#screen-sub .progress {
+  background:
+    rgba(var(--accent-rgb), 0.11) !important;
+}
+
+#screen-sub .progress-bar {
+  background:
+    linear-gradient(
+      90deg,
+      var(--accent-dark) 0%,
+      var(--accent) 55%,
+      var(--accent-light) 100%
+    ) !important;
+
+  box-shadow:
+    0 0 9px
+      rgba(var(--accent-rgb), 0.24)
+    !important;
+}
+
+/* Галочки характеристик */
+#screen-sub .feats li::before {
+  color: var(--accent-light) !important;
+}
+
+/* Если галочки сделаны border/background */
+#screen-sub .feats li {
+  border-color:
+    rgba(var(--accent-rgb), 0.12) !important;
+}
+
+/* Кнопка Продлить / Купить */
+#screen-sub #btn-renew {
+  color: #070707 !important;
+
+  border-color:
+    var(--accent) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-light),
+      var(--accent)
+    ) !important;
+
+  box-shadow:
+    0 8px 22px
+      rgba(var(--accent-rgb), 0.18)
+    !important;
+}
+
+/* Карточка выбора тарифа */
+#screen-sub .plan {
+  border-color:
+    rgba(var(--accent-rgb), 0.54) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.055),
+      rgba(9, 9, 9, 0.98)
+    ) !important;
+}
+
+/* При нажатии */
+#screen-sub .plan:active {
+  border-color:
+    rgba(var(--accent-rgb), 0.82) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.09) !important;
+}
+
+/* Название тарифа */
+#screen-sub .plan-name {
+  color: #f5f5f5 !important;
+}
+
+/* Цена */
+#screen-sub .plan-price {
+  color: var(--accent-light) !important;
+}
+
+/* Стрелки/SVG, если появятся */
+#screen-sub .plan svg,
+#screen-sub .sub-card svg {
+  color: var(--accent-light) !important;
+}
+
+/* ===== SUBSCRIPTION DYNAMIC THEME END ===== */
+
+/* ===== SUBSCRIPTION CROWN SVG ===== */
+
+#screen-sub .sub-crown {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  color: var(--accent-light) !important;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.52);
+
+  border-radius: 13px;
+
+  background:
+    rgba(var(--accent-rgb), 0.09);
+
+  box-shadow:
+    inset 0 0 12px
+      rgba(var(--accent-rgb), 0.04),
+    0 0 10px
+      rgba(var(--accent-rgb), 0.06);
+}
+
+#screen-sub .sub-crown svg {
+  width: 25px;
+  height: 25px;
+
+  display: block;
+
+  color: var(--accent-light) !important;
+
+  filter:
+    drop-shadow(
+      0 0 5px rgba(var(--accent-rgb), 0.20)
+    );
+}
+
+/* ===== SUBSCRIPTION CROWN SVG END ===== */
+
+/* ===== NOTIFICATIONS DYNAMIC THEME ===== */
+
+/* Вступительный блок */
+#screen-notifications .notifications-intro {
+  border-color:
+    rgba(var(--accent-rgb), 0.45) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.06),
+      rgba(10, 10, 10, 0.97)
+    ) !important;
+}
+
+/* Сами карточки уведомлений */
+#screen-notifications .notification-item {
+  border-color:
+    rgba(var(--accent-rgb), 0.22) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.035),
+      rgba(9, 9, 9, 0.98)
+    ) !important;
+}
+
+/* Непрочитанные уведомления */
+#screen-notifications .notification-item.is-unread {
+  border-color:
+    rgba(var(--accent-rgb), 0.62) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.10),
+      rgba(9, 9, 9, 0.98)
+    ) !important;
+
+  box-shadow:
+    0 0 12px
+      rgba(var(--accent-rgb), 0.07)
+    !important;
+}
+
+/* Прочитанные */
+#screen-notifications .notification-item.is-read {
+  border-color:
+    rgba(var(--accent-rgb), 0.14) !important;
+}
+
+/* Заголовок непрочитанного */
+#screen-notifications .notification-item.is-unread strong {
+  color: var(--accent-light) !important;
+}
+
+/* Стрелка */
+#screen-notifications .notification-item-arrow {
+  color: var(--accent-light) !important;
+}
+
+/* Пустое состояние */
+#screen-notifications .notifications-empty {
+  border-color:
+    rgba(var(--accent-rgb), 0.22) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.035) !important;
+}
+
+/* Badge кол-ва уведомлений */
+.notification-badge {
+  background:
+    var(--accent) !important;
+
+  color: #080808 !important;
+
+  box-shadow:
+    0 0 8px
+      rgba(var(--accent-rgb), 0.28)
+    !important;
+}
+
+/* ===== MODAL УВЕДОМЛЕНИЯ ===== */
+
+.notification-modal-card {
+  border-color:
+    rgba(var(--accent-rgb), 0.62) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.08),
+      rgba(10, 10, 10, 0.98) 45%,
+      rgba(6, 6, 6, 0.99)
+    ) !important;
+
+  box-shadow:
+    0 0 22px
+      rgba(var(--accent-rgb), 0.08)
+    !important;
+}
+
+#notification-modal-title {
+  color: var(--accent-light) !important;
+}
+
+.notification-modal-close {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.40) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.06) !important;
+}
+
+#notification-modal-done {
+  border-color:
+    var(--accent) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-light),
+      var(--accent)
+    ) !important;
+
+  color: #080808 !important;
+}
+
+/* ===== NOTIFICATIONS DYNAMIC THEME END ===== */
+
+/* ===== ADMIN DYNAMIC THEME ===== */
+
+/* Статистика */
+#screen-admin .admin-stat {
+  border-color:
+    rgba(var(--accent-rgb), 0.28) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.045),
+      rgba(9, 9, 9, 0.98)
+    ) !important;
+}
+
+#screen-admin .admin-stat > span {
+  color: var(--accent-light) !important;
+}
+
+/* Заголовки секций */
+#screen-admin .admin-section-head h3 {
+  color: #f5f5f5 !important;
+}
+
+#screen-admin #admin-updated {
+  color:
+    rgba(var(--accent-rgb), 0.72) !important;
+}
+
+/* Карточки серверов */
+#screen-admin .admin-node {
+  border-color:
+    rgba(var(--accent-rgb), 0.24) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.035),
+      rgba(8, 8, 8, 0.99)
+    ) !important;
+}
+
+#screen-admin .admin-node:active {
+  border-color:
+    rgba(var(--accent-rgb), 0.62) !important;
+}
+
+/* Название сервера */
+#screen-admin .admin-node-title {
+  color: #f5f5f5 !important;
+}
+
+/* Вторичный текст */
+#screen-admin .admin-node-meta {
+  color:
+    rgba(255, 255, 255, 0.55) !important;
+}
+
+/* Стрелка */
+#screen-admin .admin-node-chevron {
+  color: var(--accent-light) !important;
+}
+
+/* Флаг/иконка */
+#screen-admin .admin-node-flag {
+  border-color:
+    rgba(var(--accent-rgb), 0.22) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.055) !important;
+}
+
+/* ONLINE */
+#screen-admin .admin-node-status.online {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.52) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.09) !important;
+
+  box-shadow:
+    0 0 8px
+      rgba(var(--accent-rgb), 0.10)
+    !important;
+}
+
+/*
+ * OFFLINE оставляем красным,
+ * потому что это системный статус ошибки,
+ * а не декоративный цвет темы.
+ */
+
+/* Кнопка обновления */
+#screen-admin #btn-admin-refresh,
+#screen-admin .admin-refresh {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.68) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.055) !important;
+}
+
+#screen-admin #btn-admin-refresh:active,
+#screen-admin .admin-refresh:active {
+  background:
+    rgba(var(--accent-rgb), 0.11) !important;
+}
+
+/* Загрузка */
+#screen-admin .admin-loading {
+  border-color:
+    rgba(var(--accent-rgb), 0.20) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.025) !important;
+}
+
+/* ===== ADMIN NODE MODAL ===== */
+
+.admin-node-modal-card,
+.admin-modal-card {
+  border-color:
+    rgba(var(--accent-rgb), 0.62) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.075),
+      rgba(9, 9, 9, 0.99) 45%,
+      rgba(5, 5, 5, 0.99)
+    ) !important;
+
+  box-shadow:
+    0 0 24px
+      rgba(var(--accent-rgb), 0.08)
+    !important;
+}
+
+/* Заголовок модального окна */
+#admin-modal-title {
+  color: var(--accent-light) !important;
+}
+
+/* Флаг в модальном окне */
+#admin-modal-flag {
+  border-color:
+    rgba(var(--accent-rgb), 0.30) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.06) !important;
+}
+
+/* Строки характеристик */
+.admin-modal-row {
+  border-color:
+    rgba(var(--accent-rgb), 0.13) !important;
+}
+
+.admin-modal-row strong {
+  color: #f5f5f5 !important;
+}
+
+/* Кнопка закрытия */
+.admin-modal-close,
+#admin-modal-close {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.42) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.055) !important;
+}
+
+/* ===== ADMIN DYNAMIC THEME END ===== */
+
+/* ===== THEMED BUTTON SHADOWS ===== */
+
+/* Уведомления — основная кнопка */
+#notification-modal-done,
+#screen-notifications .btn-gold,
+#screen-notifications .btn-outline-gold {
+  box-shadow:
+    0 8px 22px rgba(var(--accent-rgb), 0.18),
+    0 0 14px rgba(var(--accent-rgb), 0.10)
+    !important;
+}
+
+/* Пригласить друга — кнопка копирования */
+#screen-ref #btn-copy-ref {
+  color: #080808 !important;
+
+  border-color:
+    var(--accent) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-light),
+      var(--accent)
+    ) !important;
+
+  box-shadow:
+    0 8px 22px rgba(var(--accent-rgb), 0.18),
+    0 0 14px rgba(var(--accent-rgb), 0.10)
+    !important;
+}
+
+/* Поле с реферальной ссылкой */
+#screen-ref .link-box {
+  border-color:
+    rgba(var(--accent-rgb), 0.42) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.045) !important;
+
+  box-shadow:
+    inset 0 0 12px
+      rgba(var(--accent-rgb), 0.035)
+    !important;
+}
+
+#screen-ref .link-box code {
+  color: var(--accent-light) !important;
+}
+
+/* ===== THEMED BUTTON SHADOWS END ===== */
+
+/* ===== HOME THEME PICKER ===== */
+
+#screen-home .top {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+}
+
+#screen-home .home-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+#screen-home .home-theme-btn {
+  color: var(--accent-light) !important;
+  border-color:
+    rgba(var(--accent-rgb), 0.30) !important;
+  background:
+    rgba(var(--accent-rgb), 0.045) !important;
+}
+
+#screen-home .home-theme-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ===== THEME MODAL ===== */
+
+body.theme-modal-open {
+  overflow: hidden;
+}
+
+.theme-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+  padding:
+    18px
+    14px
+    calc(18px + env(safe-area-inset-bottom));
+}
+
+.theme-modal.hidden {
+  display: none;
+}
+
+.theme-modal-backdrop {
+  position: absolute;
+  inset: 0;
+
+  background:
+    rgba(0, 0, 0, 0.70);
+
+  backdrop-filter:
+    blur(8px);
+  -webkit-backdrop-filter:
+    blur(8px);
+}
+
+.theme-modal-card {
+  position: relative;
+  z-index: 1;
+
+  width: min(100%, 430px);
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.35);
+
+  border-radius: 24px;
+
+  padding: 18px;
+
+  background:
+    linear-gradient(
+      160deg,
+      rgba(var(--accent-rgb), 0.055),
+      rgba(13, 13, 13, 0.99) 35%,
+      rgba(6, 6, 6, 0.99)
+    );
+
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.62),
+    0 0 24px rgba(var(--accent-rgb), 0.06);
+}
+
+.theme-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.theme-modal-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.theme-modal-head strong {
+  color: #f7f7f7;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.theme-modal-head span {
+  color: #858589;
+  font-size: 0.76rem;
+}
+
+.theme-modal-close {
+  width: 34px;
+  height: 34px;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.25);
+
+  border-radius: 11px;
+
+  background:
+    rgba(var(--accent-rgb), 0.04);
+
+  color: var(--accent-light);
+
+  font-size: 1.35rem;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+
+  gap: 10px;
+}
+
+/* Card */
+.theme-tile {
+  --tile-accent: #e9aa00;
+  --tile-light: #ffd45a;
+  --tile-rgb: 233, 170, 0;
+
+  position: relative;
+
+  min-width: 0;
+  min-height: 188px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+
+  gap: 8px;
+
+  padding: 10px;
+
+  border:
+    1px solid
+    rgba(var(--tile-rgb), 0.30);
+
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--tile-rgb), 0.07),
+      #0b0b0b 55%,
+      #070707
+    );
+
+  color: #f5f5f5;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  overflow: hidden;
+}
+
+.theme-tile.active {
+  border-color:
+    rgba(var(--tile-rgb), 0.92);
+
+  box-shadow:
+    inset 0 0 18px
+      rgba(var(--tile-rgb), 0.06),
+    0 0 14px
+      rgba(var(--tile-rgb), 0.14);
+}
+
+.theme-tile-preview {
+  position: relative;
+
+  height: 136px;
+
+  display: block;
+
+  border:
+    1px solid
+    rgba(var(--tile-rgb), 0.34);
+
+  border-radius: 12px;
+
+  background:
+    radial-gradient(
+      circle at 70% 30%,
+      rgba(var(--tile-rgb), 0.20),
+      transparent 42%
+    ),
+    linear-gradient(
+      150deg,
+      #111,
+      #070707
+    );
+
+  overflow: hidden;
+}
+
+/* Real interface preview */
+.theme-tile-preview img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+  object-position: top center;
+
+  border-radius: inherit;
+
+  transition:
+    transform 180ms ease,
+    filter 180ms ease;
+}
+
+.theme-tile:active .theme-tile-preview img {
+  transform: scale(0.985);
+}
+
+.theme-tile.active .theme-tile-preview img {
+  filter: brightness(1.04);
+}
+
+.theme-tile-name {
+  padding: 0 2px;
+
+  color: #f5f5f5;
+
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.theme-tile-check {
+  position: absolute;
+
+  right: 8px;
+  top: 8px;
+
+  width: 20px;
+  height: 20px;
+
+  display: none;
+  place-items: center;
+
+  border-radius: 7px;
+
+  background:
+    var(--tile-accent);
+
+  color: #050505;
+
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.theme-tile.active .theme-tile-check {
+  display: grid;
+}
+
+/* Theme previews */
+.theme-tile-gold {
+  --tile-accent: #e9aa00;
+  --tile-light: #ffd45a;
+  --tile-rgb: 233, 170, 0;
+}
+
+.theme-tile-blue {
+  --tile-accent: #3478f6;
+  --tile-light: #75a8ff;
+  --tile-rgb: 52, 120, 246;
+}
+
+.theme-tile-purple {
+  --tile-accent: #9a5cff;
+  --tile-light: #c49cff;
+  --tile-rgb: 154, 92, 255;
+}
+
+.theme-tile-green {
+  --tile-accent: #39ff14;
+  --tile-light: #8cff73;
+  --tile-rgb: 57, 255, 20;
+}
+
+.theme-tile-red {
+  --tile-accent: #ff2a2a;
+  --tile-light: #ff7a7a;
+  --tile-rgb: 255, 42, 42;
+}
+
+.theme-tile-cyan {
+  --tile-accent: #1ff5e8;
+  --tile-light: #7dfff8;
+  --tile-rgb: 31, 245, 232;
+}
+
+
+/* ===== SETTINGS PLACEHOLDER ===== */
+
+#screen-settings .settings-placeholder {
+  min-height: 230px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.20);
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.035),
+      rgba(8, 8, 8, 0.98)
+    );
+
+  text-align: center;
+}
+
+#screen-settings .settings-placeholder-icon {
+  width: 48px;
+  height: 48px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 3px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.38);
+
+  border-radius: 15px;
+
+  background:
+    rgba(var(--accent-rgb), 0.07);
+
+  color:
+    var(--accent-light);
+}
+
+#screen-settings .settings-placeholder-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+#screen-settings .settings-placeholder strong {
+  color: #f5f5f5;
+}
+
+#screen-settings .settings-placeholder p {
+  margin: 0;
+
+  color: #858589;
+
+  font-size: 0.78rem;
+}
+
+/* ===== HOME THEME PICKER END ===== */
+
+/* ===== PROFILE CLEANUP ===== */
+
+/* Чуть опускаем имя и Telegram-ник */
+#screen-profile .profile-user-info {
+  transform: translateY(7px);
+}
+
+/* После удаления бейджа делаем расстояние компактным */
+#screen-profile .profile-user-meta {
+  margin-top: 6px;
+}
+
+/* На случай старого кэша скрываем лишние элементы */
+#screen-profile #profile-plan-badge,
+#screen-profile #profile-sub-status,
+#screen-profile #profile-days-left {
+  display: none !important;
+}
+
+/* ===== PROFILE CLEANUP END ===== */
+
+/* ===== PROFILE AVATAR UPLOAD ===== */
+
+#screen-profile .profile-avatar {
+  padding: 0;
+  border: 0;
+  appearance: none;
+  -webkit-appearance: none;
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  cursor: pointer;
+
+  position: relative;
+
+  transition:
+    transform .16s ease,
+    opacity .16s ease,
+    box-shadow .16s ease;
+}
+
+#screen-profile .profile-avatar:active {
+  transform: scale(.96);
+}
+
+#screen-profile .profile-avatar.has-image {
+  color: transparent;
+
+  background-color: #111;
+}
+
+#screen-profile .profile-avatar.is-uploading {
+  opacity: .52;
+  pointer-events: none;
+}
+
+#screen-profile .profile-avatar.is-uploading::after {
+  content: "";
+
+  position: absolute;
+  inset: 23px;
+
+  border: 2px solid rgba(255,255,255,.28);
+  border-top-color: #fff;
+  border-radius: 50%;
+
+  animation:
+    profileAvatarSpin .75s linear infinite;
+}
+
+@keyframes profileAvatarSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Небольшая подсказка, что аватар редактируется */
+#screen-profile .profile-avatar-wrap::after {
+  content: "+";
+
+  position: absolute;
+  right: -3px;
+  top: -3px;
+
+  width: 23px;
+  height: 23px;
+
+  display: grid;
+  place-items: center;
+
+  border: 2px solid #0a0a0a;
+  border-radius: 50%;
+
+  background: var(--accent);
+  color: #050505;
+
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+
+  pointer-events: none;
+
+  box-shadow:
+    0 0 10px
+    rgba(var(--accent-rgb), .22);
+}
+
+/* ===== PROFILE AVATAR UPLOAD END ===== */
+
+/* ===== PROFILE AVATAR IMAGE FIX ===== */
+
+#screen-profile .profile-avatar.has-image {
+  overflow: hidden;
+  background: #111 !important;
+}
+
+#screen-profile .profile-avatar-image {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+  object-position: center;
+
+  border-radius: inherit;
+
+  pointer-events: none;
+}
+
+/* ===== PROFILE AVATAR IMAGE FIX END ===== */
+
+/* ===== ADMIN HUB REDESIGN ===== */
+
+#screen-admin,
+#screen-admin-active,
+#screen-admin-servers,
+#screen-admin-notification,
+#screen-admin-tickets {
+  padding-bottom:
+    calc(34px + env(safe-area-inset-bottom));
+}
+
+.admin-hub-intro {
+  margin:
+    8px 0
+    18px;
+
+  padding:
+    20px
+    18px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .22);
+
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .07),
+      rgba(10, 10, 10, .97) 46%,
+      rgba(5, 5, 5, .99)
+    );
+
+  box-shadow:
+    inset 0 0 24px
+      rgba(var(--accent-rgb), .025),
+    0 12px 30px
+      rgba(0, 0, 0, .22);
+}
+
+.admin-hub-badge {
+  display: inline-flex;
+
+  margin-bottom: 11px;
+
+  padding:
+    5px
+    9px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .38);
+
+  border-radius: 999px;
+
+  color:
+    var(--accent-light);
+
+  background:
+    rgba(var(--accent-rgb), .07);
+
+  font-size: .68rem;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.admin-hub-intro strong {
+  display: block;
+
+  color: #f7f7f7;
+
+  font-size: 1.34rem;
+  font-weight: 780;
+  line-height: 1.15;
+}
+
+.admin-hub-intro p {
+  margin:
+    8px 0 0;
+
+  max-width: 310px;
+
+  color:
+    rgba(255, 255, 255, .53);
+
+  font-size: .84rem;
+  line-height: 1.45;
+}
+
+
+.admin-hub-grid {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr);
+
+  gap: 10px;
+}
+
+
+.admin-hub-card {
+  width: 100%;
+  min-height: 82px;
+
+  display: grid;
+
+  grid-template-columns:
+    48px
+    minmax(0, 1fr)
+    22px;
+
+  align-items: center;
+
+  gap: 13px;
+
+  padding:
+    14px
+    14px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .20);
+
+  border-radius: 19px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .045),
+      rgba(11, 11, 11, .99) 54%,
+      rgba(7, 7, 7, .99)
+    );
+
+  color: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  box-shadow:
+    inset 0 0 18px
+      rgba(var(--accent-rgb), .015);
+
+  transition:
+    transform .14s ease,
+    border-color .14s ease,
+    background .14s ease;
+}
+
+.admin-hub-card:active {
+  transform: scale(.985);
+
+  border-color:
+    rgba(var(--accent-rgb), .55);
+
+  background:
+    rgba(var(--accent-rgb), .075);
+}
+
+
+.admin-hub-icon {
+  width: 48px;
+  height: 48px;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .28);
+
+  border-radius: 15px;
+
+  color:
+    var(--accent-light);
+
+  background:
+    rgba(var(--accent-rgb), .065);
+
+  box-shadow:
+    0 0 16px
+    rgba(var(--accent-rgb), .045);
+}
+
+.admin-hub-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+
+.admin-hub-card-text {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.admin-hub-card-text strong {
+  overflow: hidden;
+
+  color: #f5f5f5;
+
+  font-size: .96rem;
+  font-weight: 730;
+
+  text-overflow: ellipsis;
+}
+
+.admin-hub-card-text small {
+  color:
+    rgba(255, 255, 255, .47);
+
+  font-size: .75rem;
+  line-height: 1.25;
+}
+
+
+.admin-hub-arrow {
+  color:
+    var(--accent-light);
+
+  font-size: 1.75rem;
+  font-weight: 300;
+  line-height: 1;
+
+  opacity: .78;
+}
+
+
+.admin-subtitle {
+  margin:
+    6px 2px
+    16px;
+
+  color:
+    rgba(255, 255, 255, .48);
+
+  font-size: .82rem;
+}
+
+
+#screen-admin-active .admin-active-grid {
+  margin-top: 4px;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap: 10px;
+}
+
+
+#screen-admin-active .admin-stat {
+  min-height: 112px;
+
+  display: flex;
+
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+
+  gap: 7px;
+
+  padding:
+    17px
+    15px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .21);
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .055),
+      rgba(9, 9, 9, .99) 58%
+    );
+
+  box-shadow:
+    inset 0 0 18px
+    rgba(var(--accent-rgb), .02);
+}
+
+
+#screen-admin-active .admin-stat span {
+  color:
+    var(--accent-light) !important;
+
+  font-size: 1.6rem;
+  font-weight: 820;
+  line-height: 1;
+}
+
+
+#screen-admin-active .admin-stat small {
+  color:
+    rgba(255, 255, 255, .50);
+
+  font-size: .75rem;
+  line-height: 1.25;
+}
+
+
+#screen-admin-servers .admin-section-head {
+  margin:
+    6px 0
+    14px;
+}
+
+#screen-admin-servers .admin-section-head > div {
+  min-width: 0;
+}
+
+#screen-admin-servers .admin-section-head h3 {
+  margin: 0;
+
+  font-size: 1rem;
+}
+
+#screen-admin-servers .admin-section-head p {
+  margin:
+    5px 0 0;
+
+  color:
+    rgba(255, 255, 255, .44);
+
+  font-size: .72rem;
+}
+
+
+#screen-admin-servers #admin-updated {
+  flex: 0 0 auto;
+
+  max-width: 120px;
+
+  text-align: right;
+
+  font-size: .66rem;
+  line-height: 1.25;
+}
+
+
+#screen-admin-servers .admin-refresh {
+  width: 100%;
+
+  margin-top: 14px;
+}
+
+
+#screen-admin-notification
+.admin-notification-panel {
+  margin-top: 8px;
+}
+
+
+#screen-admin-notification
+.admin-notification-head {
+  margin-bottom: 18px;
+}
+
+
+#screen-admin-notification
+.admin-notification-head h3 {
+  margin: 0;
+
+  color: #f5f5f5;
+
+  font-size: 1.1rem;
+}
+
+
+#screen-admin-notification
+.admin-notification-head p {
+  margin:
+    7px 0 0;
+
+  color:
+    rgba(255, 255, 255, .48);
+
+  font-size: .78rem;
+  line-height: 1.4;
+}
+
+
+#screen-admin-tickets
+.admin-tickets-empty {
+  min-height: 310px;
+
+  display: flex;
+
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding:
+    28px
+    22px;
+
+  margin-top: 12px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .18);
+
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .035),
+      rgba(8, 8, 8, .985)
+    );
+
+  text-align: center;
+}
+
+
+.admin-tickets-empty-icon {
+  width: 62px;
+  height: 62px;
+
+  display: grid;
+  place-items: center;
+
+  margin-bottom: 16px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .32);
+
+  border-radius: 19px;
+
+  color:
+    var(--accent-light);
+
+  background:
+    rgba(var(--accent-rgb), .06);
+}
+
+
+.admin-tickets-empty-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+
+.admin-tickets-empty strong {
+  color: #f5f5f5;
+
+  font-size: 1rem;
+}
+
+
+.admin-tickets-empty p {
+  max-width: 285px;
+
+  margin:
+    9px 0 0;
+
+  color:
+    rgba(255, 255, 255, .46);
+
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+/* ===== ADMIN HUB REDESIGN END ===== */
+
+/* ===== ADMIN SERVERS REFRESH THEME FIX ===== */
+
+#screen-admin-servers #btn-admin-refresh {
+  color:
+    var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.72) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.055) !important;
+
+  box-shadow:
+    0 8px 22px
+      rgba(var(--accent-rgb), 0.12),
+    0 0 12px
+      rgba(var(--accent-rgb), 0.08)
+    !important;
+}
+
+#screen-admin-servers #btn-admin-refresh:active {
+  border-color:
+    var(--accent) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.12) !important;
+}
+
+/* ===== ADMIN SERVERS REFRESH THEME FIX END ===== */
+
+/* ===== SUPPORT UI ===== */
+
+#screen-support {
+  padding-bottom:
+    calc(34px + env(safe-area-inset-bottom));
+}
+
+.support-intro {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  margin:
+    8px 0
+    16px;
+
+  padding:
+    16px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .20);
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .055),
+      rgba(9, 9, 9, .99)
+    );
+}
+
+.support-intro-icon {
+  width: 48px;
+  height: 48px;
+
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 48px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .25);
+
+  border-radius: 15px;
+
+  background:
+    rgba(var(--accent-rgb), .06);
+
+  font-size: 1.3rem;
+}
+
+.support-intro strong {
+  display: block;
+
+  color: #f5f5f5;
+
+  font-size: .96rem;
+}
+
+.support-intro p {
+  margin:
+    5px 0 0;
+
+  color:
+    rgba(255,255,255,.46);
+
+  font-size: .76rem;
+  line-height: 1.4;
+}
+
+
+.support-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 13px;
+}
+
+.support-field {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.support-field > span {
+  color:
+    rgba(255,255,255,.60);
+
+  font-size: .75rem;
+  font-weight: 650;
+}
+
+.support-textarea {
+  min-height: 145px;
+  resize: vertical;
+}
+
+
+.support-file-button {
+  min-height: 70px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding:
+    12px
+    14px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .22);
+
+  border-radius: 17px;
+
+  background:
+    rgba(var(--accent-rgb), .035);
+
+  cursor: pointer;
+}
+
+.support-file-button > span {
+  font-size: 1.35rem;
+}
+
+.support-file-button div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.support-file-button strong {
+  color: #f3f3f3;
+
+  font-size: .84rem;
+}
+
+.support-file-button small {
+  overflow: hidden;
+
+  color:
+    rgba(255,255,255,.43);
+
+  font-size: .7rem;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.support-submit {
+  width: 100%;
+
+  margin-top: 2px;
+}
+
+
+.support-my-head {
+  margin:
+    25px 2px
+    12px;
+}
+
+.support-my-head h3 {
+  margin: 0;
+
+  color: #f5f5f5;
+
+  font-size: .98rem;
+}
+
+
+.support-ticket-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+
+.support-ticket-empty {
+  padding:
+    24px
+    16px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .14);
+
+  border-radius: 18px;
+
+  color:
+    rgba(255,255,255,.42);
+
+  background:
+    rgba(var(--accent-rgb), .025);
+
+  text-align: center;
+
+  font-size: .78rem;
+}
+
+
+.support-ticket-card {
+  padding:
+    14px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .18);
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .035),
+      rgba(9, 9, 9, .99)
+    );
+}
+
+.support-ticket-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 10px;
+}
+
+.support-ticket-top strong {
+  min-width: 0;
+
+  color: #f4f4f4;
+
+  font-size: .86rem;
+}
+
+.support-ticket-status {
+  flex: 0 0 auto;
+
+  padding:
+    4px
+    7px;
+
+  border-radius: 999px;
+
+  font-size: .63rem;
+  font-weight: 750;
+}
+
+.support-ticket-status.status-new {
+  color:
+    var(--accent-light);
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .35);
+
+  background:
+    rgba(var(--accent-rgb), .08);
+}
+
+.support-ticket-status.status-in-progress {
+  color: #ffcc58;
+
+  border:
+    1px solid
+    rgba(255, 204, 88, .30);
+
+  background:
+    rgba(255, 204, 88, .07);
+}
+
+.support-ticket-status.status-resolved {
+  color: #71e49a;
+
+  border:
+    1px solid
+    rgba(113, 228, 154, .30);
+
+  background:
+    rgba(113, 228, 154, .07);
+}
+
+.support-ticket-card p {
+  margin:
+    10px 0
+    8px;
+
+  color:
+    rgba(255,255,255,.61);
+
+  font-size: .76rem;
+  line-height: 1.45;
+
+  white-space: pre-wrap;
+}
+
+.support-ticket-card small {
+  display: block;
+
+  color:
+    rgba(255,255,255,.34);
+
+  font-size: .65rem;
+}
+
+.support-ticket-attachment {
+  margin-top: 10px;
+
+  padding:
+    7px
+    9px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .22);
+
+  border-radius: 11px;
+
+  color:
+    var(--accent-light);
+
+  background:
+    rgba(var(--accent-rgb), .05);
+
+  font-size: .7rem;
+
+  cursor: pointer;
+}
+
+/* ===== SUPPORT UI END ===== */
+
+/* ===== SUPPORT TICKET DETAIL ===== */
+
+.support-ticket-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+
+  margin-bottom: 16px;
+
+  padding: 15px;
+
+  border: 1px solid
+    rgba(var(--accent-rgb), .18);
+
+  border-radius: 18px;
+
+  background:
+    rgba(var(--accent-rgb), .035);
+}
+
+.support-ticket-detail-head strong {
+  display: block;
+  color: #f5f5f5;
+  font-size: .9rem;
+}
+
+.support-ticket-detail-head small {
+  display: block;
+  margin-top: 5px;
+
+  color:
+    rgba(255,255,255,.36);
+
+  font-size: .66rem;
+}
+
+.support-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  margin-bottom: 14px;
+}
+
+.support-message {
+  max-width: 88%;
+
+  padding:
+    10px 12px;
+
+  border-radius: 16px;
+}
+
+.support-message-user {
+  align-self: flex-end;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .28);
+
+  background:
+    rgba(var(--accent-rgb), .09);
+}
+
+.support-message-admin {
+  align-self: flex-start;
+
+  border:
+    1px solid
+    rgba(255,255,255,.11);
+
+  background:
+    rgba(255,255,255,.055);
+}
+
+.support-message small {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color:
+    var(--accent-light);
+
+  font-size: .63rem;
+  font-weight: 700;
+}
+
+.support-message-admin small {
+  color:
+    rgba(255,255,255,.63);
+}
+
+.support-message p {
+  margin: 0;
+
+  color:
+    rgba(255,255,255,.86);
+
+  font-size: .77rem;
+  line-height: 1.45;
+
+  white-space: pre-wrap;
+}
+
+.support-message time {
+  display: block;
+
+  margin-top: 6px;
+
+  color:
+    rgba(255,255,255,.30);
+
+  font-size: .59rem;
+}
+
+.support-reply-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  margin-top: 16px;
+}
+
+.support-reply-input {
+  min-height: 105px;
+  resize: vertical;
+}
+
+.support-ticket-card {
+  cursor: pointer;
+}
+
+/* ===== SUPPORT TICKET DETAIL END ===== */
+
+/* ===== ADMIN TICKET LIST ===== */
+
+.admin-ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-ticket-card {
+  padding: 14px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .18);
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .035),
+      rgba(9,9,9,.99)
+    );
+}
+
+.admin-ticket-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.admin-ticket-top > div {
+  min-width: 0;
+}
+
+.admin-ticket-top strong {
+  display: block;
+
+  color: #f5f5f5;
+
+  font-size: .86rem;
+}
+
+.admin-ticket-top small {
+  display: block;
+
+  margin-top: 4px;
+
+  color:
+    rgba(255,255,255,.40);
+
+  font-size: .66rem;
+}
+
+.admin-ticket-card p {
+  margin:
+    10px 0
+    8px;
+
+  color:
+    rgba(255,255,255,.60);
+
+  font-size: .76rem;
+  line-height: 1.45;
+
+  white-space: pre-wrap;
+}
+
+.admin-ticket-card time {
+  display: block;
+
+  color:
+    rgba(255,255,255,.31);
+
+  font-size: .62rem;
+}
+
+/* ===== ADMIN TICKET LIST END ===== */
+
+/* ===== ADMIN SUPPORT STICKY REPLY ===== */
+
+#screen-admin-ticket-detail {
+  padding-bottom:
+    calc(
+      18px +
+      env(safe-area-inset-bottom)
+    );
+}
+
+#screen-admin-ticket-detail
+.support-reply-box {
+  position: sticky;
+  bottom:
+    calc(
+      8px +
+      env(safe-area-inset-bottom)
+    );
+
+  z-index: 30;
+
+  margin-top: 16px;
+
+  padding: 10px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .18);
+
+  border-radius: 18px;
+
+  background:
+    rgba(8, 8, 8, .96);
+
+  backdrop-filter:
+    blur(18px);
+
+  -webkit-backdrop-filter:
+    blur(18px);
+
+  box-shadow:
+    0 -10px 30px
+    rgba(0, 0, 0, .32);
+}
+
+#screen-admin-ticket-detail
+.support-reply-input {
+  max-height: 130px;
+  min-height: 82px;
+}
+
+/* ===== ADMIN SUPPORT STICKY REPLY END ===== */
+
+/* ===== ADMIN TICKET STATUS ACTIONS ===== */
+
+.admin-ticket-status-actions {
+  display: grid;
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 8px;
+
+  margin:
+    0 0 14px;
+}
+
+.admin-ticket-status-btn {
+  min-height: 38px;
+
+  padding:
+    8px 6px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.10);
+
+  border-radius: 12px;
+
+  background:
+    rgba(255,255,255,.035);
+
+  color:
+    rgba(255,255,255,.48);
+
+  font-size: .68rem;
+  font-weight: 700;
+
+  transition:
+    .18s ease;
+}
+
+.admin-ticket-status-btn.active {
+  border-color:
+    rgba(var(--accent-rgb), .42);
+
+  background:
+    rgba(var(--accent-rgb), .12);
+
+  color:
+    var(--accent-light);
+
+  box-shadow:
+    0 0 18px
+    rgba(var(--accent-rgb), .08);
+}
+
+/* ===== ADMIN TICKET STATUS ACTIONS END ===== */
+
+/* ===== SUPPORT CLOSED STATE ===== */
+
+.support-ticket-closed {
+  margin-top: 16px;
+
+  padding: 16px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.10);
+
+  border-radius: 18px;
+
+  background:
+    rgba(255,255,255,.035);
+
+  text-align: center;
+}
+
+.support-ticket-closed strong {
+  display: block;
+
+  color:
+    rgba(255,255,255,.86);
+
+  font-size: .82rem;
+}
+
+.support-ticket-closed p {
+  margin:
+    6px 0 0;
+
+  color:
+    rgba(255,255,255,.43);
+
+  font-size: .7rem;
+  line-height: 1.45;
+}
+
+/* ===== SUPPORT CLOSED STATE END ===== */
+
+/* ===== ADMIN PROMO CARD ACTIONS ===== */
+
+.admin-promo-card-actions {
+  display: grid;
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  gap: 8px;
+
+  margin-top: 12px;
+}
+
+.admin-promo-action-btn {
+  min-height: 36px;
+
+  padding:
+    8px 10px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.10);
+
+  border-radius: 12px;
+
+  background:
+    rgba(255,255,255,.04);
+
+  color:
+    rgba(255,255,255,.72);
+
+  font-size: .68rem;
+  font-weight: 700;
+
+  transition:
+    .18s ease;
+}
+
+.admin-promo-action-btn:active {
+  transform:
+    scale(.98);
+
+  background:
+    rgba(var(--accent-rgb), .10);
+
+  border-color:
+    rgba(var(--accent-rgb), .28);
+}
+
+.admin-promo-action-btn:disabled {
+  opacity: .45;
+  pointer-events: none;
+}
+
+/* ===== ADMIN PROMO CARD ACTIONS END ===== */
+
+/* ===== ADMIN PROMO REDEMPTIONS ===== */
+
+.admin-promo-card-actions {
+  grid-template-columns:
+    repeat(2, 1fr);
+}
+
+.admin-promo-card-actions
+.admin-promo-action-btn:nth-child(3) {
+  grid-column:
+    1 / -1;
+}
+
+.admin-promo-redemption-head {
+  margin-bottom: 14px;
+
+  padding: 14px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.08);
+
+  border-radius: 16px;
+
+  background:
+    rgba(255,255,255,.035);
+}
+
+.admin-promo-redemption-head strong {
+  display: block;
+
+  font-size: .9rem;
+}
+
+.admin-promo-redemption-head span {
+  display: block;
+
+  margin-top: 5px;
+
+  color:
+    rgba(255,255,255,.45);
+
+  font-size: .7rem;
+}
+
+.admin-promo-redemption-list {
+  display: grid;
+
+  gap: 10px;
+}
+
+.admin-promo-redemption-card {
+  padding: 13px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.08);
+
+  border-radius: 15px;
+
+  background:
+    rgba(255,255,255,.03);
+}
+
+.admin-promo-redemption-user {
+  display: flex;
+
+  justify-content:
+    space-between;
+
+  gap: 10px;
+
+  align-items:
+    flex-start;
+}
+
+.admin-promo-redemption-user strong {
+  font-size: .76rem;
+
+  overflow-wrap:
+    anywhere;
+}
+
+.admin-promo-redemption-user span {
+  flex-shrink: 0;
+
+  color:
+    rgba(255,255,255,.38);
+
+  font-size: .6rem;
+}
+
+.admin-promo-redemption-info {
+  display: grid;
+
+  gap: 4px;
+
+  margin-top: 9px;
+
+  color:
+    rgba(255,255,255,.48);
+
+  font-size: .66rem;
+}
+
+/* ===== ADMIN PROMO REDEMPTIONS END ===== */
+
+/* ===== ADMIN PROMO DELETE ===== */
+
+.admin-promo-delete-btn {
+  color:
+    rgba(255,120,120,.9);
+
+  border-color:
+    rgba(255,90,90,.14);
+
+  background:
+    rgba(255,70,70,.035);
+}
+
+.admin-promo-delete-btn:active {
+  border-color:
+    rgba(255,90,90,.30);
+
+  background:
+    rgba(255,70,70,.08);
+}
+
+/* ===== ADMIN PROMO DELETE END ===== */
+
+/* ===== DEVICES TABBAR SHIFT FIX ===== */
+
+/*
+ * Не даём появлению / исчезновению вертикального scrollbar
+ * менять горизонтальный центр интерфейса.
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
+/*
+ * Экран устройств не должен расширять viewport.
+ */
+#screen-devices {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+#screen-devices .dev-summary {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#screen-devices .dev-summary-left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#screen-devices .dev-summary-left > div {
+  min-width: 0;
+}
+
+#screen-devices .dev-avail {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+#screen-devices .dev-list,
+#screen-devices .dev-item,
+#screen-devices .dev-empty,
+#screen-devices .btn-dashed {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* ===== DEVICES TABBAR SHIFT FIX END ===== */
+
+/* ===== ADMIN PROMO FILTERS ===== */
+
+.admin-promo-filters {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-promo-filters .input {
+  margin-bottom: 0;
+}
+
+.admin-promo-filter-row {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-promo-filter-row .input {
+  min-width: 0;
+  padding-left: 11px;
+  padding-right: 11px;
+  font-size: .72rem;
+}
+
+/* ===== ADMIN PROMO FILTERS END ===== */
+
+/* ===== SETTINGS SCREEN ===== */
+
+#screen-settings .settings-list {
+  display: grid;
+  gap: 10px;
+}
+
+#screen-settings .settings-item {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 14px;
+
+  border:
+    1px solid
+    rgba(255,255,255,.08);
+
+  border-radius: 16px;
+
+  background:
+    rgba(255,255,255,.03);
+
+  color: var(--text);
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+#screen-settings .settings-item:active {
+  transform: scale(.99);
+
+  border-color:
+    rgba(var(--accent-rgb), .25);
+
+  background:
+    rgba(var(--accent-rgb), .05);
+}
+
+#screen-settings .settings-item-icon {
+  width: 42px;
+  height: 42px;
+
+  flex-shrink: 0;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .22);
+
+  border-radius: 13px;
+
+  background:
+    rgba(var(--accent-rgb), .06);
+
+  color:
+    var(--accent-light);
+}
+
+#screen-settings .settings-item-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+#screen-settings .settings-item-body {
+  min-width: 0;
+
+  flex: 1;
+
+  display: grid;
+  gap: 4px;
+}
+
+#screen-settings .settings-item-body strong {
+  font-size: .86rem;
+  font-weight: 700;
+}
+
+#screen-settings .settings-item-body span {
+  color:
+    rgba(255,255,255,.42);
+
+  font-size: .7rem;
+}
+
+#screen-settings .settings-item-chevron {
+  flex-shrink: 0;
+
+  color:
+    rgba(255,255,255,.32);
+
+  font-size: 1.25rem;
+}
+
+#screen-settings .settings-group-label {
+  margin-top: 8px;
+  margin-bottom: 0;
+
+  padding-left: 3px;
+
+  color:
+    rgba(255,255,255,.38);
+
+  font-size: .68rem;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+#screen-settings .settings-info-card {
+  overflow: hidden;
+
+  border:
+    1px solid
+    rgba(255,255,255,.08);
+
+  border-radius: 16px;
+
+  background:
+    rgba(255,255,255,.025);
+}
+
+#screen-settings .settings-info-row {
+  min-height: 47px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding:
+    11px 14px;
+
+  border-bottom:
+    1px solid
+    rgba(255,255,255,.055);
+}
+
+#screen-settings .settings-info-row:last-child {
+  border-bottom: none;
+}
+
+#screen-settings .settings-info-row span {
+  color:
+    rgba(255,255,255,.42);
+
+  font-size: .72rem;
+}
+
+#screen-settings .settings-info-row strong {
+  color:
+    rgba(255,255,255,.82);
+
+  font-size: .72rem;
+  font-weight: 700;
+
+  text-align: right;
+}
+
+/* ===== SETTINGS SCREEN END ===== */
+
+/* ===== REFERRAL COUNT CARD ===== */
+
+#screen-ref .ref-stats-card {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  margin-bottom: 12px;
+
+  padding: 14px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .18);
+
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .055),
+      rgba(255,255,255,.018)
+    );
+}
+
+#screen-ref .ref-stats-icon {
+  width: 42px;
+  height: 42px;
+
+  flex-shrink: 0;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .22);
+
+  border-radius: 13px;
+
+  background:
+    rgba(var(--accent-rgb), .07);
+
+  font-size: 19px;
+}
+
+#screen-ref .ref-stats-body {
+  min-width: 0;
+
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+}
+
+#screen-ref .ref-stats-body span {
+  color:
+    rgba(255,255,255,.54);
+
+  font-size: .74rem;
+}
+
+#screen-ref .ref-stats-body strong {
+  color:
+    var(--accent-light);
+
+  font-size: 1.18rem;
+  font-weight: 800;
+}
+
+/* ===== REFERRAL COUNT CARD END ===== */
+
+
+/* ===== THEME SCREENSHOT CARDS ===== */
+
+.theme-tile {
+  padding: 0 !important;
+  min-height: 0 !important;
+  gap: 0 !important;
+  overflow: hidden !important;
+}
+
+.theme-tile-preview {
+  width: 100% !important;
+  height: auto !important;
+
+  display: block !important;
+
+  border: 0 !important;
+  border-radius: 15px !important;
+
+  background: #070707 !important;
+
+  overflow: hidden !important;
+}
+
+.theme-tile-preview img {
+  width: 100% !important;
+  height: auto !important;
+
+  display: block !important;
+
+  object-fit: contain !important;
+  object-position: center !important;
+
+  border-radius: inherit !important;
+}
+
+.theme-tile-check {
+  right: 8px !important;
+  top: 8px !important;
+
+  z-index: 3;
+}
+
+.theme-tile.active {
+  padding: 0 !important;
+}
+
+.theme-tile-name {
+  display: none !important;
+}
+
+/* ===== THEME SCREENSHOT CARDS END ===== */
+
+
+/* ===== THEME CARD BORDER REMOVE ===== */
+
+.theme-tile {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.theme-tile.active {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.theme-tile-preview {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ===== THEME CARD BORDER REMOVE END ===== */
+
+
+/* ===== UNIFIED THEMED NOTIFICATION BELL ===== */
+
+#screen-home #btn-notifications,
+#screen-profile #profile-notifications {
+  position: relative;
+
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  flex: 0 0 44px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 0 !important;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.32) !important;
+
+  border-radius: 13px !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.085),
+      rgba(9, 9, 9, 0.96)
+    ) !important;
+
+  color: var(--accent-light) !important;
+
+  box-shadow:
+    inset 0 0 14px
+      rgba(var(--accent-rgb), 0.035),
+    0 0 12px
+      rgba(var(--accent-rgb), 0.06) !important;
+
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 120ms ease;
+}
+
+#screen-home #btn-notifications svg,
+#screen-profile #profile-notifications svg {
+  width: 23px !important;
+  height: 23px !important;
+
+  display: block;
+
+  color: var(--accent-light) !important;
+  stroke: currentColor !important;
+}
+
+#screen-home #btn-notifications:active,
+#screen-profile #profile-notifications:active {
+  transform: scale(0.96);
+
+  border-color:
+    rgba(var(--accent-rgb), 0.58) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.13) !important;
+
+  box-shadow:
+    0 0 15px
+      rgba(var(--accent-rgb), 0.14) !important;
+}
+
+/* Счётчик уведомлений на главной тоже следует теме */
+#screen-home #notification-badge {
+  background: var(--accent) !important;
+  color: #070707 !important;
+
+  box-shadow:
+    0 0 9px
+      rgba(var(--accent-rgb), 0.38) !important;
+}
+
+/* ===== UNIFIED THEMED NOTIFICATION BELL END ===== */
+
+/* ===== NOTIFICATION BELL BORDERLESS ===== */
+
+#screen-home #btn-notifications,
+#screen-profile #profile-notifications {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#screen-home #btn-notifications:active,
+#screen-profile #profile-notifications:active {
+  border: none !important;
+  background: rgba(var(--accent-rgb), 0.08) !important;
+  box-shadow: none !important;
+}
+
+/* ===== NOTIFICATION BELL BORDERLESS END ===== */
+
+
+/* ===== SUBSCRIPTION CROWN BORDERLESS ===== */
+
+#screen-sub .stat-ico,
+#screen-sub .subscription-crown,
+#screen-sub .sub-crown,
+#screen-sub [class*="crown"] {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ===== SUBSCRIPTION CROWN BORDERLESS END ===== */
+
+
+/* ===== PROFILE BELL POSITION ALIGN ===== */
+
+/* Та же геометрия верхней строки, что на главной */
+#screen-profile .profile-top {
+  min-height: 64px !important;
+  padding: 8px 2px 12px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+/* Убираем возможный дополнительный сдвиг контейнера */
+#screen-profile .profile-top-actions {
+  margin: 0 !important;
+  padding: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+}
+
+/* Колокольчик без собственных смещений */
+#screen-profile #profile-notifications {
+  margin: 0 !important;
+  transform: none !important;
+}
+
+/* active оставляем только лёгкое нажатие */
+#screen-profile #profile-notifications:active {
+  transform: scale(0.96) !important;
+}
+
+/* ===== PROFILE BELL POSITION ALIGN END ===== */
+
+
+/* ===== PROFILE BELL VERTICAL FIX ===== */
+
+#screen-profile #profile-notifications {
+  transform: translateY(2px) !important;
+}
+
+#screen-profile #profile-notifications:active {
+  transform: translateY(2px) scale(0.96) !important;
+}
+
+/* ===== PROFILE BELL VERTICAL FIX END ===== */
+
+
+/* ===== SETTINGS CLEAN ICONS ===== */
+
+/* Иконки используют выбранную тему */
+#settings-theme-btn .settings-item-icon,
+#settings-notifications-btn .settings-item-icon,
+#settings-support-btn .settings-item-icon {
+  color: var(--accent-light) !important;
+}
+
+/* Палитра и колокольчик одинакового визуального размера */
+#settings-theme-btn .settings-item-icon svg,
+#settings-notifications-btn .settings-item-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+
+  display: block;
+
+  stroke: currentColor !important;
+}
+
+/* ===== SETTINGS CLEAN ICONS END ===== */
+
+
+/* ===== SETTINGS ICONS BORDERLESS ===== */
+
+#settings-theme-btn .settings-item-icon,
+#settings-notifications-btn .settings-item-icon,
+#settings-support-btn .settings-item-icon {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  color: var(--accent-light) !important;
+}
+
+/* ===== SETTINGS ICONS BORDERLESS END ===== */
+
+
+/* ===== SETTINGS CARD BORDER RESTORE ===== */
+
+#screen-settings #settings-theme-btn,
+#screen-settings #settings-notifications-btn,
+#screen-settings #settings-support-btn {
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.24) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.035),
+      rgba(10, 10, 10, 0.97)
+    ) !important;
+
+  box-shadow:
+    inset 0 0 18px
+      rgba(var(--accent-rgb), 0.025) !important;
+}
+
+/* Рамка только у карточки — не у иконки */
+#screen-settings #settings-theme-btn .settings-item-icon,
+#screen-settings #settings-notifications-btn .settings-item-icon,
+#screen-settings #settings-support-btn .settings-item-icon {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ===== SETTINGS CARD BORDER RESTORE END ===== */
+
+
+/* ===== SETTINGS ABOUT DYNAMIC THEME ===== */
+
+#screen-settings .settings-about,
+#screen-settings .about-card,
+#screen-settings [class*="settings-about"],
+#screen-settings [class*="about-card"] {
+  border-color:
+    rgba(var(--accent-rgb), 0.24) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.045),
+      rgba(10, 10, 10, 0.97)
+    ) !important;
+
+  box-shadow:
+    inset 0 0 18px
+      rgba(var(--accent-rgb), 0.025),
+    0 0 14px
+      rgba(var(--accent-rgb), 0.035) !important;
+}
+
+#screen-settings .settings-about strong,
+#screen-settings .about-card strong,
+#screen-settings [class*="settings-about"] strong,
+#screen-settings [class*="about-card"] strong {
+  color: var(--accent-light) !important;
+}
+
+#screen-settings .settings-about svg,
+#screen-settings .about-card svg,
+#screen-settings [class*="settings-about"] svg,
+#screen-settings [class*="about-card"] svg {
+  color: var(--accent-light) !important;
+  stroke: currentColor !important;
+}
+
+/* ===== SETTINGS ABOUT DYNAMIC THEME END ===== */
+
+
+/* ===== SETTINGS INFO CARD DYNAMIC THEME ===== */
+
+#screen-settings .settings-info-card {
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.24) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.045),
+      rgba(10, 10, 10, 0.97)
+    ) !important;
+
+  box-shadow:
+    inset 0 0 18px
+      rgba(var(--accent-rgb), 0.025),
+    0 0 14px
+      rgba(var(--accent-rgb), 0.035) !important;
+}
+
+/* Значения справа */
+#screen-settings .settings-info-row strong {
+  color: var(--accent-light) !important;
+}
+
+/* Разделители между строками */
+#screen-settings .settings-info-row {
+  border-color:
+    rgba(var(--accent-rgb), 0.12) !important;
+}
+
+/* ===== SETTINGS INFO CARD DYNAMIC THEME END ===== */
+
+
+/* ===== REFERRAL ICON BORDERLESS ===== */
+
+#screen-ref [class*="icon"],
+#screen-ref [class*="ico"] {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ===== REFERRAL ICON BORDERLESS END ===== */
+
+
+/* ===== SUPPORT ICON BORDERLESS ===== */
+
+#screen-support .support-intro-icon {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ===== SUPPORT ICON BORDERLESS END ===== */
+
+
+/* ===== ADMIN HUB CLEANUP ===== */
+
+/* Убираем верхний бейдж 4Steps */
+#screen-admin .admin-hub-badge {
+  display: none !important;
+}
+
+/* Убираем только обводку/фон вокруг иконок 4 кнопок */
+#screen-admin .admin-hub-icon {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Цвет иконок продолжает следовать теме */
+#screen-admin .admin-hub-icon,
+#screen-admin .admin-hub-icon svg {
+  color: var(--accent-light) !important;
+  stroke: currentColor !important;
+}
+
+/* ===== ADMIN HUB CLEANUP END ===== */
+
+
+/* ===== BONUSES ===== */
+
+#screen-bonuses {
+  padding-bottom: 110px;
+}
+
+.bonus-intro {
+  margin: 4px 0 18px;
+  padding: 18px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .20);
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .055),
+      rgba(9, 9, 9, .97)
+    );
+}
+
+.bonus-intro-icon {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+
+  display: grid;
+  place-items: center;
+
+  color: var(--accent-light);
+
+  /* Без отдельной рамки у иконки */
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.bonus-intro-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.bonus-intro strong {
+  color: #f5f5f5;
+  font-size: .96rem;
+}
+
+.bonus-intro p {
+  margin: 5px 0 0;
+
+  color:
+    rgba(255,255,255,.52);
+
+  font-size: .78rem;
+  line-height: 1.4;
+}
+
+
+.bonus-task {
+  padding: 18px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .24);
+
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), .045),
+      rgba(9,9,9,.98)
+    );
+
+  box-shadow:
+    inset 0 0 18px
+    rgba(var(--accent-rgb), .025);
+}
+
+
+.bonus-task-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+.bonus-task-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+
+  display: grid;
+  place-items: center;
+
+  color:
+    var(--accent-light);
+
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.bonus-task-icon svg {
+  width: 27px;
+  height: 27px;
+}
+
+
+.bonus-task-title {
+  min-width: 0;
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bonus-task-title strong {
+  color: #f5f5f5;
+
+  font-size: .92rem;
+  font-weight: 720;
+}
+
+.bonus-task-title span {
+  color:
+    rgba(255,255,255,.45);
+
+  font-size: .76rem;
+}
+
+
+.bonus-reward {
+  padding: 7px 10px;
+
+  border-radius: 10px;
+
+  color:
+    var(--accent-light);
+
+  background:
+    rgba(var(--accent-rgb), .09);
+
+  font-size: .78rem;
+  font-weight: 750;
+
+  white-space: nowrap;
+}
+
+
+.bonus-task-description {
+  margin:
+    18px 0 14px;
+
+  color:
+    rgba(255,255,255,.62);
+
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+
+.bonus-warning {
+  padding: 13px 14px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .16);
+
+  border-radius: 13px;
+
+  background:
+    rgba(var(--accent-rgb), .035);
+}
+
+.bonus-warning strong {
+  color:
+    var(--accent-light);
+
+  font-size: .76rem;
+}
+
+.bonus-warning span {
+  color:
+    rgba(255,255,255,.54);
+
+  font-size: .74rem;
+  line-height: 1.45;
+}
+
+
+.bonus-actions {
+  margin-top: 16px;
+
+  display: grid;
+  grid-template-columns:
+    1fr 1.25fr;
+
+  gap: 10px;
+}
+
+
+.bonus-primary-btn,
+.bonus-secondary-btn {
+  min-height: 44px;
+
+  border-radius: 13px;
+
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+
+.bonus-primary-btn {
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .55);
+
+  color: #080808;
+
+  background:
+    var(--accent-light);
+}
+
+
+.bonus-secondary-btn {
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .24);
+
+  color:
+    var(--accent-light);
+
+  background:
+    rgba(var(--accent-rgb), .055);
+}
+
+
+.bonus-primary-btn:disabled,
+.bonus-secondary-btn:disabled {
+  cursor: default;
+  opacity: .55;
+}
+
+
+.bonus-status {
+  margin-top: 14px;
+  padding: 13px 14px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  border-radius: 13px;
+}
+
+.bonus-status strong {
+  font-size: .79rem;
+}
+
+.bonus-status span {
+  color:
+    rgba(255,255,255,.58);
+
+  font-size: .73rem;
+  line-height: 1.45;
+}
+
+
+.bonus-status.is-pending {
+  border:
+    1px solid
+    rgba(var(--accent-rgb), .25);
+
+  background:
+    rgba(var(--accent-rgb), .055);
+}
+
+.bonus-status.is-pending strong {
+  color:
+    var(--accent-light);
+}
+
+
+.bonus-status.is-confirmed {
+  border:
+    1px solid
+    rgba(73, 196, 118, .28);
+
+  background:
+    rgba(73, 196, 118, .06);
+}
+
+.bonus-status.is-confirmed strong {
+  color: #7de3a1;
+}
+
+
+.bonus-status.is-revoked {
+  border:
+    1px solid
+    rgba(225, 84, 84, .25);
+
+  background:
+    rgba(225, 84, 84, .055);
+}
+
+.bonus-status.is-revoked strong {
+  color: #ef8b8b;
+}
+
+/* ===== BONUSES END ===== */
+
+/* ===== SUBSCRIPTION CARD THEME BACKGROUNDS ===== */
+
+/* DEFAULT / GOLD */
+html:not([data-theme]) #screen-sub .sub-card,
+html[data-theme="gold"] #screen-sub .sub-card {
+  background:
+    url("/assets/substhemeg.jpg")
+    center center / cover no-repeat !important;
+}
+
+/* BLUE */
+html[data-theme="blue"] #screen-sub .sub-card {
+  background:
+    url("/assets/substhemeb.jpg")
+    center center / cover no-repeat !important;
+}
+
+/* PURPLE */
+html[data-theme="purple"] #screen-sub .sub-card {
+  background:
+    url("/assets/substhemep.jpg")
+    center center / cover no-repeat !important;
+}
+
+/* GREEN */
+html[data-theme="green"] #screen-sub .sub-card {
+  background:
+    url("/assets/substhemegr.jpg")
+    center center / cover no-repeat !important;
+}
+
+/* RED */
+html[data-theme="red"] #screen-sub .sub-card {
+  background:
+    url("/assets/substhemer.jpg")
+    center center / cover no-repeat !important;
+}
+
+/* CYAN */
+html[data-theme="cyan"] #screen-sub .sub-card {
+  background:
+    url("/assets/substhemec.jpg")
+    center center / cover no-repeat !important;
+}
+
+/* ===== SUBSCRIPTION CARD THEME BACKGROUNDS END ===== */
+
+/* ===== PAYMENT SCREEN DYNAMIC THEME ===== */
+
+/* Верхний информационный блок */
+#screen-payment .payment-screen-intro {
+  border-color:
+    rgba(var(--accent-rgb), 0.32) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(var(--accent-rgb), 0.11),
+      rgba(12, 12, 12, 0.96) 58%
+    ) !important;
+}
+
+#screen-payment .payment-screen-intro strong {
+  color: var(--accent-light) !important;
+}
+
+/* Карточка тарифа */
+#screen-payment .purchase-plan-summary {
+  border-color:
+    rgba(var(--accent-rgb), 0.48) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.10),
+      rgba(15, 15, 15, 0.97) 55%,
+      rgba(9, 9, 9, 0.99)
+    ) !important;
+
+  box-shadow:
+    inset 0 0 14px rgba(var(--accent-rgb), 0.025),
+    0 0 10px rgba(var(--accent-rgb), 0.025)
+    !important;
+}
+
+#screen-payment .purchase-plan-summary strong,
+#screen-payment .purchase-plan-summary b {
+  color: var(--accent-light) !important;
+}
+
+/* Заголовок шага */
+#screen-payment .purchase-step-title {
+  color: var(--muted) !important;
+}
+
+/* Карточки банков */
+#screen-payment .purchase-bank {
+  border-color:
+    rgba(var(--accent-rgb), 0.22) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.025),
+      var(--card)
+    ) !important;
+}
+
+#screen-payment .purchase-bank:active {
+  border-color:
+    rgba(var(--accent-rgb), 0.72) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.075) !important;
+
+  box-shadow:
+    inset 0 0 12px rgba(var(--accent-rgb), 0.045),
+    0 0 8px rgba(var(--accent-rgb), 0.05)
+    !important;
+}
+
+#screen-payment .purchase-bank i {
+  color: var(--accent-light) !important;
+}
+
+/* Реквизиты после выбора банка */
+#screen-payment .purchase-details {
+  border-color:
+    rgba(var(--accent-rgb), 0.28) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.035),
+      var(--card)
+    ) !important;
+}
+
+#screen-payment .purchase-details .admin-modal-row strong {
+  color: var(--text) !important;
+}
+
+#screen-payment #purchase-amount {
+  color: var(--accent-light) !important;
+}
+
+/* Кнопка копирования номера */
+#screen-payment .purchase-copy {
+  color: var(--accent-light) !important;
+
+  border-color:
+    rgba(var(--accent-rgb), 0.62) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.055) !important;
+}
+
+/* Предупреждение */
+#screen-payment .purchase-warning {
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.24) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.055) !important;
+
+  color: var(--accent-light) !important;
+}
+
+/* Загрузка чека */
+#screen-payment .purchase-upload {
+  border-color:
+    rgba(var(--accent-rgb), 0.52) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.04) !important;
+}
+
+#screen-payment .purchase-upload span {
+  color: var(--accent-light) !important;
+}
+
+/* Основные кнопки */
+#screen-payment .btn-gold {
+  border-color:
+    var(--accent) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-light),
+      var(--accent)
+    ) !important;
+}
+
+/* Успешная отправка */
+#screen-payment .purchase-success h3 {
+  color: var(--accent-light) !important;
+}
+
+/* ===== PAYMENT SCREEN DYNAMIC THEME END ===== */
+
+/* ===== PAYMENT SHIELD ICON THEME ===== */
+
+#screen-payment .payment-screen-icon {
+  color: var(--accent-light) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.22),
+      rgba(var(--accent-rgb), 0.08)
+    ) !important;
+
+  border:
+    1px solid
+    rgba(var(--accent-rgb), 0.42) !important;
+
+  box-shadow:
+    inset 0 0 12px rgba(var(--accent-rgb), 0.04),
+    0 0 10px rgba(var(--accent-rgb), 0.06)
+    !important;
+}
+
+/* ===== PAYMENT SHIELD ICON THEME END ===== */
+
+/* ===== PAYMENT SHIELD ICON BORDER REMOVE ===== */
+
+#screen-payment .payment-screen-icon {
+  border: none !important;
+}
+
+/* ===== PAYMENT SHIELD ICON BORDER REMOVE END ===== */
+
+/* ===== SUBSCRIPTION CURRENT BADGE HIDE ===== */
+
+#screen-sub #sub-badge {
+  display: none !important;
+}
+
+/* ===== SUBSCRIPTION CURRENT BADGE HIDE END ===== */

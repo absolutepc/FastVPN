@@ -3,16 +3,27 @@ import {
   ForbiddenException,
   Injectable,
   Logger,
+  NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cron } from '@nestjs/schedule';
 import { createHmac, randomBytes, randomUUID } from 'crypto';
+import { mkdir, unlink, writeFile } from 'fs/promises';
+import { join } from 'path';
+import { Response } from 'express';
 import { execFile } from 'child_process';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PaymentsService } from '../payments/payments.service';
-import { PaymentStatus, PlanType, SubscriptionStatus } from '@prisma/client';
+import {
+  BonusClaimStatus,
+  BonusType,
+  PaymentStatus,
+  PlanType,
+  SubscriptionStatus,
+} from '@prisma/client';
 import { XrayService } from '../xray/xray.service';
 
 @Injectable()
@@ -237,6 +248,12 @@ export class WebappService {
     return value;
   }
 
+  async getNetworkStatus(initData: string) {
+    this.validateInitData(initData);
+
+    return this.getPublicNetworkStatus();
+  }
+
   async getCabinet(initData: string) {
     const tg = this.validateInitData(initData);
     const user = await this.findOrCreateFromTelegram(tg);
@@ -252,17 +269,26 @@ export class WebappService {
     const appUrl = (this.config.get<string>('APP_URL') || 'http://localhost:3000').replace(/\/$/, '');
     const botUsername = this.config.get<string>('BOT_USERNAME') || 'FourStepsVPNbot';
 
-    const networkStatus =
-      await this.getPublicNetworkStatus();
+    const referralCount =
+      await this.prisma.user.count({
+        where: {
+          referredById: user.id,
+        },
+      });
 
     return {
-      user: { id: user.id, firstName: user.firstName, username: user.username, referralCode: user.referralCode },
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        username: user.username,
+        referralCode: user.referralCode,
+        avatarUrl: user.avatarUrl,
+      },
       isAdmin: this.isAdminTelegramId(tg.id),
       subscriptionState,
       daysLeft,
       deviceLimit: 1,
       deviceUsed: device?.isActive ? 1 : 0,
-      networkStatus,
       device: device
         ? {
             id: device.id,
@@ -283,10 +309,1960 @@ export class WebappService {
           }
         : null,
       referralLink: `https://t.me/${botUsername}?start=${user.referralCode}`,
+      referralCount,
       plans: [
         { id: 'STANDARD', name: 'Стандарт', price: 300, description: 'Обычные серверы' },
         { id: 'PREMIUM', name: 'Премиум', price: 600, description: 'Выделенные серверы, макс. 50 человек' },
       ],
+    };
+  }
+
+
+  async sendAvatarFile(
+    fileName: string,
+    res: Response,
+  ) {
+    if (
+      !/^[a-zA-Z0-9._-]+\.(jpg|jpeg|png|webp)$/.test(
+        fileName,
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid avatar file name',
+      );
+    }
+
+    const absolutePath = join(
+      process.cwd(),
+      'webapp',
+      'uploads',
+      'avatars',
+      fileName,
+    );
+
+    return res.sendFile(absolutePath);
+  }
+
+
+  async uploadAvatar(
+    initData: string,
+    file?: {
+      buffer: Buffer;
+      mimetype: string;
+      originalname: string;
+      size: number;
+    },
+  ) {
+    const tg = this.validateInitData(initData);
+    const user = await this.findOrCreateFromTelegram(tg);
+
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('Avatar file is required');
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw new BadRequestException('Avatar file is too large');
+    }
+
+    const extensionByMime: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+
+    const extension = extensionByMime[file.mimetype];
+
+    if (!extension) {
+      throw new BadRequestException(
+        'Only JPEG, PNG and WebP avatars are allowed',
+      );
+    }
+
+    const uploadDir = join(
+      process.cwd(),
+      'webapp',
+      'uploads',
+      'avatars',
+    );
+
+    await mkdir(uploadDir, {
+      recursive: true,
+    });
+
+    const fileName =
+      `${user.id}-${randomUUID()}.${extension}`;
+
+    const absolutePath = join(
+      uploadDir,
+      fileName,
+    );
+
+    await writeFile(
+      absolutePath,
+      file.buffer,
+    );
+
+    const avatarUrl =
+      `/api/webapp/avatar-file/${fileName}`;
+
+    const previousAvatarUrl =
+      user.avatarUrl;
+
+    const updated = await this.prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        avatarUrl,
+      },
+      select: {
+        id: true,
+        avatarUrl: true,
+      },
+    });
+
+    if (
+      previousAvatarUrl &&
+      (
+        previousAvatarUrl.startsWith(
+          '/app/uploads/avatars/',
+        ) ||
+        previousAvatarUrl.startsWith(
+          '/api/webapp/avatar-file/',
+        )
+      )
+    ) {
+      const previousFileName =
+        previousAvatarUrl
+          .split('/')
+          .pop();
+
+      if (
+        previousFileName &&
+        previousFileName !== fileName
+      ) {
+        const previousPath = join(
+          uploadDir,
+          previousFileName,
+        );
+
+        await unlink(previousPath)
+          .catch(() => undefined);
+      }
+    }
+
+    this.logger.log(
+      `Avatar updated: user=${user.id}`,
+    );
+
+    return {
+      ok: true,
+      avatarUrl: updated.avatarUrl,
+    };
+  }
+
+
+  async sendSupportFile(
+    fileName: string,
+    res: Response,
+  ) {
+    if (
+      !/^[a-zA-Z0-9._-]+\.(jpg|jpeg|png|webp)$/.test(
+        fileName,
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid support file name',
+      );
+    }
+
+    const absolutePath = join(
+      process.cwd(),
+      'webapp',
+      'uploads',
+      'support',
+      fileName,
+    );
+
+    return res.sendFile(absolutePath);
+  }
+
+
+  async createSupportTicket(
+    initData: string,
+    titleRaw: string,
+    bodyRaw: string,
+    file?: {
+      buffer: Buffer;
+      mimetype: string;
+      originalname: string;
+      size: number;
+    },
+  ) {
+    const tg = this.validateInitData(initData);
+    const user = await this.findOrCreateFromTelegram(tg);
+
+    const title = String(titleRaw || '').trim();
+    const body = String(bodyRaw || '').trim();
+
+    if (!title) {
+      throw new BadRequestException(
+        'Support ticket title is required',
+      );
+    }
+
+    if (!body) {
+      throw new BadRequestException(
+        'Support ticket body is required',
+      );
+    }
+
+    if (title.length > 120) {
+      throw new BadRequestException(
+        'Support ticket title is too long',
+      );
+    }
+
+    if (body.length > 5000) {
+      throw new BadRequestException(
+        'Support ticket body is too long',
+      );
+    }
+
+    let attachmentUrl: string | null = null;
+
+    if (file?.buffer?.length) {
+      if (file.size > 10 * 1024 * 1024) {
+        throw new BadRequestException(
+          'Support attachment is too large',
+        );
+      }
+
+      const extensionByMime: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+      };
+
+      const extension =
+        extensionByMime[file.mimetype];
+
+      if (!extension) {
+        throw new BadRequestException(
+          'Only JPEG, PNG and WebP support attachments are allowed',
+        );
+      }
+
+      const uploadDir = join(
+        process.cwd(),
+        'webapp',
+        'uploads',
+        'support',
+      );
+
+      await mkdir(
+        uploadDir,
+        {
+          recursive: true,
+        },
+      );
+
+      const fileName =
+        `${user.id}-${randomUUID()}.${extension}`;
+
+      const absolutePath = join(
+        uploadDir,
+        fileName,
+      );
+
+      await writeFile(
+        absolutePath,
+        file.buffer,
+      );
+
+      attachmentUrl =
+        `/api/webapp/support-file/${fileName}`;
+    }
+
+    const ticket =
+      await this.prisma.supportTicket.create({
+        data: {
+          userId: user.id,
+          title,
+          body,
+          attachmentUrl,
+        },
+      });
+
+    this.logger.log(
+      `Support ticket created: ticket=${ticket.id} user=${user.id}`,
+    );
+
+    return {
+      ok: true,
+      ticket: {
+        id: ticket.id,
+        title: ticket.title,
+        body: ticket.body,
+        status: ticket.status,
+        attachmentUrl:
+          ticket.attachmentUrl,
+        createdAt:
+          ticket.createdAt.toISOString(),
+        updatedAt:
+          ticket.updatedAt.toISOString(),
+      },
+    };
+  }
+
+
+  async getMySupportTickets(
+    initData: string,
+  ) {
+    const tg = this.validateInitData(initData);
+    const user = await this.findOrCreateFromTelegram(tg);
+
+    const tickets =
+      await this.prisma.supportTicket.findMany({
+        where: {
+          userId: user.id,
+        },
+        include: {
+          messages: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+    return {
+      tickets: tickets.map(
+        (ticket) => ({
+          id: ticket.id,
+          title: ticket.title,
+          body: ticket.body,
+          status: ticket.status,
+          attachmentUrl:
+            ticket.attachmentUrl,
+          createdAt:
+            ticket.createdAt.toISOString(),
+          updatedAt:
+            ticket.updatedAt.toISOString(),
+          messages:
+            ticket.messages.map(
+              (message) => ({
+                id: message.id,
+                author: message.author,
+                body: message.body,
+                createdAt:
+                  message.createdAt.toISOString(),
+              }),
+            ),
+        }),
+      ),
+    };
+  }
+
+
+  async replySupportTicket(
+    initData: string,
+    ticketId: string,
+    bodyRaw: string,
+  ) {
+    const tg = this.validateInitData(initData);
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    const body =
+      String(bodyRaw || '').trim();
+
+    if (body.length === 0) {
+      throw new BadRequestException(
+        'Support message body is required',
+      );
+    }
+
+    if (body.length > 5000) {
+      throw new BadRequestException(
+        'Support message body is too long',
+      );
+    }
+
+    const ticket =
+      await this.prisma.supportTicket.findFirst({
+        where: {
+          id: ticketId,
+          userId: user.id,
+        },
+      });
+
+    if (ticket === null) {
+      throw new NotFoundException(
+        'Support ticket not found',
+      );
+    }
+
+    if (ticket.status === 'RESOLVED') {
+      throw new BadRequestException(
+        'Support ticket is resolved',
+      );
+    }
+
+    const message =
+      await this.prisma.supportTicketMessage.create({
+        data: {
+          ticketId: ticket.id,
+          author: 'USER',
+          body,
+        },
+      });
+
+    return {
+      ok: true,
+      message: {
+        id: message.id,
+        author: message.author,
+        body: message.body,
+        createdAt:
+          message.createdAt.toISOString(),
+      },
+    };
+  }
+
+
+  private getBonusChannel() {
+    return {
+      username:
+        this.config.get<string>(
+          'BONUS_CHANNEL_USERNAME',
+        ) || '@fourstepsinfo',
+
+      url:
+        this.config.get<string>(
+          'BONUS_CHANNEL_URL',
+        ) || 'https://t.me/fourstepsinfo',
+    };
+  }
+
+
+  private async isBonusChannelMember(
+    telegramId: bigint | number,
+  ): Promise<boolean> {
+    const token =
+      this.config.getOrThrow<string>('BOT_TOKEN');
+
+    const channel =
+      this.getBonusChannel();
+
+    const configuredRoot =
+      (
+        this.config.get<string>(
+          'TELEGRAM_API_ROOT',
+        ) || ''
+      ).replace(/\/$/, '');
+
+    const apiRoot =
+      configuredRoot ||
+      'https://api.telegram.org';
+
+    const url =
+      `${apiRoot}/bot${token}/getChatMember` +
+      `?chat_id=${encodeURIComponent(channel.username)}` +
+      `&user_id=${encodeURIComponent(String(telegramId))}`;
+
+    const response =
+      await fetch(url);
+
+    const data: any =
+      await response
+        .json()
+        .catch(() => ({}));
+
+    if (
+      response.ok === false ||
+      data?.ok !== true
+    ) {
+      throw new ServiceUnavailableException(
+        data?.description ||
+        'Не удалось проверить подписку на канал',
+      );
+    }
+
+    const result =
+      data.result || {};
+
+    const status =
+      String(
+        result.status || '',
+      ).toLowerCase();
+
+    if (
+      status === 'creator' ||
+      status === 'administrator' ||
+      status === 'member'
+    ) {
+      return true;
+    }
+
+    if (
+      status === 'restricted' &&
+      result.is_member === true
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+
+  private serializeChannelBonus(
+    claim: {
+      status: BonusClaimStatus;
+      bonusDays: number;
+      grantedAt: Date | null;
+      confirmAfter: Date | null;
+      revokedAt: Date | null;
+    } | null,
+  ) {
+    const channel =
+      this.getBonusChannel();
+
+    return {
+      type: 'TELEGRAM_CHANNEL',
+      title: 'Подписка на Telegram-канал',
+      description:
+        'Подпишитесь на наш Telegram-канал и получите 7 дополнительных дней подписки.',
+      channelUsername:
+        channel.username,
+      channelUrl:
+        channel.url,
+      bonusDays: 7,
+
+      rule:
+        'Бонус закрепляется через 7 дней. Если вы отпишетесь от канала раньше, бонусные 7 дней будут списаны с подписки.',
+
+      status:
+        claim?.status || 'AVAILABLE',
+
+      grantedAt:
+        claim?.grantedAt?.toISOString() ||
+        null,
+
+      confirmAfter:
+        claim?.confirmAfter?.toISOString() ||
+        null,
+
+      revokedAt:
+        claim?.revokedAt?.toISOString() ||
+        null,
+    };
+  }
+
+
+  async getBonuses(
+    initData: string,
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    const claim =
+      await this.prisma.bonusClaim.findUnique({
+        where: {
+          userId_type: {
+            userId: user.id,
+            type: BonusType.TELEGRAM_CHANNEL,
+          },
+        },
+      });
+
+    return {
+      bonuses: [
+        this.serializeChannelBonus(
+          claim,
+        ),
+      ],
+    };
+  }
+
+
+  async claimTelegramChannelBonus(
+    initData: string,
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    const existing =
+      await this.prisma.bonusClaim.findUnique({
+        where: {
+          userId_type: {
+            userId: user.id,
+            type: BonusType.TELEGRAM_CHANNEL,
+          },
+        },
+      });
+
+    if (existing) {
+      return {
+        ok: true,
+        alreadyClaimed: true,
+        bonus:
+          this.serializeChannelBonus(
+            existing,
+          ),
+      };
+    }
+
+    const isMember =
+      await this.isBonusChannelMember(
+        user.telegramId,
+      );
+
+    if (isMember === false) {
+      throw new BadRequestException(
+        'Сначала подпишитесь на Telegram-канал',
+      );
+    }
+
+    const subscription =
+      await this.subscriptions
+        .getActiveSubscription(
+          user.id,
+        );
+
+    if (!subscription) {
+      throw new BadRequestException(
+        'Для получения бонуса нужна активная подписка',
+      );
+    }
+
+    const now =
+      new Date();
+
+    const confirmAfter =
+      new Date(
+        now.getTime() +
+        7 * 24 * 60 * 60 * 1000,
+      );
+
+    const baseExpiresAt =
+      new Date(
+        subscription.expiresAt,
+      );
+
+    const targetExpiresAt =
+      new Date(
+        baseExpiresAt.getTime() +
+        7 * 24 * 60 * 60 * 1000,
+      );
+
+    /*
+     * Сначала фиксируем уникальное право на бонус.
+     * @@unique([userId, type]) не позволит получить
+     * его повторно.
+     */
+    const claim =
+      await this.prisma.bonusClaim.create({
+        data: {
+          userId:
+            user.id,
+
+          subscriptionId:
+            subscription.id,
+
+          type:
+            BonusType.TELEGRAM_CHANNEL,
+
+          status:
+            BonusClaimStatus.APPLYING,
+
+          bonusDays:
+            7,
+
+          channelUsername:
+            this.getBonusChannel()
+              .username,
+
+          baseExpiresAt,
+          targetExpiresAt,
+        },
+      });
+
+    try {
+      /*
+       * Используем штатное продление:
+       * оно обновляет expiresAt и H1Cloud.
+       */
+      await this.subscriptions
+        .extendSubscription(
+          subscription.id,
+          7,
+        );
+
+      const completed =
+        await this.prisma.bonusClaim.update({
+          where: {
+            id: claim.id,
+          },
+
+          data: {
+            status:
+              BonusClaimStatus.PENDING,
+
+            grantedAt:
+              now,
+
+            confirmAfter,
+          },
+        });
+
+      this.logger.log(
+        `Telegram bonus +7 days: user=${user.id}`,
+      );
+
+      return {
+        ok: true,
+        bonus:
+          this.serializeChannelBonus(
+            completed,
+          ),
+      };
+    } catch (error) {
+      /*
+       * Если продление не состоялось,
+       * удаляем незавершённую заявку,
+       * чтобы пользователь мог повторить попытку.
+       */
+      await this.prisma.bonusClaim
+        .delete({
+          where: {
+            id: claim.id,
+          },
+        })
+        .catch(() => {});
+
+      throw error;
+    }
+  }
+
+
+  private async revokeTelegramBonus(
+    claimId: string,
+  ) {
+    const claim =
+      await this.prisma.bonusClaim.findUnique({
+        where: {
+          id: claimId,
+        },
+
+        include: {
+          subscription: true,
+        },
+      });
+
+    if (
+      !claim ||
+      claim.status !==
+        BonusClaimStatus.PENDING
+    ) {
+      return;
+    }
+
+    const currentExpiresAt =
+      claim.subscription.expiresAt;
+
+    const revokedExpiresAt =
+      new Date(
+        currentExpiresAt.getTime() -
+        claim.bonusDays *
+          24 *
+          60 *
+          60 *
+          1000,
+      );
+
+    /*
+     * БД меняем атомарно:
+     * бонус снимается ровно один раз.
+     */
+    await this.prisma.$transaction(
+      async (tx) => {
+        const current =
+          await tx.bonusClaim.findUnique({
+            where: {
+              id: claim.id,
+            },
+          });
+
+        if (
+          !current ||
+          current.status !==
+            BonusClaimStatus.PENDING
+        ) {
+          return;
+        }
+
+        await tx.subscription.update({
+          where: {
+            id:
+              claim.subscriptionId,
+          },
+
+          data: {
+            expiresAt:
+              revokedExpiresAt,
+          },
+        });
+
+        await tx.bonusClaim.update({
+          where: {
+            id:
+              claim.id,
+          },
+
+          data: {
+            status:
+              BonusClaimStatus.REVOKED,
+
+            revokedAt:
+              new Date(),
+
+            syncPending:
+              true,
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            title:
+              'Бонусные дни списаны',
+
+            body:
+              'Вы отписались от канала @fourstepsinfo в течение контрольных 7 дней. Поэтому бонусные 7 дней были списаны с вашей подписки.',
+
+            isActive:
+              true,
+
+            recipientUserId:
+              claim.userId,
+          },
+        });
+      },
+    );
+
+    /*
+     * Обновляем срок H1Cloud уже по
+     * актуальному expiresAt в базе.
+     */
+    try {
+      await this.subscriptions
+        .syncSubscriptionExpiry(
+          claim.subscriptionId,
+        );
+
+      await this.prisma.bonusClaim.update({
+        where: {
+          id:
+            claim.id,
+        },
+
+        data: {
+          syncPending:
+            false,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Bonus revoke sync failed: ${claim.id}: ${
+          error instanceof Error
+            ? error.message
+            : String(error)
+        }`,
+      );
+    }
+
+    this.logger.warn(
+      `Telegram bonus revoked: claim=${claim.id}`,
+    );
+  }
+
+
+  @Cron('*/5 * * * *')
+  async checkTelegramChannelBonuses() {
+    const claims =
+      await this.prisma.bonusClaim.findMany({
+        where: {
+          type:
+            BonusType.TELEGRAM_CHANNEL,
+
+          status:
+            BonusClaimStatus.PENDING,
+        },
+
+        include: {
+          user: true,
+        },
+      });
+
+    const now =
+      new Date();
+
+    for (const claim of claims) {
+      try {
+        const isMember =
+          await this.isBonusChannelMember(
+            claim.user.telegramId,
+          );
+
+        /*
+         * Отписался в контрольные 7 дней:
+         * снимаем бонус немедленно.
+         */
+        if (isMember === false) {
+          await this.revokeTelegramBonus(
+            claim.id,
+          );
+
+          continue;
+        }
+
+        /*
+         * 7 дней прошли, подписка сохранена:
+         * бонус становится окончательным.
+         */
+        if (
+          claim.confirmAfter &&
+          claim.confirmAfter <= now
+        ) {
+          await this.prisma.bonusClaim.update({
+            where: {
+              id: claim.id,
+            },
+
+            data: {
+              status:
+                BonusClaimStatus.CONFIRMED,
+            },
+          });
+
+          this.logger.log(
+            `Telegram bonus confirmed: claim=${claim.id}`,
+          );
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Bonus check skipped ${claim.id}: ${
+            error instanceof Error
+              ? error.message
+              : String(error)
+          }`,
+        );
+      }
+    }
+
+    /*
+     * Повторная синхронизация H1Cloud,
+     * если при отзыве была временная ошибка.
+     */
+    const syncClaims =
+      await this.prisma.bonusClaim.findMany({
+        where: {
+          status:
+            BonusClaimStatus.REVOKED,
+
+          syncPending:
+            true,
+        },
+      });
+
+    for (const claim of syncClaims) {
+      try {
+        await this.subscriptions
+          .syncSubscriptionExpiry(
+            claim.subscriptionId,
+          );
+
+        await this.prisma.bonusClaim.update({
+          where: {
+            id:
+              claim.id,
+          },
+
+          data: {
+            syncPending:
+              false,
+          },
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Bonus H1 sync retry failed ${claim.id}`,
+        );
+      }
+    }
+  }
+
+
+  async redeemPromoCode(
+    initData: string,
+    codeRaw: string,
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    const code =
+      String(codeRaw || '')
+        .trim()
+        .toUpperCase();
+
+    if (
+      code.length < 3 ||
+      code.length > 64
+    ) {
+      throw new BadRequestException(
+        'Invalid promo code',
+      );
+    }
+
+    const now =
+      new Date();
+
+    let reserved:
+      | {
+          redemptionId: string;
+          promoId: string;
+          plan: PlanType;
+          days: number;
+        }
+      | undefined;
+
+    try {
+      reserved =
+        await this.prisma.$transaction(
+          async (tx) => {
+            const promo =
+              await tx.promoCode.findUnique({
+                where: {
+                  code,
+                },
+              });
+
+            if (promo === null) {
+              throw new BadRequestException(
+                'Promo code not found',
+              );
+            }
+
+            if (promo.isActive === false) {
+              throw new BadRequestException(
+                'Promo code is disabled',
+              );
+            }
+
+            if (
+              promo.validUntil !== null &&
+              promo.validUntil <= now
+            ) {
+              throw new BadRequestException(
+                'Promo code has expired',
+              );
+            }
+
+            if (
+              promo.maxUses !== null &&
+              promo.usedCount >= promo.maxUses
+            ) {
+              throw new BadRequestException(
+                'Promo code usage limit reached',
+              );
+            }
+
+            const userUses =
+              await tx.promoRedemption.count({
+                where: {
+                  promoCodeId: promo.id,
+                  userId: user.id,
+                },
+              });
+
+            if (
+              userUses >= promo.perUserLimit
+            ) {
+              throw new BadRequestException(
+                'Promo code user limit reached',
+              );
+            }
+
+            const redemption =
+              await tx.promoRedemption.create({
+                data: {
+                  promoCodeId: promo.id,
+                  userId: user.id,
+                  plan: promo.plan,
+                  days: promo.days,
+                },
+              });
+
+            const updated =
+              await tx.promoCode.updateMany({
+                where: {
+                  id: promo.id,
+                  usedCount: promo.usedCount,
+                },
+                data: {
+                  usedCount: {
+                    increment: 1,
+                  },
+                },
+              });
+
+            if (updated.count !== 1) {
+              throw new Error(
+                'PROMO_CONCURRENT_UPDATE',
+              );
+            }
+
+            return {
+              redemptionId:
+                redemption.id,
+              promoId:
+                promo.id,
+              plan:
+                promo.plan,
+              days:
+                promo.days,
+            };
+          },
+          {
+            isolationLevel:
+              'Serializable',
+          },
+        );
+    } catch (error) {
+      if (
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      const prismaCode =
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error
+          ? String(
+              (error as {
+                code?: unknown;
+              }).code || '',
+            )
+          : '';
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      if (
+        prismaCode === 'P2034' ||
+        message ===
+          'PROMO_CONCURRENT_UPDATE'
+      ) {
+        throw new BadRequestException(
+          'Promo code is busy, try again',
+        );
+      }
+
+      throw error;
+    }
+
+    if (reserved === undefined) {
+      throw new BadRequestException(
+        'Promo activation failed',
+      );
+    }
+
+    try {
+      const active =
+        await this.subscriptions
+          .getActiveSubscription(
+            user.id,
+          );
+
+      let subscription;
+
+      if (
+        active !== null &&
+        active.plan === reserved.plan
+      ) {
+        subscription =
+          await this.subscriptions
+            .extendSubscription(
+              active.id,
+              reserved.days,
+            );
+      } else {
+        subscription =
+          await this.subscriptions
+            .createSubscription({
+              userId: user.id,
+              plan: reserved.plan,
+              days: reserved.days,
+              isTrial: false,
+            });
+      }
+
+      return {
+        ok: true,
+        promo: {
+          code,
+          plan:
+            reserved.plan,
+          days:
+            reserved.days,
+        },
+        subscription: {
+          id:
+            subscription.id,
+          plan:
+            subscription.plan,
+          status:
+            subscription.status,
+          expiresAt:
+            subscription.expiresAt
+              .toISOString(),
+        },
+      };
+    } catch (error) {
+      await this.prisma.$transaction(
+        async (tx) => {
+          const removed =
+            await tx.promoRedemption
+              .deleteMany({
+                where: {
+                  id:
+                    reserved.redemptionId,
+                  promoCodeId:
+                    reserved.promoId,
+                  userId:
+                    user.id,
+                },
+              });
+
+          if (removed.count === 1) {
+            await tx.promoCode.update({
+              where: {
+                id:
+                  reserved.promoId,
+              },
+              data: {
+                usedCount: {
+                  decrement: 1,
+                },
+              },
+            });
+          }
+        },
+      );
+
+      throw error;
+    }
+  }
+
+
+  async getAdminPromoRedemptions(
+    initData: string,
+    promoId: string,
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    if (
+      this.isAdminTelegramId(
+        Number(user.telegramId),
+      ) === false
+    ) {
+      throw new ForbiddenException(
+        'Admin access required',
+      );
+    }
+
+    const promo =
+      await this.prisma.promoCode.findUnique({
+        where: {
+          id: promoId,
+        },
+      });
+
+    if (promo === null) {
+      throw new NotFoundException(
+        'Promo code not found',
+      );
+    }
+
+    const redemptions =
+      await this.prisma.promoRedemption.findMany({
+        where: {
+          promoCodeId: promo.id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              telegramId: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+    return {
+      ok: true,
+      promo: {
+        id: promo.id,
+        code: promo.code,
+        plan: promo.plan,
+        days: promo.days,
+      },
+      redemptions: redemptions.map(
+        (item) => ({
+          id: item.id,
+          plan: item.plan,
+          days: item.days,
+          createdAt:
+            item.createdAt.toISOString(),
+          user: {
+            id: item.user.id,
+            telegramId:
+              item.user.telegramId.toString(),
+            username:
+              item.user.username,
+            firstName:
+              item.user.firstName,
+            lastName:
+              item.user.lastName,
+          },
+        }),
+      ),
+    };
+  }
+
+
+  async adminDeletePromoCode(
+    initData: string,
+    promoId: string,
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    if (
+      this.isAdminTelegramId(
+        Number(user.telegramId),
+      ) === false
+    ) {
+      throw new ForbiddenException(
+        'Admin access required',
+      );
+    }
+
+    const promo =
+      await this.prisma.promoCode.findUnique({
+        where: {
+          id: promoId,
+        },
+        include: {
+          _count: {
+            select: {
+              redemptions: true,
+            },
+          },
+        },
+      });
+
+    if (promo === null) {
+      throw new NotFoundException(
+        'Promo code not found',
+      );
+    }
+
+    if (
+      promo.usedCount > 0 ||
+      promo._count.redemptions > 0
+    ) {
+      throw new BadRequestException(
+        'Promo code has redemptions and cannot be deleted',
+      );
+    }
+
+    await this.prisma.promoCode.delete({
+      where: {
+        id: promo.id,
+      },
+    });
+
+    return {
+      ok: true,
+      deleted: true,
+      id: promo.id,
+      code: promo.code,
+    };
+  }
+
+
+  async adminSetPromoActive(
+    initData: string,
+    promoId: string,
+    isActive: boolean,
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    if (
+      this.isAdminTelegramId(
+        Number(user.telegramId),
+      ) === false
+    ) {
+      throw new ForbiddenException(
+        'Admin access required',
+      );
+    }
+
+    const promo =
+      await this.prisma.promoCode.findUnique({
+        where: {
+          id: promoId,
+        },
+      });
+
+    if (promo === null) {
+      throw new NotFoundException(
+        'Promo code not found',
+      );
+    }
+
+    const updated =
+      await this.prisma.promoCode.update({
+        where: {
+          id: promo.id,
+        },
+        data: {
+          isActive,
+        },
+      });
+
+    return {
+      ok: true,
+      promo: {
+        id: updated.id,
+        code: updated.code,
+        isActive: updated.isActive,
+        updatedAt:
+          updated.updatedAt.toISOString(),
+      },
+    };
+  }
+
+
+  async getAdminPromoCodes(
+    initData: string,
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    if (
+      this.isAdminTelegramId(
+        Number(user.telegramId),
+      ) === false
+    ) {
+      throw new ForbiddenException(
+        'Admin access required',
+      );
+    }
+
+    const promos =
+      await this.prisma.promoCode.findMany({
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          _count: {
+            select: {
+              redemptions: true,
+            },
+          },
+        },
+      });
+
+    return {
+      ok: true,
+      promos: promos.map((promo) => ({
+        id: promo.id,
+        code: promo.code,
+        plan: promo.plan,
+        days: promo.days,
+        maxUses: promo.maxUses,
+        usedCount: promo.usedCount,
+        redemptionCount:
+          promo._count.redemptions,
+        perUserLimit:
+          promo.perUserLimit,
+        validUntil:
+          promo.validUntil
+            ? promo.validUntil.toISOString()
+            : null,
+        isActive:
+          promo.isActive,
+        createdAt:
+          promo.createdAt.toISOString(),
+        updatedAt:
+          promo.updatedAt.toISOString(),
+      })),
+    };
+  }
+
+
+  async adminCreatePromoCode(
+    initData: string,
+    input: {
+      code?: string;
+      plan?: string;
+      days?: number;
+      maxUses?: number | null;
+      perUserLimit?: number;
+      validUntil?: string | null;
+      isActive?: boolean;
+    },
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    if (
+      this.isAdminTelegramId(
+        Number(user.telegramId),
+      ) === false
+    ) {
+      throw new ForbiddenException(
+        'Admin access required',
+      );
+    }
+
+    const code =
+      String(input.code || '')
+        .trim()
+        .toUpperCase();
+
+    const plan =
+      String(input.plan || '')
+        .trim()
+        .toUpperCase();
+
+    const days =
+      Number(input.days);
+
+    const maxUses =
+      input.maxUses === null ||
+      input.maxUses === undefined
+        ? null
+        : Number(input.maxUses);
+
+    const perUserLimit =
+      input.perUserLimit === undefined
+        ? 1
+        : Number(input.perUserLimit);
+
+    const isActive =
+      input.isActive === undefined
+        ? true
+        : Boolean(input.isActive);
+
+    if (
+      code.length < 3 ||
+      code.length > 64
+    ) {
+      throw new BadRequestException(
+        'Promo code length must be 3-64 characters',
+      );
+    }
+
+    if (
+      /^[A-Z0-9_-]+$/.test(code) === false
+    ) {
+      throw new BadRequestException(
+        'Promo code contains invalid characters',
+      );
+    }
+
+    if (
+      plan !== 'STANDARD' &&
+      plan !== 'PREMIUM'
+    ) {
+      throw new BadRequestException(
+        'Invalid promo plan',
+      );
+    }
+
+    if (
+      Number.isInteger(days) === false ||
+      days < 1 ||
+      days > 3650
+    ) {
+      throw new BadRequestException(
+        'Invalid promo days',
+      );
+    }
+
+    if (
+      maxUses !== null &&
+      (
+        Number.isInteger(maxUses) === false ||
+        maxUses < 1
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid promo max uses',
+      );
+    }
+
+    if (
+      Number.isInteger(perUserLimit) === false ||
+      perUserLimit < 1 ||
+      perUserLimit > 1000
+    ) {
+      throw new BadRequestException(
+        'Invalid promo per-user limit',
+      );
+    }
+
+    let validUntil: Date | null = null;
+
+    if (
+      input.validUntil !== null &&
+      input.validUntil !== undefined &&
+      String(input.validUntil).trim().length > 0
+    ) {
+      validUntil =
+        new Date(input.validUntil);
+
+      if (
+        Number.isNaN(
+          validUntil.getTime(),
+        )
+      ) {
+        throw new BadRequestException(
+          'Invalid promo expiration date',
+        );
+      }
+
+      if (
+        validUntil.getTime() <= Date.now()
+      ) {
+        throw new BadRequestException(
+          'Promo expiration date must be in the future',
+        );
+      }
+    }
+
+    const existing =
+      await this.prisma.promoCode.findUnique({
+        where: {
+          code,
+        },
+      });
+
+    if (existing !== null) {
+      throw new BadRequestException(
+        'Promo code already exists',
+      );
+    }
+
+    const promo =
+      await this.prisma.promoCode.create({
+        data: {
+          code,
+          plan,
+          days,
+          maxUses,
+          perUserLimit,
+          validUntil,
+          isActive,
+          createdByTelegramId:
+            BigInt(user.telegramId),
+        },
+      });
+
+    return {
+      ok: true,
+      promo: {
+        id: promo.id,
+        code: promo.code,
+        plan: promo.plan,
+        days: promo.days,
+        maxUses: promo.maxUses,
+        usedCount: promo.usedCount,
+        perUserLimit:
+          promo.perUserLimit,
+        validUntil:
+          promo.validUntil
+            ? promo.validUntil.toISOString()
+            : null,
+        isActive: promo.isActive,
+        createdAt:
+          promo.createdAt.toISOString(),
+      },
+    };
+  }
+
+
+  async getAdminSupportTickets(
+    initData: string,
+  ) {
+    const tg = this.validateInitData(initData);
+    const user = await this.findOrCreateFromTelegram(tg);
+
+    if (!this.isAdminTelegramId(Number(user.telegramId))) {
+      throw new ForbiddenException(
+        'Admin access required',
+      );
+    }
+
+    const tickets =
+      await this.prisma.supportTicket.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              telegramId: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          messages: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+    return {
+      tickets: tickets.map(
+        (ticket) => ({
+          id: ticket.id,
+          title: ticket.title,
+          body: ticket.body,
+          status: ticket.status,
+          attachmentUrl:
+            ticket.attachmentUrl,
+          createdAt:
+            ticket.createdAt.toISOString(),
+          updatedAt:
+            ticket.updatedAt.toISOString(),
+          messages:
+            ticket.messages.map(
+              (message) => ({
+                id: message.id,
+                author: message.author,
+                body: message.body,
+                createdAt:
+                  message.createdAt.toISOString(),
+              }),
+            ),
+          user: {
+            id: ticket.user.id,
+            telegramId:
+              ticket.user.telegramId.toString(),
+            username:
+              ticket.user.username,
+            firstName:
+              ticket.user.firstName,
+            lastName:
+              ticket.user.lastName,
+          },
+        }),
+      ),
+    };
+  }
+
+
+  async adminReplySupportTicket(
+    initData: string,
+    ticketId: string,
+    bodyRaw: string,
+  ) {
+    const tg = this.validateInitData(initData);
+    const user =
+      await this.findOrCreateFromTelegram(tg);
+
+    if (
+      this.isAdminTelegramId(
+        Number(user.telegramId),
+      ) === false
+    ) {
+      throw new ForbiddenException(
+        'Admin access required',
+      );
+    }
+
+    const body =
+      String(bodyRaw || '').trim();
+
+    if (body.length === 0) {
+      throw new BadRequestException(
+        'Support message body is required',
+      );
+    }
+
+    if (body.length > 5000) {
+      throw new BadRequestException(
+        'Support message body is too long',
+      );
+    }
+
+    const ticket =
+      await this.prisma.supportTicket.findUnique({
+        where: {
+          id: ticketId,
+        },
+      });
+
+    if (ticket === null) {
+      throw new NotFoundException(
+        'Support ticket not found',
+      );
+    }
+
+    const message =
+      await this.prisma.supportTicketMessage.create({
+        data: {
+          ticketId: ticket.id,
+          author: 'ADMIN',
+          body,
+        },
+      });
+
+    if (ticket.status === 'NEW') {
+      await this.prisma.supportTicket.update({
+        where: {
+          id: ticket.id,
+        },
+        data: {
+          status: 'IN_PROGRESS',
+        },
+      });
+    }
+
+    return {
+      ok: true,
+      message: {
+        id: message.id,
+        author: message.author,
+        body: message.body,
+        createdAt:
+          message.createdAt.toISOString(),
+      },
+    };
+  }
+
+
+  async updateSupportTicketStatus(
+    initData: string,
+    ticketId: string,
+    statusRaw: string,
+  ) {
+    const tg = this.validateInitData(initData);
+    const user = await this.findOrCreateFromTelegram(tg);
+
+    if (!this.isAdminTelegramId(Number(user.telegramId))) {
+      throw new ForbiddenException(
+        'Admin access required',
+      );
+    }
+
+    const status =
+      String(statusRaw || '')
+        .trim()
+        .toUpperCase();
+
+    if (
+      ![
+        'NEW',
+        'IN_PROGRESS',
+        'RESOLVED',
+      ].includes(status)
+    ) {
+      throw new BadRequestException(
+        'Invalid support ticket status',
+      );
+    }
+
+    const existing =
+      await this.prisma.supportTicket.findUnique({
+        where: {
+          id: ticketId,
+        },
+      });
+
+    if (!existing) {
+      throw new NotFoundException(
+        'Support ticket not found',
+      );
+    }
+
+    const updated =
+      await this.prisma.supportTicket.update({
+        where: {
+          id: ticketId,
+        },
+        data: {
+          status:
+            status as
+              'NEW'
+              | 'IN_PROGRESS'
+              | 'RESOLVED',
+        },
+      });
+
+    return {
+      ok: true,
+      ticket: {
+        id: updated.id,
+        status: updated.status,
+        updatedAt:
+          updated.updatedAt.toISOString(),
+      },
     };
   }
 
@@ -298,6 +2274,14 @@ export class WebappService {
     const notifications = await this.prisma.notification.findMany({
       where: {
         isActive: true,
+        OR: [
+          {
+            recipientUserId: null,
+          },
+          {
+            recipientUserId: user.id,
+          },
+        ],
       },
       orderBy: {
         createdAt: 'desc',
@@ -348,6 +2332,14 @@ export class WebappService {
       where: {
         id: notificationId,
         isActive: true,
+        OR: [
+          {
+            recipientUserId: null,
+          },
+          {
+            recipientUserId: user.id,
+          },
+        ],
       },
       select: {
         id: true,
@@ -485,6 +2477,26 @@ export class WebappService {
     const endOfDay = new Date(now);
     endOfDay.setHours(23, 59, 59, 999);
 
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+
+    const startOfNextMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+
     const [
       users,
       activeSubscriptions,
@@ -496,9 +2508,7 @@ export class WebappService {
       this.prisma.user.count(),
       this.prisma.subscription.count({
         where: {
-          status: {
-            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
-          },
+          status: SubscriptionStatus.ACTIVE,
           expiresAt: { gt: now },
           user: { isBlocked: false },
         },
@@ -511,7 +2521,13 @@ export class WebappService {
         },
       }),
       this.prisma.payment.aggregate({
-        where: { status: 'SUCCEEDED' },
+        where: {
+          status: 'SUCCEEDED',
+          createdAt: {
+            gte: startOfMonth,
+            lt: startOfNextMonth,
+          },
+        },
         _sum: { amount: true },
       }),
       this.prisma.subscription.count({
@@ -973,12 +2989,42 @@ export class WebappService {
     const sub = await this.subscriptions.getActiveSubscription(user.id);
     if (!sub) throw new BadRequestException('Active subscription required');
 
-    const existing = await this.prisma.device.findUnique({ where: { subscriptionId: sub.id } });
-    if (existing) {
+    const existing = await this.prisma.device.findUnique({
+      where: { subscriptionId: sub.id },
+    });
+
+    if (existing?.isActive) {
       return {
         device: existing,
         created: false,
+        reactivated: false,
         message: 'Device already activated for this subscription',
+      };
+    }
+
+    if (existing) {
+      const device = await this.prisma.device.update({
+        where: { id: existing.id },
+        data: {
+          isActive: true,
+          name: (name || existing.name || 'Моё устройство')
+            .trim()
+            .slice(0, 80),
+          platform:
+            platform?.trim().slice(0, 40) ||
+            existing.platform ||
+            null,
+        },
+      });
+
+      this.logger.log(
+        `Device reactivated: user=${user.id} subscription=${sub.id} device=${device.id}`,
+      );
+
+      return {
+        device,
+        created: false,
+        reactivated: true,
       };
     }
 

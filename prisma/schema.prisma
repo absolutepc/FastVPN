@@ -31,39 +31,69 @@ enum NodeType {
   PREMIUM
 }
 
+enum SupportMessageAuthor {
+  USER
+  ADMIN
+}
+
+enum SupportTicketStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum BonusType {
+  TELEGRAM_CHANNEL
+}
+
+enum BonusClaimStatus {
+  APPLYING
+  PENDING
+  CONFIRMED
+  REVOKED
+}
+
 model User {
-  id            String         @id @default(cuid())
-  telegramId    BigInt         @unique
-  username      String?
-  firstName     String?
-  lastName      String?
-  referralCode  String         @unique
-  referredById  String?
-  referredBy    User?          @relation("Referrals", fields: [referredById], references: [id])
-  referrals     User[]         @relation("Referrals")
-  isBlocked       Boolean        @default(false)
-  legalAcceptedAt DateTime?
-  legalVersion    String?
-  subscriptions   Subscription[]
-  payments      Payment[]
-  devices       Device[]
-  notificationReads UserNotification[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                  String             @id @default(cuid())
+  telegramId          BigInt             @unique
+  username            String?
+  firstName           String?
+  lastName            String?
+  avatarUrl           String?
+  referralCode        String             @unique
+  referredById        String?
+  referredBy          User?              @relation("Referrals", fields: [referredById], references: [id])
+  referrals           User[]             @relation("Referrals")
+  isBlocked           Boolean            @default(false)
+  legalAcceptedAt     DateTime?
+  legalVersion        String?
+  subscriptions       Subscription[]
+  payments            Payment[]
+  devices             Device[]
+  notificationReads   UserNotification[]
+  directNotifications Notification[]     @relation("DirectNotifications")
+  supportTickets      SupportTicket[]
+  bonusClaims         BonusClaim[]
+  promoRedemptions    PromoRedemption[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@map("users")
 }
 
 model Notification {
-  id        String             @id @default(cuid())
-  title     String
-  body      String
-  isActive  Boolean            @default(true)
-  reads     UserNotification[]
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  id              String             @id @default(cuid())
+  title           String
+  body            String
+  isActive        Boolean            @default(true)
+  reads           UserNotification[]
+  recipientUserId String?
+  recipient       User?              @relation("DirectNotifications", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@index([isActive, createdAt])
+  @@index([recipientUserId, isActive, createdAt])
   @@map("notifications")
 }
 
@@ -94,6 +124,7 @@ model Subscription {
   isTrial        Boolean            @default(false)
   device         Device?
   h1CloudClients H1CloudClient[]
+  bonusClaims    BonusClaim[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -189,16 +220,112 @@ model Node {
   @@map("nodes")
 }
 
-model PromoCode {
-  id              String    @id @default(cuid())
-  code            String    @unique
-  discountPercent Int?
-  discountAmount  Int?
-  maxUses         Int?
-  usedCount       Int       @default(0)
-  validUntil      DateTime?
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
+model SupportTicket {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  title         String
+  body          String
+  attachmentUrl String?
+  status        SupportTicketStatus    @default(NEW)
+  messages      SupportTicketMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("support_tickets")
+}
+
+model SupportTicketMessage {
+  id       String        @id @default(cuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  author SupportMessageAuthor
+  body   String
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+  @@map("support_ticket_messages")
+}
+
+model BonusClaim {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  type   BonusType
+  status BonusClaimStatus @default(APPLYING)
+
+  bonusDays Int @default(7)
+
+  channelUsername String
+
+  baseExpiresAt   DateTime
+  targetExpiresAt DateTime
+
+  grantedAt    DateTime?
+  confirmAfter DateTime?
+  revokedAt    DateTime?
+
+  syncPending Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, type])
+  @@index([status, confirmAfter])
+  @@index([syncPending])
+  @@map("bonus_claims")
+}
+
+model PromoCode {
+  id   String   @id @default(cuid())
+  code String   @unique
+  plan PlanType
+  days Int
+
+  maxUses      Int?
+  usedCount    Int  @default(0)
+  perUserLimit Int  @default(1)
+
+  validUntil DateTime?
+  isActive   Boolean   @default(true)
+
+  createdByTelegramId BigInt?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  redemptions PromoRedemption[]
+
+  @@index([isActive, validUntil])
   @@map("promo_codes")
+}
+
+model PromoRedemption {
+  id String @id @default(cuid())
+
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan PlanType
+  days Int
+
+  createdAt DateTime @default(now())
+
+  @@index([promoCodeId, userId])
+  @@index([userId, createdAt])
+  @@map("promo_redemptions")
 }

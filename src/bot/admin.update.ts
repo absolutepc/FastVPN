@@ -935,29 +935,91 @@ private countryFlag(name: string): string {
 
   private async handlePromo(ctx: BotContext, text: string) {
     const parts = text.trim().split(/\s+/);
-    if (parts.length < 2) return ctx.reply('Формат: CODE скидка% [лимит]');
 
-    const code = parts[0].toUpperCase();
-    const discountPercent = parseInt(parts[1], 10);
-    const maxUses = parts[2] ? parseInt(parts[2], 10) : null;
-
-    if (!discountPercent || discountPercent < 1 || discountPercent > 100) {
-      return ctx.reply('Скидка: 1–100');
+    if (parts.length < 3) {
+      return ctx.reply(
+        'Формат: CODE STANDARD|PREMIUM дни [лимит]',
+      );
     }
 
-    if (await this.prisma.promoCode.findUnique({ where: { code } })) {
-      return ctx.reply('Код уже существует');
+    const code = parts[0].toUpperCase();
+    const planRaw = parts[1].toUpperCase();
+    const days = parseInt(parts[2], 10);
+    const maxUses = parts[3]
+      ? parseInt(parts[3], 10)
+      : null;
+
+    if (
+      planRaw !== 'STANDARD' &&
+      planRaw !== 'PREMIUM'
+    ) {
+      return ctx.reply(
+        'Тариф: STANDARD или PREMIUM',
+      );
+    }
+
+    if (
+      Number.isInteger(days) === false ||
+      days < 1 ||
+      days > 3650
+    ) {
+      return ctx.reply(
+        'Количество дней: 1–3650',
+      );
+    }
+
+    if (
+      maxUses !== null &&
+      (
+        Number.isInteger(maxUses) === false ||
+        maxUses < 1
+      )
+    ) {
+      return ctx.reply(
+        'Лимит должен быть положительным числом',
+      );
+    }
+
+    if (
+      await this.prisma.promoCode.findUnique({
+        where: {
+          code,
+        },
+      })
+    ) {
+      return ctx.reply(
+        'Код уже существует',
+      );
     }
 
     await this.prisma.promoCode.create({
-      data: { code, discountPercent, maxUses },
+      data: {
+        code,
+        plan: planRaw,
+        days,
+        maxUses,
+        perUserLimit: 1,
+        createdByTelegramId:
+          ctx.from?.id
+            ? BigInt(ctx.from.id)
+            : null,
+      },
     });
 
     this.botService.clearAdminSession(ctx);
-    return ctx.reply(`✅ Промокод <b>${code}</b> · ${discountPercent}%`, {
-      parse_mode: 'HTML',
-      reply_markup: this.manageKeyboard(),
-    });
+
+    const limitText =
+      maxUses === null
+        ? 'без общего лимита'
+        : `лимит ${maxUses}`;
+
+    return ctx.reply(
+      `✅ Промокод <b>${code}</b> · ${planRaw} · ${days} дн. · ${limitText}`,
+      {
+        parse_mode: 'HTML',
+        reply_markup: this.manageKeyboard(),
+      },
+    );
   }
 
   private async handleBroadcast(ctx: BotContext, text: string) {

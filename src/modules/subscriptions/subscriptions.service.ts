@@ -376,6 +376,45 @@ export class SubscriptionsService {
     return updated;
   }
 
+  async syncSubscriptionExpiry(
+    subscriptionId: string,
+  ) {
+    const subscription =
+      await this.prisma.subscription.findUniqueOrThrow({
+        where: {
+          id: subscriptionId,
+        },
+      });
+
+    if (subscription.plan !== PlanType.STANDARD) {
+      return subscription;
+    }
+
+    /*
+     * H1Cloud не должен продолжать жить со старым
+     * бонусным сроком после отзыва бонуса.
+     *
+     * Поэтому пересоздаём его с актуальным expiresAt.
+     */
+    await this.removeH1Cloud(subscription.id);
+
+    if (
+      subscription.expiresAt > new Date() &&
+      (
+        subscription.status === SubscriptionStatus.ACTIVE ||
+        subscription.status === SubscriptionStatus.TRIAL
+      )
+    ) {
+      await this.provisionH1Cloud({
+        id: subscription.id,
+        expiresAt: subscription.expiresAt,
+      });
+    }
+
+    return subscription;
+  }
+
+
   async processReferralBonus(inviteeId: string, referrerId: string) {
     const inviteeActive = await this.getActiveSubscription(inviteeId);
     if (!inviteeActive) {
@@ -879,114 +918,301 @@ const inbound =
         h1Links.map((item) => [item.nodeKey, item]),
       );
 
-      for (const node of this.h1Nodes) {
-        const h1Client = linksByNode.get(node.key);
+      const inboundMap: Record<
+        string,
+        {
+          main: string;
+          ws: string;
+          xhttp: string;
+          label: string;
+        }
+      > = {
+        FI1: {
+          main: "ib_b283f216e2",
+          ws: "ib_9ce64d61e4",
+          xhttp: "ib_cc89fe9508",
+          label: "Finland",
+        },
+        ES1: {
+          main: "ib_5b91a687cd",
+          ws: "ib_408fbb730c",
+          xhttp: "ib_f1b9465174",
+          label: "Spain",
+        },
+        PL1: {
+          main: "ib_a1e9039f1e",
+          ws: "ib_770a3708ee",
+          xhttp: "ib_cb423d6ea6",
+          label: "Poland",
+        },
+        CH1: {
+          main: "ib_0f67f5820b",
+          ws: "ib_16f6636dbf",
+          xhttp: "ib_d0aac15723",
+          label: "Switzerland",
+        },
+        SE1: {
+          main: "ib_45aacac02b",
+          ws: "ib_5dd073a54a",
+          xhttp: "ib_61c070c275",
+          label: "Sweden",
+        },
+        NL1: {
+          main: "ib_cfbd2a1e52",
+          ws: "ib_13a2493c1f",
+          xhttp: "ib_064e37e049",
+          label: "Netherlands",
+        },
+      };
 
-        if (!h1Client?.remoteLink) continue;
+      const h1LinkGroups = await Promise.all(
+        this.h1Nodes.map(async (node) => {
+          const h1Client =
+            linksByNode.get(node.key);
 
-        const name = encodeURIComponent(node.name);
-
-        const inboundMap: Record<
-          string,
-          {
-            main: string;
-            ws: string;
-            xhttp: string;
-            label: string;
+          if (!h1Client?.remoteLink) {
+            return [];
           }
-        > = {
-          FI1: {
-            main: "ib_b283f216e2",
-            ws: "ib_9ce64d61e4",
-            xhttp: "ib_cc89fe9508",
-            label: "Finland",
-          },
-          ES1: {
-            main: "ib_5b91a687cd",
-            ws: "ib_408fbb730c",
-            xhttp: "ib_f1b9465174",
-            label: "Spain",
-          },
-          PL1: {
-            main: "ib_a1e9039f1e",
-            ws: "ib_770a3708ee",
-            xhttp: "ib_cb423d6ea6",
-            label: "Poland",
-          },
-          CH1: {
-            main: "ib_0f67f5820b",
-            ws: "ib_16f6636dbf",
-            xhttp: "ib_d0aac15723",
-            label: "Switzerland",
-          },
-          SE1: {
-            main: "ib_45aacac02b",
-            ws: "ib_5dd073a54a",
-            xhttp: "ib_61c070c275",
-            label: "Sweden",
-          },
-          NL1: {
-            main: "ib_cfbd2a1e52",
-            ws: "ib_13a2493c1f",
-            xhttp: "ib_064e37e049",
-            label: "Netherlands",
-          },
-        };
 
-        const inboundConfig = inboundMap[node.key];
+          const name =
+            encodeURIComponent(node.name);
 
-        if (inboundConfig && h1Client.remoteUuid) {
-          try {
-            const remoteClient = await this.h1cloud.getClientByName(
-              `sub_${sub.id}`,
-              node.key,
-            );
+          const inboundConfig =
+            inboundMap[node.key];
 
-            if (!remoteClient) {
-              throw new Error("remote client not found");
-            }
-
-            const appendInboundLink = (
-              inboundId: string,
-              suffix: string,
-            ) => {
-              const inboundLink = remoteClient.inbound_links?.find(
-                (inbound) => inbound.id === inboundId,
-              )?.link;
-
-              if (!inboundLink) {
-                this.logger.warn(
-                  `${inboundConfig.label} ${suffix} link missing for subscription ${sub.id}`,
+          if (
+            inboundConfig &&
+            h1Client.remoteUuid
+          ) {
+            try {
+              const remoteClient =
+                await this.h1cloud.getClientByName(
+                  `sub_${sub.id}`,
+                  node.key,
+                  2000,
                 );
-                return;
+
+              if (!remoteClient) {
+                throw new Error(
+                  "remote client not found",
+                );
               }
 
-              const linkName = encodeURIComponent(
-                `${node.name} ${suffix}`,
+              const nodeLinks: string[] = [];
+
+              const appendInboundLink = (
+                inboundId: string,
+                suffix: string,
+              ) => {
+                const inboundLink =
+                  remoteClient.inbound_links?.find(
+                    (inbound) =>
+                      inbound.id === inboundId,
+                  )?.link;
+
+                if (!inboundLink) {
+                  this.logger.warn(
+                    `${inboundConfig.label} ${suffix} link missing for subscription ${sub.id}`,
+                  );
+                  return;
+                }
+
+                const linkName =
+                  encodeURIComponent(
+                    `${node.name} ${suffix}`,
+                  );
+
+                const base =
+                  inboundLink.split("#")[0];
+
+                nodeLinks.push(
+                  `${base}#${linkName}`,
+                );
+              };
+
+              appendInboundLink(
+                inboundConfig.main,
+                "MAIN",
               );
 
-              const base = inboundLink.split("#")[0];
-              links.push(`${base}#${linkName}`);
-            };
+              appendInboundLink(
+                inboundConfig.xhttp,
+                "LTE",
+              );
 
-            appendInboundLink(inboundConfig.main, "MAIN");
-            appendInboundLink(inboundConfig.xhttp, "XHTTP");
-            appendInboundLink(inboundConfig.ws, "WS");
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
+              appendInboundLink(
+                inboundConfig.ws,
+                "WS",
+              );
 
-            this.logger.warn(
-              `${inboundConfig.label} H1Cloud links unavailable for subscription ${sub.id}: ${message}`,
-            );
+              return nodeLinks;
+            } catch (error) {
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : String(error);
+
+              this.logger.warn(
+                `${inboundConfig.label} H1Cloud links unavailable for subscription ${sub.id}: ${message}`,
+              );
+
+              /*
+               * H1Cloud fallback:
+               *
+               * Если API конкретной H1Cloud-ноды временно
+               * недоступен, не удаляем страну из подписки.
+               *
+               * MAIN берём из сохранённого remoteLink.
+               * LTE/XHTTP и WS собираем локально
+               * из сохранённого UUID и конфигурации ноды.
+               * Пользователь сохраняет все три профиля
+               * даже при недоступном management API.
+               */
+              const fallbackWs: Record<
+                string,
+                {
+                  host: string;
+                  wsHost: string;
+                  wsPort: number;
+                  xhttpHost: string;
+                  xhttpPort: number;
+                }
+              > = {
+                FI1: {
+                  host: "fi3.h1cloud.net",
+                  wsHost: "ws-fi1.4stepsvpn.ru",
+                  wsPort: 25827,
+                  xhttpHost: "xhttp-fi1.4stepsvpn.ru",
+                  xhttpPort: 25829,
+                },
+                ES1: {
+                  host: "es1.h1cloud.net",
+                  wsHost: "ws-es1.4stepsvpn.ru",
+                  wsPort: 25488,
+                  xhttpHost: "xhttp-es1.4stepsvpn.ru",
+                  xhttpPort: 25489,
+                },
+                PL1: {
+                  host: "pl1.h1cloud.net",
+                  wsHost: "ws-pl1.4stepsvpn.ru",
+                  wsPort: 26548,
+                  xhttpHost: "xhttp-pl1.4stepsvpn.ru",
+                  xhttpPort: 26549,
+                },
+                CH1: {
+                  host: "ch1.h1cloud.net",
+                  wsHost: "ws-ch1.4stepsvpn.ru",
+                  wsPort: 25054,
+                  xhttpHost: "xhttp-ch1.4stepsvpn.ru",
+                  xhttpPort: 25059,
+                },
+                SE1: {
+                  host: "se1.h1cloud.net",
+                  wsHost: "ws-se1.4stepsvpn.ru",
+                  wsPort: 25235,
+                  xhttpHost: "xhttp-se1.4stepsvpn.ru",
+                  xhttpPort: 25236,
+                },
+                NL1: {
+                  host: "nl4.h1cloud.net",
+                  wsHost: "ws-nl1.4stepsvpn.ru",
+                  wsPort: 25127,
+                  xhttpHost: "xhttp-nl1.4stepsvpn.ru",
+                  xhttpPort: 25128,
+                },
+              };
+
+              const fallback =
+                fallbackWs[node.key];
+
+              if (
+                fallback &&
+                h1Client.remoteUuid &&
+                h1Client.remoteLink
+              ) {
+                const fallbackLinks: string[] = [];
+
+                /*
+                 * MAIN:
+                 * используем уже сохранённую рабочую ссылку,
+                 * поэтому не дублируем Reality-параметры
+                 * в исходном коде.
+                 */
+                const mainBase =
+                  h1Client.remoteLink.split("#")[0];
+
+                const mainName =
+                  encodeURIComponent(
+                    `${node.name} MAIN`,
+                  );
+
+                fallbackLinks.push(
+                  `${mainBase}#${mainName}`,
+                );
+
+                /*
+                 * LTE / XHTTP:
+                 * сохраняем профиль даже при недоступном
+                 * management API H1Cloud.
+                 */
+                const lteName =
+                  encodeURIComponent(
+                    `${node.name} LTE`,
+                  );
+
+                fallbackLinks.push(
+                  `vless://${h1Client.remoteUuid}@${fallback.host}:${fallback.xhttpPort}` +
+                    `?type=xhttp` +
+                    `&security=none` +
+                    `&path=${encodeURIComponent("/api/v1/sync/")}` +
+                    `&host=${fallback.xhttpHost}` +
+                    `&mode=auto` +
+                    `&encryption=none` +
+                    `#${lteName}`,
+                );
+
+                /*
+                 * WS:
+                 * одинаковая схема на наших H1Cloud-нодах.
+                 */
+                const wsName =
+                  encodeURIComponent(
+                    `${node.name} WS`,
+                  );
+
+                fallbackLinks.push(
+                  `vless://${h1Client.remoteUuid}@${fallback.host}:${fallback.wsPort}` +
+                    `?encryption=none` +
+                    `&security=none` +
+                    `&type=ws` +
+                    `&host=${fallback.wsHost}` +
+                    `&path=${encodeURIComponent("/ws-test")}` +
+                    `#${wsName}`,
+                );
+
+                this.logger.warn(
+                  `${inboundConfig.label} subscription fallback active: MAIN + LTE + WS`,
+                );
+
+                return fallbackLinks;
+              }
+
+              return [];
+            }
           }
 
-          continue;
-        }
+          const base =
+            h1Client.remoteLink.split("#")[0];
 
-        const base = h1Client.remoteLink.split("#")[0];
-        links.push(`${base}#${name}`);
-      }
+          return [
+            `${base}#${name}`,
+          ];
+        }),
+      );
+
+      links.push(
+        ...h1LinkGroups.flat(),
+      );
     }
 
     return links;

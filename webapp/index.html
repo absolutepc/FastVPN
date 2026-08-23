@@ -1,718 +1,2355 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>4StepsVPN</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/styles.css?v=20" />
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+ <title>4StepsVPN</title>
+ <script src="https://telegram.org/js/telegram-web-app.js"></script>
+ <link rel="stylesheet" href="/styles.css?v=94" />
 </head>
 <body>
-  <div id="app">
+ <div id="app">
 
-    <!-- ========== HOME ========== -->
-    <section id="screen-home" class="screen">
-      <header class="top">
-        <div class="top-btn-ph" aria-hidden="true"></div>
-        <div class="brand">
-          <svg class="brand-shield" width="20" height="22" viewBox="0 0 24 26" fill="none">
-            <path d="M12 1L3 5v6c0 5.5 3.8 10.6 9 12 5.2-1.4 9-6.5 9-12V5L12 1z" stroke="url(#g1)" stroke-width="1.6" fill="rgba(212,175,55,0.15)"/>
-            <path d="M9 12.5l2 2 4-4" stroke="#f0d78c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <defs><linearGradient id="g1" x1="3" y1="1" x2="21" y2="25"><stop stop-color="#f0d78c"/><stop offset="1" stop-color="#a8892a"/></linearGradient></defs>
-          </svg>
-          <span>4STEPS VPN</span>
-        </div>
-        <button type="button" class="top-btn notification-bell" id="btn-notifications" aria-label="Уведомления">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
-          <span class="notification-badge hidden" id="notification-badge">0</span>
-        </button>
-      </header>
+ <!-- ========== HOME ========== -->
+ <section id="screen-home" class="screen">
+ <header class="top">
+ <div class="top-btn-ph" aria-hidden="true"></div>
+ <div class="brand">
+ <svg class="brand-shield" width="20" height="22" viewBox="0 0 24 26" fill="none">
+ <path d="M12 1L3 5v6c0 5.5 3.8 10.6 9 12 5.2-1.4 9-6.5 9-12V5L12 1z" stroke="url(#g1)" stroke-width="1.6" fill="rgba(212,175,55,0.15)"/>
+ <path d="M9 12.5l2 2 4-4" stroke="#f0d78c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+ <defs><linearGradient id="g1" x1="3" y1="1" x2="21" y2="25"><stop stop-color="#f0d78c"/><stop offset="1" stop-color="#a8892a"/></linearGradient></defs>
+ </svg>
+ <span>4STEPS VPN</span>
+ </div>
+ <div class="home-top-actions">
+ <button
+ type="button"
+ class="top-btn home-theme-btn"
+ id="btn-theme-picker"
+ aria-label="Выбрать тему">
+ <svg
+ viewBox="0 0 24 24"
+ fill="none"
+ stroke="currentColor"
+ stroke-width="1.8">
+ <circle cx="12" cy="12" r="8"/>
+ <circle cx="9" cy="9" r="1"/>
+ <circle cx="15" cy="9" r="1"/>
+ <circle cx="8" cy="14" r="1"/>
+ <path d="M15.5 14.5h1.2a2.3 2.3 0 010 4.6H14"/>
+ </svg>
+ </button>
 
-      <div class="hello">
-        <h1>Привет, <span id="greet-name">—</span> 👋</h1>
-        <p id="greet-status" class="hello-sub">Загрузка…</p>
-      </div>
+<button type="button" class="top-btn notification-bell" id="btn-notifications" aria-label="Уведомления">
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
+ <span class="notification-badge hidden" id="notification-badge">0</span>
+ </button>
+ </div>
+ </header>
 
-      <div class="status-card">
-        <div class="status-dot" id="status-dot"></div>
-        <div class="shield-wrap">
-          <div class="ring ring-1"></div>
-          <div class="ring ring-2"></div>
-          <div class="ring ring-3"></div>
-          <div class="shield-core">
-            <svg width="48" height="52" viewBox="0 0 48 52" fill="none">
-              <path d="M24 2L6 9v12.5c0 11.2 7.6 21.5 18 24.5 10.4-3 18-13.3 18-24.5V9L24 2z" fill="url(#sg)" stroke="url(#ss)" stroke-width="1.5"/>
-              <path d="M17 26l5 5 10-10" stroke="#0a0a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-              <defs>
-                <linearGradient id="sg" x1="6" y1="2" x2="42" y2="46"><stop stop-color="#f0d78c"/><stop offset="1" stop-color="#b8962e"/></linearGradient>
-                <linearGradient id="ss" x1="6" y1="2" x2="42" y2="46"><stop stop-color="#ffe9a0"/><stop offset="1" stop-color="#8a7020"/></linearGradient>
-              </defs>
+ <div class="hello">
+ <h1>Привет, <span id="greet-name">—</span> </h1>
+ <p id="greet-status" class="hello-sub">Загрузка…</p>
+ </div>
+
+ <div class="status-card">
+ <div class="status-dot" id="status-dot"></div>
+ <div class="shield-wrap">
+ <div class="ring ring-1"></div>
+ <div class="ring ring-2"></div>
+ <div class="ring ring-3"></div>
+ <div class="shield-core">
+ <svg width="48" height="52" viewBox="0 0 48 52" fill="none">
+ <path d="M24 2L6 9v12.5c0 11.2 7.6 21.5 18 24.5 10.4-3 18-13.3 18-24.5V9L24 2z" fill="url(#sg)" stroke="url(#ss)" stroke-width="1.5"/>
+ <path d="M17 26l5 5 10-10" stroke="#0a0a0a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+ <defs>
+ <linearGradient id="sg" x1="6" y1="2" x2="42" y2="46"><stop stop-color="#f0d78c"/><stop offset="1" stop-color="#b8962e"/></linearGradient>
+ <linearGradient id="ss" x1="6" y1="2" x2="42" y2="46"><stop stop-color="#ffe9a0"/><stop offset="1" stop-color="#8a7020"/></linearGradient>
+ </defs>
+ </svg>
+ </div>
+ </div>
+ <div class="status-title" id="hero-title">Подписка не активна</div>
+ <div class="status-sub" id="hero-sub">Оформите тариф, чтобы начать</div>
+ <button type="button" class="btn-outline-gold" id="btn-details">
+ Детали подключения
+ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+ </button>
+ </div>
+
+ <div class="stats-row">
+ <div class="stat-card">
+ <div class="stat-ico stat-ico-svg" aria-hidden="true">
+ <svg viewBox="0 0 24 24" fill="none">
+ <path d="M3.5 8.5L7 11l5-6 5 6 3.5-2.5-2 9H5.5l-2-9z"
+ stroke="currentColor"
+ stroke-width="1.8"
+ stroke-linejoin="round"/>
+ <path d="M6 17.5h12"
+ stroke="currentColor"
+ stroke-width="1.8"
+ stroke-linecap="round"/>
+ </svg>
+ </div>
+ <div class="stat-val" id="stat-days">—</div>
+ <div class="stat-lbl">дней осталось</div>
+ <div class="stat-bar"><i id="stat-days-bar"></i></div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-ico stat-ico-svg" aria-hidden="true">
+ <svg viewBox="0 0 24 24" fill="none">
+ <rect x="6.5" y="2.5" width="11" height="19" rx="2.2"
+ stroke="currentColor"
+ stroke-width="1.8"/>
+ <path d="M10 5h4"
+ stroke="currentColor"
+ stroke-width="1.8"
+ stroke-linecap="round"/>
+ <circle cx="12" cy="18.2" r="0.9" fill="currentColor"/>
+ </svg>
+ </div>
+ <div class="stat-val" id="stat-devices">0 из 1</div>
+ <div class="stat-lbl">использовано</div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-ico stat-ico-svg" aria-hidden="true">
+ <svg viewBox="0 0 24 24" fill="none">
+ <path d="M13.5 2.5L5.8 13h5.3L9.8 21.5 18.2 10h-5.4l.7-7.5z"
+ stroke="currentColor"
+ stroke-width="1.8"
+ stroke-linejoin="round"/>
+ </svg>
+ </div>
+ <div class="stat-val" id="stat-net">—</div>
+ <div class="stat-lbl" id="stat-net-lbl">тариф</div>
+ </div>
+ </div>
+
+ <!-- Banner carousel -->
+ <div class="banner-carousel" id="banner-carousel">
+ <div class="banner-track" id="banner-track">
+ <button type="button" class="banner slide" data-go="sub">
+ <div class="banner-ico">💎</div>
+ <div class="banner-body">
+ <div class="banner-title">Быстрое и стабильное подключение</div>
+ <div class="banner-desc">Выбирайте любой доступный сервер в приложении</div>
+ </div>
+ <div class="banner-art" aria-hidden="true">
+ <svg class="server-rack" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+ <rect x="8" y="12" width="32" height="68" rx="3" fill="#1a1610" stroke="#d4af37" stroke-opacity="0.45"/>
+ <rect x="12" y="18" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.35"/>
+ <rect x="12" y="28" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.25"/>
+ <rect x="12" y="38" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.2"/>
+ <rect x="12" y="48" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.3"/>
+ <rect x="12" y="58" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.2"/>
+ <circle cx="16" cy="72" r="2" fill="#22c55e"/>
+ <circle cx="24" cy="72" r="2" fill="#d4af37"/>
+ <circle cx="32" cy="72" r="2" fill="#d4af37" fill-opacity="0.5"/>
+ <rect x="44" y="4" width="36" height="78" rx="3" fill="#15120c" stroke="#f0d78c" stroke-opacity="0.5"/>
+ <rect x="49" y="12" width="26" height="7" rx="1" fill="#f0d78c" fill-opacity="0.4"/>
+ <rect x="49" y="24" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.28"/>
+ <rect x="49" y="36" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.35"/>
+ <rect x="49" y="48" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.22"/>
+ <rect x="49" y="60" width="26" height="7" rx="1" fill="#f0d78c" fill-opacity="0.3"/>
+ <circle cx="54" cy="74" r="2.2" fill="#22c55e"/>
+ <circle cx="62" cy="74" r="2.2" fill="#22c55e"/>
+ <circle cx="70" cy="74" r="2.2" fill="#d4af37"/>
+ <rect x="84" y="18" width="30" height="62" rx="3" fill="#12100b" stroke="#d4af37" stroke-opacity="0.35"/>
+ <rect x="88" y="24" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.3"/>
+ <rect x="88" y="34" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.2"/>
+ <rect x="88" y="44" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.28"/>
+ <rect x="88" y="54" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.18"/>
+ <circle cx="92" cy="70" r="2" fill="#22c55e"/>
+ <circle cx="100" cy="70" r="2" fill="#d4af37" fill-opacity="0.6"/>
+ </svg>
+ </div>
+ <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+ </button>
+
+ <button type="button" class="banner slide" data-go="sub">
+ <div class="banner-ico">🔥</div>
+ <div class="banner-body">
+ <div class="banner-title">Скидка 50% на год</div>
+ <div class="banner-desc">При покупке годовой подписки до 1 сентября</div>
+ </div>
+ <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+ </button>
+
+ <button type="button" class="banner slide" data-go="sub">
+ <div class="banner-ico">🛠</div>
+ <div class="banner-body">
+ <div class="banner-title">Инвестируем в развитие</div>
+ <div class="banner-desc">Большая часть выручки за подписки идёт на инфраструктуру и ПО</div>
+ </div>
+ <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+ </button>
+ </div>
+ <div class="banner-dots" id="banner-dots" aria-hidden="true">
+ <span class="dot active"></span>
+ <span class="dot"></span>
+ <span class="dot"></span>
+ </div>
+ </div>
+ </section>
+
+ <!-- ========== CONNECTION ========== -->
+ <!-- ========== NOTIFICATIONS ========== -->
+ <section id="screen-notifications" class="screen hidden">
+ <div class="page-head">
+ <button
+ type="button"
+ class="top-btn"
+ data-back="home"
+ aria-label="Назад"
+ >
+ <svg
+ width="20"
+ height="20"
+ viewBox="0 0 24 24"
+ fill="none"
+ stroke="currentColor"
+ stroke-width="2"
+ >
+ <path d="M15 18l-6-6 6-6"/>
+ </svg>
+ </button>
+
+ <h2>Уведомления</h2>
+
+ <div class="page-head-spacer" aria-hidden="true"></div>
+ </div>
+
+ <div class="notifications-intro">
+ <strong>Центр уведомлений</strong>
+ <p>Важные сообщения, обновления и информация о работе сервиса.</p>
+ </div>
+
+ <div class="notifications-list" id="notifications-list">
+ <div class="notifications-empty">
+ Загрузка уведомлений...
+ </div>
+ </div>
+ </section>
+
+ <section id="screen-servers" class="screen hidden">
+ <header class="page-head">
+ <button type="button" class="top-btn" data-back="home">
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+ </button>
+ <h2>Подключение</h2>
+ <div class="top-btn-ph"></div>
+ </header>
+
+ <div class="connection-intro">
+ <div class="connection-intro-icon">⚡</div>
+ <div>
+ <div class="connection-intro-title">Подключите VPN за минуту</div>
+ <div class="connection-intro-text">
+ Выберите приложение и добавьте в него свою subscription-ссылку.
+ </div>
+ </div>
+ </div>
+
+ <div class="network-status network-status-unknown" id="network-status">
+ <div class="network-status-dot"></div>
+ <div class="network-status-body">
+ <div class="network-status-title" id="network-status-title">
+ Проверяем сеть...
+ </div>
+ <div class="network-status-text" id="network-status-text">
+ Получаем состояние доступных локаций
+ </div>
+ </div>
+ <div class="network-status-count" id="network-status-count">—</div>
+ </div>
+
+ <div class="srv-list connection-apps">
+ <button type="button" class="srv-item active-srv" id="btn-app-incy">
+ <div class="srv-app-icon">
+ <img src="/assets/apps/incy.jpg" alt="INCY" />
+ </div>
+ <div class="srv-info">
+ <div class="srv-name">
+ INCY <span class="tag-rec">Рекомендуется</span>
+ </div>
+ <div class="srv-meta">iOS / Android</div>
+ </div>
+ <div class="srv-check">›</div>
+ </button>
+
+ <button type="button" class="srv-item" id="btn-app-happ">
+ <div class="srv-app-icon">
+ <img src="/assets/apps/happ.jpg" alt="Happ" />
+ </div>
+ <div class="srv-info">
+ <div class="srv-name">Happ</div>
+ <div class="srv-meta">iOS / Android</div>
+ </div>
+ </button>
+
+ <button type="button" class="srv-item" id="btn-app-v2raytun">
+ <div class="srv-app-icon">
+ <img src="/assets/apps/v2raytun.png" alt="v2RayTun" />
+ </div>
+ <div class="srv-info">
+ <div class="srv-name">v2RayTun</div>
+ <div class="srv-meta">iOS / Android</div>
+ </div>
+ </button>
+
+ <button type="button" class="srv-item" id="btn-app-hiddify">
+ <div class="srv-app-icon">
+ <img src="/assets/apps/hiddify.svg" alt="Hiddify" />
+ </div>
+ <div class="srv-info">
+ <div class="srv-name">Hiddify</div>
+ <div class="srv-meta">Все платформы</div>
+ </div>
+ </button>
+ </div>
+
+ <div class="connection-steps">
+ <div class="connection-step">
+ <span>1</span>
+ <div>
+ <strong>Установите приложение</strong>
+ <p>Рекомендуем INCY или Happ.</p>
+ </div>
+ </div>
+
+ <div class="connection-step">
+ <span>2</span>
+ <div>
+ <strong>Скопируйте subscription-ссылку</strong>
+ <p>Она содержит все доступные серверы и автоматически обновляется.</p>
+ </div>
+ </div>
+
+ <div class="connection-step">
+ <span>3</span>
+ <div>
+ <strong>Добавьте ссылку в приложение</strong>
+ <p>После импорта выберите любой доступный сервер.</p>
+ </div>
+ </div>
+ </div>
+
+ <div class="link-box muted-box">
+ <code id="sub-url">—</code>
+ </div>
+
+ <button type="button" class="btn-gold" id="btn-copy-sub">
+ 📋 Скопировать subscription-ссылку
+ </button>
+ </section>
+
+ <!-- ========== DEVICES ========== -->
+ <section id="screen-devices" class="screen hidden">
+ <header class="page-head">
+ <button type="button" class="top-btn" data-back="home">
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+ </button>
+ <h2>Устройства</h2>
+ <div class="top-btn-ph"></div>
+ </header>
+
+ <div class="dev-summary">
+ <div class="dev-summary-left">
+ <span class="dev-phone-ico">📱</span>
+ <div>
+ <div class="dev-sum-label">Использовано устройств</div>
+ <div class="dev-sum-val" id="dev-count">0 из 1</div>
+ </div>
+ </div>
+ <div class="dev-avail" id="dev-avail">Доступно ещё 1</div>
+ </div>
+ <div class="progress thin"><div class="progress-bar" id="dev-bar" style="width:0%"></div></div>
+
+ <div class="dev-list" id="dev-list">
+ <div class="dev-empty" id="dev-empty">Нет активной подписки.<br/>После оплаты здесь появится ваше устройство.</div>
+ </div>
+
+ <button type="button" class="btn-dashed" id="btn-add-device">
+ + Привязать устройство
+ <span>Импортируйте ссылку в клиент</span>
+ </button>
+ </section>
+
+ <!-- ========== SUBSCRIPTION ========== -->
+ <section id="screen-sub" class="screen hidden">
+ <header class="page-head">
+ <button type="button" class="top-btn" data-back="home">
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+ </button>
+ <h2>Подписка</h2>
+ <div class="top-btn-ph"></div>
+ </header>
+
+ <div class="sub-card">
+ <div class="sub-top">
+ <div class="sub-crown" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 9l3 2 5-7 5 7 3-2-2 9H6L4 9z"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M7 18h10"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
             </svg>
           </div>
-        </div>
-        <div class="status-title" id="hero-title">Подписка не активна</div>
-        <div class="status-sub" id="hero-sub">Оформите тариф, чтобы начать</div>
-        <button type="button" class="btn-outline-gold" id="btn-details">
-          Детали подключения
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-      </div>
-
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-ico">👑</div>
-          <div class="stat-val" id="stat-days">—</div>
-          <div class="stat-lbl">дней осталось</div>
-          <div class="stat-bar"><i id="stat-days-bar"></i></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-ico">📱</div>
-          <div class="stat-val" id="stat-devices">0 из 1</div>
-          <div class="stat-lbl">использовано</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-ico">⚡</div>
-          <div class="stat-val" id="stat-net">—</div>
-          <div class="stat-lbl" id="stat-net-lbl">тариф</div>
-        </div>
-      </div>
-
-      <!-- Banner carousel -->
-      <div class="banner-carousel" id="banner-carousel">
-        <div class="banner-track" id="banner-track">
-          <button type="button" class="banner slide" data-go="sub">
-            <div class="banner-ico">💎</div>
-            <div class="banner-body">
-              <div class="banner-title">Быстрое и стабильное подключение</div>
-              <div class="banner-desc">Выбирайте любой доступный сервер в приложении</div>
-            </div>
-            <div class="banner-art" aria-hidden="true">
-              <svg class="server-rack" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="8" y="12" width="32" height="68" rx="3" fill="#1a1610" stroke="#d4af37" stroke-opacity="0.45"/>
-                <rect x="12" y="18" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.35"/>
-                <rect x="12" y="28" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.25"/>
-                <rect x="12" y="38" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.2"/>
-                <rect x="12" y="48" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.3"/>
-                <rect x="12" y="58" width="24" height="6" rx="1" fill="#d4af37" fill-opacity="0.2"/>
-                <circle cx="16" cy="72" r="2" fill="#22c55e"/>
-                <circle cx="24" cy="72" r="2" fill="#d4af37"/>
-                <circle cx="32" cy="72" r="2" fill="#d4af37" fill-opacity="0.5"/>
-                <rect x="44" y="4" width="36" height="78" rx="3" fill="#15120c" stroke="#f0d78c" stroke-opacity="0.5"/>
-                <rect x="49" y="12" width="26" height="7" rx="1" fill="#f0d78c" fill-opacity="0.4"/>
-                <rect x="49" y="24" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.28"/>
-                <rect x="49" y="36" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.35"/>
-                <rect x="49" y="48" width="26" height="7" rx="1" fill="#d4af37" fill-opacity="0.22"/>
-                <rect x="49" y="60" width="26" height="7" rx="1" fill="#f0d78c" fill-opacity="0.3"/>
-                <circle cx="54" cy="74" r="2.2" fill="#22c55e"/>
-                <circle cx="62" cy="74" r="2.2" fill="#22c55e"/>
-                <circle cx="70" cy="74" r="2.2" fill="#d4af37"/>
-                <rect x="84" y="18" width="30" height="62" rx="3" fill="#12100b" stroke="#d4af37" stroke-opacity="0.35"/>
-                <rect x="88" y="24" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.3"/>
-                <rect x="88" y="34" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.2"/>
-                <rect x="88" y="44" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.28"/>
-                <rect x="88" y="54" width="22" height="5" rx="1" fill="#d4af37" fill-opacity="0.18"/>
-                <circle cx="92" cy="70" r="2" fill="#22c55e"/>
-                <circle cx="100" cy="70" r="2" fill="#d4af37" fill-opacity="0.6"/>
-              </svg>
-            </div>
-            <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-
-          <button type="button" class="banner slide" data-go="sub">
-            <div class="banner-ico">🔥</div>
-            <div class="banner-body">
-              <div class="banner-title">Скидка 50% на год</div>
-              <div class="banner-desc">При покупке годовой подписки до 1 сентября</div>
-            </div>
-            <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-
-          <button type="button" class="banner slide" data-go="sub">
-            <div class="banner-ico">🛠</div>
-            <div class="banner-body">
-              <div class="banner-title">Инвестируем в развитие</div>
-              <div class="banner-desc">Большая часть выручки за подписки идёт на инфраструктуру и ПО</div>
-            </div>
-            <svg class="banner-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
-        </div>
-        <div class="banner-dots" id="banner-dots" aria-hidden="true">
-          <span class="dot active"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========== CONNECTION ========== -->
-    <!-- ========== NOTIFICATIONS ========== -->
-    <section id="screen-notifications" class="screen hidden">
-      <div class="page-head">
-        <button
-          type="button"
-          class="top-btn"
-          data-back="home"
-          aria-label="Назад"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-        </button>
-
-        <h2>Уведомления</h2>
-
-        <div class="page-head-spacer" aria-hidden="true"></div>
-      </div>
-
-      <div class="notifications-intro">
-        <strong>Центр уведомлений</strong>
-        <p>Важные сообщения, обновления и информация о работе сервиса.</p>
-      </div>
-
-      <div class="notifications-list" id="notifications-list">
-        <div class="notifications-empty">
-          Загрузка уведомлений...
-        </div>
-      </div>
-    </section>
-
-    <section id="screen-servers" class="screen hidden">
-      <header class="page-head">
-        <button type="button" class="top-btn" data-back="home">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <h2>Подключение</h2>
-        <div class="top-btn-ph"></div>
-      </header>
-
-      <div class="connection-intro">
-        <div class="connection-intro-icon">⚡</div>
-        <div>
-          <div class="connection-intro-title">Подключите VPN за минуту</div>
-          <div class="connection-intro-text">
-            Выберите приложение и добавьте в него свою subscription-ссылку.
-          </div>
-        </div>
-      </div>
-
-      <div class="network-status network-status-unknown" id="network-status">
-        <div class="network-status-dot"></div>
-        <div class="network-status-body">
-          <div class="network-status-title" id="network-status-title">
-            Проверяем сеть...
-          </div>
-          <div class="network-status-text" id="network-status-text">
-            Получаем состояние доступных локаций
-          </div>
-        </div>
-        <div class="network-status-count" id="network-status-count">—</div>
-      </div>
-
-      <div class="srv-list connection-apps">
-        <button type="button" class="srv-item active-srv" id="btn-app-incy">
-          <div class="srv-app-icon">
-          <img src="/assets/apps/incy.jpg" alt="INCY" />
-        </div>
-          <div class="srv-info">
-            <div class="srv-name">
-              INCY <span class="tag-rec">Рекомендуется</span>
-            </div>
-            <div class="srv-meta">iOS / Android</div>
-          </div>
-          <div class="srv-check">›</div>
-        </button>
-
-        <button type="button" class="srv-item" id="btn-app-happ">
-          <div class="srv-app-icon">
-          <img src="/assets/apps/happ.jpg" alt="Happ" />
-        </div>
-          <div class="srv-info">
-            <div class="srv-name">Happ</div>
-            <div class="srv-meta">iOS / Android</div>
-          </div>
-        </button>
-
-        <button type="button" class="srv-item" id="btn-app-v2raytun">
-          <div class="srv-app-icon">
-          <img src="/assets/apps/v2raytun.png" alt="v2RayTun" />
-        </div>
-          <div class="srv-info">
-            <div class="srv-name">v2RayTun</div>
-            <div class="srv-meta">iOS / Android</div>
-          </div>
-        </button>
-
-        <button type="button" class="srv-item" id="btn-app-hiddify">
-          <div class="srv-app-icon">
-          <img src="/assets/apps/hiddify.svg" alt="Hiddify" />
-        </div>
-          <div class="srv-info">
-            <div class="srv-name">Hiddify</div>
-            <div class="srv-meta">Все платформы</div>
-          </div>
-        </button>
-      </div>
-
-      <div class="connection-steps">
-        <div class="connection-step">
-          <span>1</span>
-          <div>
-            <strong>Установите приложение</strong>
-            <p>Рекомендуем INCY или Happ.</p>
-          </div>
-        </div>
-
-        <div class="connection-step">
-          <span>2</span>
-          <div>
-            <strong>Скопируйте subscription-ссылку</strong>
-            <p>Она содержит все доступные серверы и автоматически обновляется.</p>
-          </div>
-        </div>
-
-        <div class="connection-step">
-          <span>3</span>
-          <div>
-            <strong>Добавьте ссылку в приложение</strong>
-            <p>После импорта выберите любой доступный сервер.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="link-box muted-box">
-        <code id="sub-url">—</code>
-      </div>
-
-      <button type="button" class="btn-gold" id="btn-copy-sub">
-        📋 Скопировать subscription-ссылку
-      </button>
-    </section>
-
-    <!-- ========== DEVICES ========== -->
-    <section id="screen-devices" class="screen hidden">
-      <header class="page-head">
-        <button type="button" class="top-btn" data-back="home">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <h2>Устройства</h2>
-        <div class="top-btn-ph"></div>
-      </header>
-
-      <div class="dev-summary">
-        <div class="dev-summary-left">
-          <span class="dev-phone-ico">📱</span>
-          <div>
-            <div class="dev-sum-label">Использовано устройств</div>
-            <div class="dev-sum-val" id="dev-count">0 из 1</div>
-          </div>
-        </div>
-        <div class="dev-avail" id="dev-avail">Доступно ещё 1</div>
-      </div>
-      <div class="progress thin"><div class="progress-bar" id="dev-bar" style="width:0%"></div></div>
-
-      <div class="dev-list" id="dev-list">
-        <div class="dev-empty" id="dev-empty">Нет активной подписки.<br/>После оплаты здесь появится ваше устройство.</div>
-      </div>
-
-      <button type="button" class="btn-dashed" id="btn-add-device">
-        + Привязать устройство
-        <span>Импортируйте ссылку в клиент</span>
-      </button>
-    </section>
-
-    <!-- ========== SUBSCRIPTION ========== -->
-    <section id="screen-sub" class="screen hidden">
-      <header class="page-head">
-        <button type="button" class="top-btn" data-back="home">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <h2>Подписка</h2>
-        <div class="top-btn-ph"></div>
-      </header>
-
-      <div class="sub-card">
-        <div class="sub-top">
-          <div class="sub-crown">👑</div>
-          <div class="sub-top-text">
-            <div class="sub-name" id="sub-plan-name">Нет подписки</div>
-            <div class="sub-desc" id="sub-plan-desc">Выберите тариф ниже</div>
-          </div>
-          <span class="badge" id="sub-badge" hidden>Текущий</span>
-        </div>
-
-        <div class="sub-days">
-          <div class="sub-days-lbl">Осталось времени</div>
-          <div class="sub-days-num" id="days-num">—</div>
-          <div class="sub-days-until" id="days-until"></div>
-          <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
-        </div>
-
-        <ul class="feats" id="feature-list">
-          <li>1 устройство</li>
-          <li>Серверы по тарифу</li>
-          <li>Happ, v2RayTun, Hiddify</li>
-          <li>Без логов</li>
-        </ul>
-
-        <button type="button" class="btn-gold" id="btn-renew">Продлить подписку ›</button>
-      </div>
-
-      <div class="plans">
-        <button type="button" class="plan" data-plan="STANDARD">
-          <div class="plan-left">
-            <div class="plan-name">Стандарт</div>
-            <div class="plan-meta">Все доступные серверы · 1 устройство</div>
-          </div>
-          <div class="plan-price">300 ₽</div>
-        </button>
-      </div>
-    </section>
-
-    <!-- ========== PROFILE ========== -->
-    <section id="screen-profile" class="screen hidden">
-      <header class="page-head center">
-        <div class="top-btn-ph"></div>
-        <h2>Профиль</h2>
-        <div class="top-btn-ph"></div>
-      </header>
-
-      <div class="prof-head">
-        <div class="avatar" id="avatar">?</div>
-        <div>
-          <div class="prof-name" id="user-name">—</div>
-          <div class="prof-meta" id="user-meta">ID: —</div>
-        </div>
-      </div>
-
-      <div class="prof-stats">
-        <div class="ps">
-          <div class="ps-n" id="ps-plan">—</div>
-          <div class="ps-l">Подписка</div>
-        </div>
-        <div class="ps">
-          <div class="ps-n" id="ps-devices">0</div>
-          <div class="ps-l">Устройств</div>
-        </div>
-        <div class="ps">
-          <div class="ps-n" id="ps-ref">0</div>
-          <div class="ps-l">Приглашено</div>
-        </div>
-      </div>
-
-      <div class="menu">
-        <button type="button" class="mi mi-admin" id="menu-admin" style="display: none"><span>🛡️  Admin-панель</span><span class="chev">›</span></button>
-        <button type="button" class="mi" id="menu-promo"><span>🎁  Промокоды</span><span class="chev">›</span></button>
-        <button type="button" class="mi" id="menu-ref"><span>👥  Пригласить друга</span><span class="chev">›</span></button>
-        <a class="mi" id="menu-support" href="https://t.me/dakaev21" target="_blank" rel="noopener"><span>💬  Поддержка</span><span class="chev">›</span></a>
-      </div>
-    </section>
-
-    <!-- ========== PROMO ========== -->
-    <section id="screen-promo" class="screen hidden">
-      <header class="page-head">
-        <button type="button" class="top-btn" data-back="profile">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <h2>Промокод</h2>
-        <div class="top-btn-ph"></div>
-      </header>
-      <p class="hint">Введите код, если он у вас есть</p>
-      <input type="text" class="input" id="promo-input" placeholder="PROMO2026" autocomplete="off" />
-      <button type="button" class="btn-gold" id="btn-apply-promo">Применить</button>
-    </section>
-
-    <!-- ========== REFERRAL ========== -->
-    <section id="screen-ref" class="screen hidden">
-      <header class="page-head">
-        <button type="button" class="top-btn" data-back="profile">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <h2>Пригласить друга</h2>
-        <div class="top-btn-ph"></div>
-      </header>
-      <p class="hint">Друг получит <b>7 дней Стандарт</b>.<br/>Вы — <b>+7 дней</b> (только Стандарт).</p>
-      <div class="link-box"><code id="ref-link">—</code></div>
-      <button type="button" class="btn-gold" id="btn-copy-ref">Скопировать ссылку</button>
-    </section>
-
-    <!-- ========== ADMIN ========== -->
-    <section id="screen-admin" class="screen hidden">
-      <header class="page-head">
-        <button type="button" class="top-btn" data-back="profile">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <h2>Admin Dashboard</h2>
-        <div class="top-btn-ph"></div>
-      </header>
-      <div class="admin-grid">
-        <div class="admin-stat"><span id="admin-users">—</span><small>Пользователи</small></div>
-        <div class="admin-stat"><span id="admin-active">—</span><small>Активные</small></div>
-        <div class="admin-stat"><span id="admin-trials">—</span><small>Пробные</small></div>
-        <div class="admin-stat"><span id="admin-revenue">—</span><small>Доход</small></div>
-        <div class="admin-stat"><span id="admin-expiring">—</span><small>Истекают сегодня</small></div>
-        <div class="admin-stat"><span id="admin-servers">—</span><small>Серверы</small></div>
-      </div>
-      <div class="admin-section-head">
-        <h3>Мониторинг серверов</h3>
-        <span id="admin-updated"></span>
-      </div>
-      <div class="admin-node-list" id="admin-node-list">
-        <div class="admin-loading">Получение данных...</div>
-      </div>
-      <button type="button" class="btn-outline-gold admin-refresh" id="btn-admin-refresh">🔄 Обновить</button>
-
-      <div class="admin-notification-panel">
-        <div class="admin-section-head admin-notification-head">
-          <div>
-            <h3>Уведомление пользователям</h3>
-            <p>Сообщение появится в центре уведомлений WebApp.</p>
-          </div>
-        </div>
-
-        <label class="admin-notification-field">
-          <span>Заголовок</span>
-          <input
-            type="text"
-            class="input"
-            id="admin-notification-title"
-            maxlength="120"
-            placeholder="Например: Обновление сервиса"
-          />
-        </label>
-
-        <label class="admin-notification-field">
-          <span>Сообщение</span>
-          <textarea
-            class="input admin-notification-textarea"
-            id="admin-notification-body"
-            maxlength="4000"
-            rows="5"
-            placeholder="Введите текст уведомления"
-          ></textarea>
-        </label>
-
-        <button
-          type="button"
-          class="btn-gold admin-notification-send"
-          id="btn-admin-notification-send"
-        >
-          Отправить уведомление
-        </button>
-      </div>
-    </section>
-
-    <div class="admin-modal hidden" id="admin-node-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
-      <div class="admin-modal-card">
-        <div class="admin-modal-head">
-          <div class="admin-modal-identity">
-            <span class="admin-modal-flag" id="admin-modal-flag">🌐</span>
-            <div>
-              <h3 id="admin-modal-title">Сервер</h3>
-              <p id="admin-modal-subtitle"></p>
-            </div>
-          </div>
-          <div class="admin-modal-actions">
-            <span class="admin-node-status offline" id="admin-modal-status">OFFLINE</span>
-            <button type="button" class="admin-modal-close" id="admin-modal-close" aria-label="Закрыть">×</button>
-          </div>
-        </div>
-        <div class="admin-modal-details" id="admin-modal-details"></div>
-      </div>
-    </div>
-
-    <!-- ========== PAYMENT ========== -->
-    <section id="screen-payment" class="screen hidden">
-      <header class="page-head">
-        <button type="button" class="top-btn" id="payment-back" aria-label="Назад">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-        </button>
-
-        <h2 id="purchase-modal-title">Купить подписку</h2>
-
-        <div class="top-btn-ph"></div>
-      </header>
-
-      <div class="payment-screen-intro">
-        <div class="payment-screen-icon">🛡️</div>
-        <div>
-          <strong id="payment-screen-title">Оформление подписки</strong>
-          <p id="purchase-modal-description"></p>
-        </div>
-      </div>
-
-      <div class="purchase-plan-summary">
-        <div>
-          <strong>Стандарт</strong>
-          <span>Все доступные серверы · 1 устройство</span>
-        </div>
-        <b>300 ₽</b>
-      </div>
-
-      <div id="purchase-step-bank">
-        <p class="purchase-step-title">Выберите банк для перевода</p>
-
-        <div class="purchase-bank-list">
-          <button type="button" class="purchase-bank" data-purchase-bank="TBANK">
-            <span class="purchase-bank-logo">
-              <img src="/assets/banks/tbank.svg" alt="" />
-            </span>
-            <strong>Т-Банк</strong>
-            <i>›</i>
-          </button>
-
-          <button type="button" class="purchase-bank" data-purchase-bank="SBER">
-            <span class="purchase-bank-logo">
-              <img src="/assets/banks/sber.svg" alt="" />
-            </span>
-            <strong>Сбербанк</strong>
-            <i>›</i>
-          </button>
-        </div>
-      </div>
-
-      <div class="hidden" id="purchase-step-details">
-        <div class="admin-modal-details purchase-details">
-          <div class="admin-modal-row">
-            <span>Банк</span>
-            <strong id="purchase-bank-name">—</strong>
-          </div>
-
-          <div class="admin-modal-row">
-            <span>Сумма</span>
-            <strong id="purchase-amount">300 ₽</strong>
-          </div>
-
-          <div class="admin-modal-row">
-            <span>Получатель</span>
-            <strong id="purchase-recipient">—</strong>
-          </div>
-
-          <div class="admin-modal-row">
-            <span>Номер телефона</span>
-            <strong id="purchase-phone">—</strong>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          class="btn-outline-gold purchase-copy"
-          id="purchase-copy-phone"
-        >
-          📋 Скопировать номер
-        </button>
-
-        <p class="purchase-warning">
-          Перед переводом проверьте банк и имя получателя.
-          После перевода загрузите чек.
-        </p>
-
-        <label class="purchase-upload">
-          <input
-            type="file"
-            id="purchase-proof"
-            accept="image/jpeg,image/png,image/webp,application/pdf"
-          />
-
-          <span>📎 Выбрать чек</span>
-
-          <small id="purchase-proof-name">
-            JPEG, PNG, WebP или PDF · до 10 МБ
-          </small>
-        </label>
-
-        <button
-          type="button"
-          class="btn-gold purchase-submit"
-          id="purchase-submit-proof"
-        >
-          ✅ Отправить чек на проверку
-        </button>
-      </div>
-
-      <div class="hidden purchase-success" id="purchase-step-success">
-        <div class="purchase-success-icon">✅</div>
-
-        <h3>Чек отправлен</h3>
-
-        <p>
-          Администратор проверит перевод.
-          После подтверждения подписка активируется
-          или продлится автоматически.
-        </p>
-
-        <button type="button" class="btn-gold" id="purchase-done">
-          Готово
-        </button>
-      </div>
-    </section>
-
-    <!-- TAB BAR -->
-    <nav class="tabbar" id="tabbar">
-      <button type="button" class="tab active" data-tab="home">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
-        <span>Главная</span>
-      </button>
-      <button type="button" class="tab" data-tab="servers">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
-        <span>VPN</span>
-      </button>
-      <button type="button" class="tab" data-tab="devices">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
-        <span>Устройства</span>
-      </button>
-      <button type="button" class="tab" data-tab="sub">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 6.5L22 9.5l-5 4.5L18.5 22 12 18.5 5.5 22 7 14 2 9.5l7-1L12 2z"/></svg>
-        <span>Подписка</span>
-      </button>
-      <button type="button" class="tab" data-tab="profile">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
-        <span>Профиль</span>
-      </button>
-    </nav>
-
-    <div id="toast" class="toast hidden"></div>
-    <div id="error-screen" class="error-screen hidden">
-      <p id="error-text">Ошибка</p>
-      <button type="button" class="btn-gold" id="btn-retry">Повторить</button>
-    </div>
-  </div>
-  <div class="notification-modal hidden" id="notification-modal">
-    <div class="notification-modal-card" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
-      <button
-        type="button"
-        class="notification-modal-close"
-        id="notification-modal-close"
-        aria-label="Закрыть"
-      >×</button>
-
-      <div class="notification-modal-label">Уведомление</div>
-
-      <h3 id="notification-modal-title">—</h3>
-
-      <div
-        class="notification-modal-body"
-        id="notification-modal-body"
-      ></div>
-
-      <button
-        type="button"
-        class="btn-gold notification-modal-done"
-        id="notification-modal-done"
-      >
-        Понятно
-      </button>
-    </div>
+ <div class="sub-top-text">
+ <div class="sub-name" id="sub-plan-name">Нет подписки</div>
+ <div class="sub-desc" id="sub-plan-desc">Выберите тариф ниже</div>
+ </div>
+ <span class="badge" id="sub-badge" hidden>Текущий</span>
+ </div>
+
+ <div class="sub-days">
+ <div class="sub-days-lbl">Осталось времени</div>
+ <div class="sub-days-num" id="days-num">—</div>
+ <div class="sub-days-until" id="days-until"></div>
+ <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+ </div>
+
+ <ul class="feats" id="feature-list">
+ <li>1 устройство</li>
+ <li>Серверы по тарифу</li>
+ <li>Happ, v2RayTun, Hiddify</li>
+ <li>Без логов</li>
+ </ul>
+
+ <button type="button" class="btn-gold" id="btn-renew">Продлить подписку ›</button>
+ </div>
+
+ <div class="plans">
+ <button type="button" class="plan" data-plan="STANDARD">
+ <div class="plan-left">
+ <div class="plan-name">Стандарт</div>
+ <div class="plan-meta">Все доступные серверы · 1 устройство</div>
+ </div>
+ <div class="plan-price">300 ₽</div>
+ </button>
+ </div>
+ </section>
+
+ <!-- ========== PROFILE ========== -->
+ <section id="screen-profile" class="screen hidden profile-screen">
+
+ <header class="profile-top">
+ <h2>Профиль</h2>
+
+ <div class="profile-top-actions">
+ <button type="button"
+ class="profile-icon-btn notification-bell"
+ id="profile-notifications"
+ aria-label="Уведомления">
+ <svg
+  width="20"
+  height="20"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.8">
+  <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/>
+ </svg>
+ </button>
+
+
+ </div>
+ </header>
+
+ <div class="profile-main-card">
+
+ <div class="profile-user-row">
+ <div class="profile-avatar-wrap">
+ <button
+  type="button"
+  class="profile-avatar"
+  id="avatar"
+  aria-label="Изменить аватар"
+ >
+  ?
+ </button>
+
+ <input
+  type="file"
+  id="avatar-input"
+  accept="image/jpeg,image/png,image/webp"
+  hidden
+ />
+
+ <span class="profile-avatar-status"></span>
+ </div>
+
+ <div class="profile-user-info">
+ <div class="profile-user-name" id="user-name">—</div>
+ <div class="profile-user-meta" id="user-meta">@username</div>
+ </div>
+
+ <span class="profile-user-chevron">›</span>
+ </div>
+
+ <div class="profile-main-divider"></div>
+
+ <div class="profile-summary-grid">
+
+ <div class="profile-summary-item">
+ <div class="profile-summary-icon">
+ <svg viewBox="0 0 24 24" fill="none">
+ <path
+ d="M4 9l3 2 5-7 5 7 3-2-2 9H6L4 9z"
+ stroke="currentColor"
+ stroke-width="1.7"
+ stroke-linejoin="round"/>
+ </svg>
+ </div>
+
+ <div class="profile-summary-label">
+ Подписка
+ </div>
+
+ <div class="profile-summary-value" id="ps-plan">
+ —
+ </div>
+ </div>
+
+ <div class="profile-summary-item">
+ <div class="profile-summary-icon">
+ <svg viewBox="0 0 24 24" fill="none">
+ <rect x="4" y="5" width="11" height="10" rx="1.5"
+ stroke="currentColor"
+ stroke-width="1.7"/>
+ <rect x="14" y="8" width="6" height="11" rx="1.5"
+ stroke="currentColor"
+ stroke-width="1.7"/>
+ </svg>
+ </div>
+
+ <div class="profile-summary-label">
+ Устройства
+ </div>
+
+ <div class="profile-summary-value"
+ id="profile-devices-value">
+ 0 / 1
+ </div>
+ </div>
+
+ <div class="profile-summary-item">
+ <div class="profile-summary-icon">
+ <svg viewBox="0 0 24 24" fill="none">
+ <rect x="3" y="5" width="18" height="16" rx="2"
+ stroke="currentColor"
+ stroke-width="1.7"/>
+ <path d="M7 3v4M17 3v4M3 10h18"
+ stroke="currentColor"
+ stroke-width="1.7"
+ stroke-linecap="round"/>
+ </svg>
+ </div>
+
+ <div class="profile-summary-label">
+ Действует до
+ </div>
+
+ <div class="profile-summary-value profile-summary-date"
+ id="profile-expiry">
+ —
+ </div>
+
+ <div class="profile-summary-accent"
+ id="profile-days-left">
+ —
+ </div>
+ </div>
+
+ </div>
+ </div>
+
+ <div class="profile-traffic-card">
+ <div class="profile-traffic-head">
+ <div>
+ <div class="profile-traffic-label">
+ Трафик за этот месяц
+ </div>
+
+ <div class="profile-traffic-value">
+ <span id="profile-traffic-used">Безлимитно</span>
+ </div>
+ </div>
+
+ <div class="profile-infinity">∞</div>
+ </div>
+
+ <div class="profile-traffic-bar">
+ <i></i>
+ </div>
+
+ <div class="profile-traffic-limit">
+ Лимит: Безлимитно
+ </div>
+ </div>
+
+ <div class="profile-actions-grid">
+
+ <button type="button"
+ class="profile-action-card"
+ id="profile-promo-btn">
+
+ <span class="profile-action-icon">🎁</span>
+
+ <span class="profile-action-text">
+ <strong>Промокоды</strong>
+ <small>Активируйте коды</small>
+ </span>
+
+ <span class="profile-action-arrow">›</span>
+ </button>
+
+ <button type="button"
+ class="profile-action-card"
+ id="profile-bonuses-btn">
+
+ <span class="profile-action-icon">🎁</span>
+
+ <span class="profile-action-text">
+ <strong>Бонусы</strong>
+ <small>Получайте дополнительные дни</small>
+ </span>
+
+ <span class="profile-action-arrow">›</span>
+ </button>
+
+ <button type="button"
+ class="profile-action-card"
+ id="profile-ref-btn">
+
+ <span class="profile-action-icon">👥</span>
+
+ <span class="profile-action-text">
+ <strong>Пригласить друга</strong>
+ <small>Получайте бонусы</small>
+ </span>
+
+ <span class="profile-action-arrow">›</span>
+ </button>
+
+ <button type="button"
+ class="profile-action-card"
+ id="profile-support-btn">
+
+ <span class="profile-action-icon">💬</span>
+
+ <span class="profile-action-text">
+ <strong>Поддержка</strong>
+ <small>Мы на связи 24/7</small>
+ </span>
+
+ <span class="profile-action-arrow">›</span>
+ </button>
+
+ <button type="button"
+ class="profile-action-card"
+ id="profile-settings-card">
+
+ <span class="profile-action-icon">⚙️</span>
+
+ <span class="profile-action-text">
+ <strong>Настройки</strong>
+ <small>Цвет интерфейса</small>
+ </span>
+
+ <span class="profile-action-arrow">›</span>
+ </button>
+
+ <!-- ADMIN ONLY -->
+
+ <button type="button"
+ class="profile-action-card profile-admin-action"
+ id="profile-admin-btn"
+ style="display:none">
+
+ <span class="profile-action-icon">🛡️</span>
+
+ <span class="profile-action-text">
+ <strong>Админ-панель</strong>
+ <small>Управление сервисом</small>
+ </span>
+
+ <span class="profile-action-arrow">›</span>
+ </button>
+
+ <button type="button"
+ class="profile-action-card profile-admin-action"
+ id="profile-generate-promo-btn"
+ style="display:none">
+
+ <span class="profile-action-icon">🎟️</span>
+
+ <span class="profile-action-text">
+ <strong>Сгенерировать промокод</strong>
+ <small>Создать новый код</small>
+ </span>
+
+ <span class="profile-action-arrow">›</span>
+ </button>
+
+ </div>
+
+ <button type="button"
+ class="profile-ref-banner"
+ id="profile-ref-banner">
+
+ <div>
+ <strong>
+ Приглашайте друзей<br>
+ и получайте бонусы!
+ </strong>
+
+ <span>
+ Получайте бонус за каждого друга
+ </span>
+
+ <b>Пригласить</b>
+ </div>
+
+ <div class="profile-ref-gift">
+ 🎁
+ </div>
+ </button>
+
+ <!-- Служебные элементы для существующего JS -->
+ <button type="button"
+ id="menu-admin"
+ style="display:none">
+ </button>
+
+ <span id="ps-devices" hidden>0</span>
+ <span id="ps-ref" hidden>0</span>
+
+ </section>
+
+
+
+ <!-- ===== SUPPORT SCREEN START ===== -->
+
+ <section
+  id="screen-support"
+  class="screen hidden support-screen"
+ >
+  <header class="page-head">
+   <button
+    type="button"
+    class="top-btn"
+    data-back="profile"
+    aria-label="Назад"
+   >
+    <svg
+     width="21"
+     height="21"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="1.8"
+    >
+     <path d="M15 18l-6-6 6-6"/>
+    </svg>
+   </button>
+
+   <h2>Поддержка</h2>
+   <div class="top-btn-ph"></div>
+  </header>
+
+  <div class="support-intro">
+   <div class="support-intro-icon">💬</div>
+
+   <div>
+    <strong>Создать обращение</strong>
+    <p>
+     Опишите проблему — мы увидим обращение
+     в админ-панели.
+    </p>
+   </div>
   </div>
 
-  <script src="/app.js?v=27"></script>
+  <div class="support-form">
+
+   <label class="support-field">
+    <span>Тема</span>
+
+    <input
+     type="text"
+     class="input"
+     id="support-title"
+     maxlength="120"
+     placeholder="Например: Не подключается VPN"
+    />
+   </label>
+
+   <label class="support-field">
+    <span>Описание</span>
+
+    <textarea
+     class="input support-textarea"
+     id="support-body"
+     maxlength="5000"
+     rows="7"
+     placeholder="Подробно опишите проблему"
+    ></textarea>
+   </label>
+
+   <label class="support-file-button">
+    <input
+     type="file"
+     id="support-attachment"
+     accept="image/jpeg,image/png,image/webp"
+     hidden
+    />
+
+    <span>📎</span>
+
+    <div>
+     <strong>Прикрепить скриншот</strong>
+     <small id="support-attachment-name">
+      JPEG, PNG или WebP · до 10 МБ
+     </small>
+    </div>
+   </label>
+
+   <button
+    type="button"
+    class="btn-gold support-submit"
+    id="btn-support-submit"
+   >
+    Отправить обращение
+   </button>
+
+  </div>
+
+  <div class="support-my-head">
+   <h3>Мои обращения</h3>
+  </div>
+
+  <div
+   class="support-ticket-list"
+   id="support-ticket-list"
+  >
+   <div class="support-ticket-empty">
+    Обращений пока нет
+   </div>
+  </div>
+
+ </section>
+
+ <!-- ===== SUPPORT SCREEN END ===== -->
+
+ <!-- ===== SUPPORT TICKET DETAIL START ===== -->
+
+ <section
+  id="screen-support-ticket"
+  class="screen hidden support-ticket-screen"
+ >
+  <header class="page-head">
+   <button
+    type="button"
+    class="top-btn"
+    data-back="support"
+    aria-label="Назад"
+   >
+    <svg
+     width="21"
+     height="21"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="1.8"
+    >
+     <path d="M15 18l-6-6 6-6"/>
+    </svg>
+   </button>
+
+   <h2>Обращение</h2>
+   <div class="top-btn-ph"></div>
+  </header>
+
+  <div class="support-ticket-detail-head">
+   <div>
+    <strong id="support-detail-title">
+     Обращение
+    </strong>
+
+    <small id="support-detail-date"></small>
+   </div>
+
+   <span
+    class="support-ticket-status"
+    id="support-detail-status"
+   >
+    —
+   </span>
+  </div>
+
+  <div
+   class="support-dialog"
+   id="support-dialog"
+  ></div>
+
+  <button
+   type="button"
+   class="support-ticket-attachment hidden"
+   id="support-detail-attachment"
+  >
+   📎 Открыть вложение
+  </button>
+
+  <div
+   class="support-ticket-closed hidden"
+   id="support-ticket-closed"
+  >
+   <strong>Обращение закрыто</strong>
+   <p>
+    Администратор отметил эту заявку как решённую.
+   </p>
+  </div>
+
+  <div
+   class="support-reply-box"
+   id="support-reply-box"
+  >
+   <textarea
+    class="input support-reply-input"
+    id="support-reply-body"
+    maxlength="5000"
+    rows="4"
+    placeholder="Дополнить обращение"
+   ></textarea>
+
+   <button
+    type="button"
+    class="btn-gold"
+    id="btn-support-reply"
+   >
+    Отправить
+   </button>
+  </div>
+
+ </section>
+
+ <!-- ===== SUPPORT TICKET DETAIL END ===== -->
+
+
+
+ <!-- ===== SETTINGS SCREEN START ===== -->
+
+<section id="screen-settings" class="screen hidden settings-screen">
+
+ <header class="page-head settings-page-head">
+
+  <button
+   type="button"
+   class="top-btn"
+   data-back="profile"
+   aria-label="Назад"
+  >
+   <svg
+    width="21"
+    height="21"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+   >
+    <path d="M15 18l-6-6 6-6"/>
+   </svg>
+  </button>
+
+  <h2>Настройки</h2>
+
+  <div class="top-btn-ph"></div>
+
+ </header>
+
+ <div class="settings-list">
+
+  <button
+   type="button"
+   class="settings-item"
+   id="settings-theme-btn"
+  >
+   <div class="settings-item-icon">
+    <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="1.8">
+     <circle cx="12" cy="12" r="8"/>
+     <circle cx="9" cy="9" r="1"/>
+     <circle cx="15" cy="9" r="1"/>
+     <circle cx="8" cy="14" r="1"/>
+     <path d="M15.5 14.5h1.2a2.3 2.3 0 010 4.6H14"/>
+    </svg>
+   </div>
+
+   <div class="settings-item-body">
+    <strong>Оформление</strong>
+    <span>Выбор темы интерфейса</span>
+   </div>
+
+   <span class="settings-item-chevron">›</span>
+  </button>
+
+  <button
+   type="button"
+   class="settings-item"
+   id="settings-notifications-btn"
+  >
+   <div class="settings-item-icon">
+    <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="1.8">
+     <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/>
+    </svg>
+   </div>
+
+   <div class="settings-item-body">
+    <strong>Уведомления</strong>
+    <span>Сообщения и обновления сервиса</span>
+   </div>
+
+   <span class="settings-item-chevron">›</span>
+  </button>
+
+  <button
+   type="button"
+   class="settings-item"
+   id="settings-support-btn"
+  >
+   <div class="settings-item-icon">
+    <svg viewBox="0 0 24 24" fill="none">
+     <path
+      d="M4 5h16v11H8l-4 4V5z"
+      stroke="currentColor"
+      stroke-width="1.7"
+      stroke-linejoin="round"
+     />
+    </svg>
+   </div>
+
+   <div class="settings-item-body">
+    <strong>Поддержка</strong>
+    <span>Обращения и помощь</span>
+   </div>
+
+   <span class="settings-item-chevron">›</span>
+  </button>
+
+  <div class="settings-group-label">
+   О приложении
+  </div>
+
+  <div class="settings-info-card">
+   <div class="settings-info-row">
+    <span>Приложение</span>
+    <strong>4StepsVPN</strong>
+   </div>
+
+   <div class="settings-info-row">
+    <span>Версия WebApp</span>
+    <strong>1.0</strong>
+   </div>
+
+   <div class="settings-info-row">
+    <span>Сервис</span>
+    <strong>4StepsVPN</strong>
+   </div>
+  </div>
+
+ </div>
+
+</section>
+
+
+
+<!-- ===== BONUSES ===== -->
+
+<section id="screen-bonuses"
+ class="screen hidden bonus-screen">
+
+ <header class="page-head">
+
+  <button
+   type="button"
+   class="top-btn"
+   data-back="profile"
+   aria-label="Назад">
+
+   <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2">
+    <path d="M15 18l-6-6 6-6"/>
+   </svg>
+
+  </button>
+
+  <h2>Бонусы</h2>
+
+  <div class="top-btn-ph"></div>
+
+ </header>
+
+
+ <div class="bonus-intro">
+
+  <div class="bonus-intro-icon">
+   <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8">
+    <path d="M20 12v10H4V12"/>
+    <path d="M2 7h20v5H2z"/>
+    <path d="M12 7v15"/>
+    <path d="M12 7H7.5a2.5 2.5 0 110-5C10 2 12 7 12 7z"/>
+    <path d="M12 7h4.5a2.5 2.5 0 100-5C14 2 12 7 12 7z"/>
+   </svg>
+  </div>
+
+  <div>
+   <strong>Получайте бесплатные дни</strong>
+   <p>
+    Выполняйте задания и продлевайте подписку 4StepsVPN.
+   </p>
+  </div>
+
+ </div>
+
+
+ <div class="bonus-task"
+  id="bonus-telegram-task">
+
+  <div class="bonus-task-head">
+
+   <div class="bonus-task-icon">
+    <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="1.8">
+     <path d="M21 3L3.8 9.6c-1.2.5-1.2 1.2-.2 1.5l4.4 1.4 1.7 5.2c.2.7.1 1 .8 1 .5 0 .8-.2 1-.4l2.4-2.3 5 3.7c.9.5 1.6.3 1.8-.9L23.8 4c.3-1.3-.5-1.8-1.5-1.4L21 3z"/>
+    </svg>
+   </div>
+
+   <div class="bonus-task-title">
+    <strong>Подпишитесь на наш канал</strong>
+    <span>@fourstepsinfo</span>
+   </div>
+
+   <div class="bonus-reward">
+    +7 дней
+   </div>
+
+  </div>
+
+
+  <p class="bonus-task-description">
+   Подпишитесь на официальный Telegram-канал
+   4StepsVPN и получите 7 дополнительных дней
+   к действующей подписке.
+  </p>
+
+
+  <div class="bonus-warning">
+   <strong>Важно</strong>
+   <span>
+    Бонус закрепляется через 7 дней!<br>
+    Если вы отпишетесь от канала в течение 7 дней после получения бонуса, бонус спишется с подписки!<br>
+    Повторно получить этот бонус будет невозможно!
+   </span>
+  </div>
+
+
+  <div class="bonus-status hidden"
+   id="bonus-telegram-status">
+  </div>
+
+
+  <div class="bonus-actions">
+
+   <button
+    type="button"
+    class="bonus-secondary-btn"
+    id="bonus-open-channel">
+    Подписаться
+   </button>
+
+   <button
+    type="button"
+    class="bonus-primary-btn"
+    id="bonus-check-channel">
+    Проверить подписку
+   </button>
+
+  </div>
+
+ </div>
+
+</section>
+
+<!-- ===== BONUSES END ===== -->
+
+
+<!-- ===== ADMIN PROMO GENERATOR ===== -->
+
+<section id="screen-admin-promo" class="screen hidden">
+
+ <header class="page-head">
+  <button
+   type="button"
+   class="top-btn"
+   data-back="profile"
+  >
+   <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+   >
+    <path d="M15 18l-6-6 6-6"/>
+   </svg>
+  </button>
+
+  <h2>Промокоды</h2>
+
+  <div class="top-btn-ph"></div>
+ </header>
+
+ <div class="admin-promo-form">
+
+  <label class="admin-promo-field">
+   <span>Код</span>
+   <input
+    type="text"
+    class="input"
+    id="admin-promo-code"
+    maxlength="64"
+    placeholder="SUMMER2026"
+    autocomplete="off"
+   />
+  </label>
+
+  <label class="admin-promo-field">
+   <span>Тариф</span>
+   <select
+    class="input"
+    id="admin-promo-plan"
+   >
+    <option value="STANDARD">
+     STANDARD
+    </option>
+
+    <option value="PREMIUM">
+     PREMIUM
+    </option>
+   </select>
+  </label>
+
+  <label class="admin-promo-field">
+   <span>Дней подписки</span>
+   <input
+    type="number"
+    class="input"
+    id="admin-promo-days"
+    min="1"
+    max="3650"
+    value="30"
+   />
+  </label>
+
+  <label class="admin-promo-field">
+   <span>Общий лимит активаций</span>
+   <input
+    type="number"
+    class="input"
+    id="admin-promo-max-uses"
+    min="1"
+    placeholder="Без лимита"
+   />
+  </label>
+
+  <label class="admin-promo-field">
+   <span>Лимит на пользователя</span>
+   <input
+    type="number"
+    class="input"
+    id="admin-promo-user-limit"
+    min="1"
+    max="1000"
+    value="1"
+   />
+  </label>
+
+  <label class="admin-promo-field">
+   <span>Действует до</span>
+   <input
+    type="datetime-local"
+    class="input"
+    id="admin-promo-valid-until"
+   />
+  </label>
+
+  <label class="admin-promo-toggle">
+   <input
+    type="checkbox"
+    id="admin-promo-active"
+    checked
+   />
+
+   <span>
+    Активировать сразу
+   </span>
+  </label>
+
+  <button
+   type="button"
+   class="btn-gold"
+   id="btn-admin-promo-create"
+  >
+   Создать промокод
+  </button>
+
+ </div>
+
+ <div class="admin-promo-filters">
+
+  <input
+   type="search"
+   class="input"
+   id="admin-promo-search"
+   placeholder="Поиск по коду"
+   autocomplete="off"
+  />
+
+  <div class="admin-promo-filter-row">
+
+   <select
+    class="input"
+    id="admin-promo-status-filter"
+   >
+    <option value="ALL">
+     Все статусы
+    </option>
+
+    <option value="ACTIVE">
+     Активные
+    </option>
+
+    <option value="DISABLED">
+     Выключенные
+    </option>
+
+    <option value="EXPIRED">
+     Истёкшие
+    </option>
+
+    <option value="EXHAUSTED">
+     Исчерпанные
+    </option>
+   </select>
+
+   <select
+    class="input"
+    id="admin-promo-plan-filter"
+   >
+    <option value="ALL">
+     Все тарифы
+    </option>
+
+    <option value="STANDARD">
+     STANDARD
+    </option>
+
+    <option value="PREMIUM">
+     PREMIUM
+    </option>
+   </select>
+
+  </div>
+
+ </div>
+
+ <div class="admin-promo-list-head">
+  <strong>Созданные промокоды</strong>
+ </div>
+
+ <div
+  class="admin-promo-list"
+  id="admin-promo-list"
+ >
+  <div class="empty-state">
+   Промокоды пока не загружены
+  </div>
+ </div>
+
+</section>
+
+<!-- ===== ADMIN PROMO GENERATOR END ===== -->
+
+
+<!-- ===== ADMIN PROMO REDEMPTIONS ===== -->
+
+<section
+ id="screen-admin-promo-redemptions"
+ class="screen hidden"
+>
+
+ <header class="page-head">
+  <button
+   type="button"
+   class="top-btn"
+   data-back="admin-promo"
+  >
+   <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+   >
+    <path d="M15 18l-6-6 6-6"/>
+   </svg>
+  </button>
+
+  <h2>Активации</h2>
+
+  <div class="top-btn-ph"></div>
+ </header>
+
+ <div class="admin-promo-redemption-head">
+  <strong id="admin-promo-redemption-code">
+   —
+  </strong>
+
+  <span id="admin-promo-redemption-meta">
+   —
+  </span>
+ </div>
+
+ <div
+  class="admin-promo-redemption-list"
+  id="admin-promo-redemption-list"
+ >
+  <div class="empty-state">
+   Загрузка...
+  </div>
+ </div>
+
+</section>
+
+<!-- ===== ADMIN PROMO REDEMPTIONS END ===== -->
+
+
+<!-- ===== SETTINGS SCREEN END ===== -->
+
+
+ <!-- ========== PROMO ========== -->
+ <section id="screen-promo" class="screen hidden">
+ <header class="page-head">
+ <button type="button" class="top-btn" data-back="profile">
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+ </button>
+ <h2>Промокод</h2>
+ <div class="top-btn-ph"></div>
+ </header>
+ <p class="hint">Введите код, если он у вас есть</p>
+ <input type="text" class="input" id="promo-input" placeholder="PROMO2026" autocomplete="off" />
+ <button type="button" class="btn-gold" id="btn-apply-promo">Применить</button>
+ </section>
+
+ <!-- ========== REFERRAL ========== -->
+ <section id="screen-ref" class="screen hidden">
+ <header class="page-head">
+ <button type="button" class="top-btn" data-back="profile">
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+ </button>
+ <h2>Пригласить друга</h2>
+ <div class="top-btn-ph"></div>
+ </header>
+ <p class="hint">Друг получит <b>7 дней Стандарт</b>.<br/>Вы — <b>+7 дней</b> (только Стандарт).</p>
+
+ <div class="ref-stats-card">
+  <div class="ref-stats-icon">👥</div>
+
+  <div class="ref-stats-body">
+   <span>Приглашено друзей</span>
+   <strong id="ref-count">0</strong>
+  </div>
+ </div>
+
+ <div class="link-box"><code id="ref-link">—</code></div>
+ <button type="button" class="btn-gold" id="btn-copy-ref">Скопировать ссылку</button>
+ </section>
+
+
+ <!-- ========== ADMIN ========== -->
+
+ <section
+  id="screen-admin"
+  class="screen hidden admin-hub-screen"
+ >
+  <header class="page-head">
+   <button
+    type="button"
+    class="top-btn"
+    data-back="profile"
+    aria-label="Назад"
+   >
+    <svg
+     width="20"
+     height="20"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="2"
+    >
+     <path d="M15 18l-6-6 6-6"/>
+    </svg>
+   </button>
+
+   <h2>Админ-панель</h2>
+   <div class="top-btn-ph"></div>
+  </header>
+
+  <div class="admin-hub-intro">
+   <span class="admin-hub-badge">4STEPS</span>
+   <strong>Управление сервисом</strong>
+   <p>
+    Статистика, серверы, уведомления
+    и обращения пользователей.
+   </p>
+  </div>
+
+  <div class="admin-hub-grid">
+
+   <button
+    type="button"
+    class="admin-hub-card"
+    id="admin-open-active"
+   >
+    <span class="admin-hub-icon">
+     <svg viewBox="0 0 24 24" fill="none">
+      <path
+       d="M3 12h4l2.2-6 4.2 12L16 12h5"
+       stroke="currentColor"
+       stroke-width="1.8"
+       stroke-linecap="round"
+       stroke-linejoin="round"
+      />
+     </svg>
+    </span>
+
+    <span class="admin-hub-card-text">
+     <strong>Актив</strong>
+     <small>Статистика сервиса</small>
+    </span>
+
+    <span class="admin-hub-arrow">›</span>
+   </button>
+
+
+   <button
+    type="button"
+    class="admin-hub-card"
+    id="admin-open-servers"
+   >
+    <span class="admin-hub-icon">
+     <svg viewBox="0 0 24 24" fill="none">
+      <rect
+       x="3"
+       y="4"
+       width="18"
+       height="6"
+       rx="2"
+       stroke="currentColor"
+       stroke-width="1.7"
+      />
+      <rect
+       x="3"
+       y="14"
+       width="18"
+       height="6"
+       rx="2"
+       stroke="currentColor"
+       stroke-width="1.7"
+      />
+      <circle cx="7" cy="7" r="1" fill="currentColor"/>
+      <circle cx="7" cy="17" r="1" fill="currentColor"/>
+     </svg>
+    </span>
+
+    <span class="admin-hub-card-text">
+     <strong>Серверы</strong>
+     <small>Мониторинг инфраструктуры</small>
+    </span>
+
+    <span class="admin-hub-arrow">›</span>
+   </button>
+
+
+   <button
+    type="button"
+    class="admin-hub-card"
+    id="admin-open-notification"
+   >
+    <span class="admin-hub-icon">
+     <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+     >
+      <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/>
+     </svg>
+    </span>
+
+    <span class="admin-hub-card-text">
+     <strong>Написать уведомление</strong>
+     <small>Сообщение пользователям</small>
+    </span>
+
+    <span class="admin-hub-arrow">›</span>
+   </button>
+
+
+   <button
+    type="button"
+    class="admin-hub-card"
+    id="admin-open-tickets"
+   >
+    <span class="admin-hub-icon">
+     <svg viewBox="0 0 24 24" fill="none">
+      <path
+       d="M4 5h16v11H8l-4 3V5z"
+       stroke="currentColor"
+       stroke-width="1.7"
+       stroke-linejoin="round"
+      />
+      <path
+       d="M8 9h8M8 12h5"
+       stroke="currentColor"
+       stroke-width="1.7"
+       stroke-linecap="round"
+      />
+     </svg>
+    </span>
+
+    <span class="admin-hub-card-text">
+     <strong>Обращения</strong>
+     <small>Поддержка пользователей</small>
+    </span>
+
+    <span class="admin-hub-arrow">›</span>
+   </button>
+
+  </div>
+ </section>
+
+
+ <!-- ===== ADMIN ACTIVE ===== -->
+
+ <section
+  id="screen-admin-active"
+  class="screen hidden admin-subscreen"
+ >
+  <header class="page-head">
+   <button
+    type="button"
+    class="top-btn"
+    data-back="admin"
+    aria-label="Назад"
+   >
+    <svg
+     width="20"
+     height="20"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="2"
+    >
+     <path d="M15 18l-6-6 6-6"/>
+    </svg>
+   </button>
+
+   <h2>Актив</h2>
+   <div class="top-btn-ph"></div>
+  </header>
+
+  <p class="admin-subtitle">
+   Основные показатели сервиса
+  </p>
+
+  <div class="admin-grid admin-active-grid">
+
+   <div class="admin-stat">
+    <span id="admin-users">—</span>
+    <small>Пользователи</small>
+   </div>
+
+   <div class="admin-stat">
+    <span id="admin-active">—</span>
+    <small>Активные</small>
+   </div>
+
+   <div class="admin-stat">
+    <span id="admin-trials">—</span>
+    <small>Пробные</small>
+   </div>
+
+   <div class="admin-stat">
+    <span id="admin-revenue">—</span>
+    <small>Доход за месяц</small>
+   </div>
+
+   <div class="admin-stat">
+    <span id="admin-expiring">—</span>
+    <small>Истекает сегодня</small>
+   </div>
+
+   <div class="admin-stat">
+    <span id="admin-servers">—</span>
+    <small>Серверы</small>
+   </div>
+
+  </div>
+ </section>
+
+
+ <!-- ===== ADMIN SERVERS ===== -->
+
+ <section
+  id="screen-admin-servers"
+  class="screen hidden admin-subscreen"
+ >
+  <header class="page-head">
+   <button
+    type="button"
+    class="top-btn"
+    data-back="admin"
+    aria-label="Назад"
+   >
+    <svg
+     width="20"
+     height="20"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="2"
+    >
+     <path d="M15 18l-6-6 6-6"/>
+    </svg>
+   </button>
+
+   <h2>Серверы</h2>
+   <div class="top-btn-ph"></div>
+  </header>
+
+  <div class="admin-section-head">
+   <div>
+    <h3>Мониторинг серверов</h3>
+    <p>Состояние инфраструктуры 4StepsVPN</p>
+   </div>
+
+   <span id="admin-updated"></span>
+  </div>
+
+  <div
+   class="admin-node-list"
+   id="admin-node-list"
+  >
+   <div class="admin-loading">
+    Получение данных...
+   </div>
+  </div>
+
+  <button
+   type="button"
+   class="btn-outline-gold admin-refresh"
+   id="btn-admin-refresh"
+  >
+   🔄 Обновить
+  </button>
+ </section>
+
+
+ <!-- ===== ADMIN NOTIFICATION ===== -->
+
+ <section
+  id="screen-admin-notification"
+  class="screen hidden admin-subscreen"
+ >
+  <header class="page-head">
+   <button
+    type="button"
+    class="top-btn"
+    data-back="admin"
+    aria-label="Назад"
+   >
+    <svg
+     width="20"
+     height="20"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="2"
+    >
+     <path d="M15 18l-6-6 6-6"/>
+    </svg>
+   </button>
+
+   <h2>Уведомление</h2>
+   <div class="top-btn-ph"></div>
+  </header>
+
+  <div class="admin-notification-panel">
+
+   <div class="admin-notification-head">
+    <div>
+     <h3>Новое уведомление</h3>
+     <p>
+      Сообщение появится в центре
+      уведомлений WebApp.
+     </p>
+    </div>
+   </div>
+
+   <label class="admin-notification-field">
+    <span>Заголовок</span>
+
+    <input
+     type="text"
+     class="input"
+     id="admin-notification-title"
+     maxlength="120"
+     placeholder="Например: Обновление сервиса"
+    />
+   </label>
+
+   <label class="admin-notification-field">
+    <span>Сообщение</span>
+
+    <textarea
+     class="input admin-notification-textarea"
+     id="admin-notification-body"
+     maxlength="4000"
+     rows="7"
+     placeholder="Введите текст уведомления"
+    ></textarea>
+   </label>
+
+   <button
+    type="button"
+    class="btn-gold admin-notification-send"
+    id="btn-admin-notification-send"
+   >
+    Отправить уведомление
+   </button>
+
+  </div>
+ </section>
+
+
+ <!-- ===== ADMIN TICKETS ===== -->
+
+ <section
+  id="screen-admin-tickets"
+  class="screen hidden admin-subscreen"
+ >
+  <header class="page-head">
+   <button
+    type="button"
+    class="top-btn"
+    data-back="admin"
+    aria-label="Назад"
+   >
+    <svg
+     width="20"
+     height="20"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="2"
+    >
+     <path d="M15 18l-6-6 6-6"/>
+    </svg>
+   </button>
+
+   <h2>Обращения</h2>
+   <div class="top-btn-ph"></div>
+  </header>
+
+  <div
+   class="admin-ticket-list"
+   id="admin-ticket-list"
+  >
+   <div class="admin-tickets-empty">
+    <strong>Обращений пока нет</strong>
+   </div>
+  </div>
+ </section>
+
+
+ <!-- ===== ADMIN TICKET DETAIL ===== -->
+
+ <section
+  id="screen-admin-ticket-detail"
+  class="screen hidden admin-subscreen"
+ >
+  <header class="page-head">
+   <button
+    type="button"
+    class="top-btn"
+    data-back="admin-tickets"
+    aria-label="Назад"
+   >
+    <svg
+     width="20"
+     height="20"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="2"
+    >
+     <path d="M15 18l-6-6 6-6"/>
+    </svg>
+   </button>
+
+   <h2>Обращение</h2>
+   <div class="top-btn-ph"></div>
+  </header>
+
+  <div class="support-ticket-detail-head">
+   <div>
+    <strong id="admin-ticket-detail-title">
+     Обращение
+    </strong>
+
+    <small id="admin-ticket-detail-user"></small>
+    <small id="admin-ticket-detail-date"></small>
+   </div>
+
+   <span
+    class="support-ticket-status"
+    id="admin-ticket-detail-status"
+   >
+    —
+   </span>
+  </div>
+
+  <div
+   class="admin-ticket-status-actions"
+   id="admin-ticket-status-actions"
+  >
+   <button
+    type="button"
+    class="admin-ticket-status-btn"
+    data-status="NEW"
+   >
+    Новое
+   </button>
+
+   <button
+    type="button"
+    class="admin-ticket-status-btn"
+    data-status="IN_PROGRESS"
+   >
+    В работе
+   </button>
+
+   <button
+    type="button"
+    class="admin-ticket-status-btn"
+    data-status="RESOLVED"
+   >
+    Решено
+   </button>
+  </div>
+
+  <div
+   class="support-dialog"
+   id="admin-ticket-dialog"
+  ></div>
+
+  <button
+   type="button"
+   class="support-ticket-attachment hidden"
+   id="admin-ticket-detail-attachment"
+  >
+   📎 Открыть вложение
+  </button>
+
+  <div class="support-reply-box">
+   <textarea
+    class="input support-reply-input"
+    id="admin-ticket-reply-body"
+    maxlength="5000"
+    rows="4"
+    placeholder="Ответить пользователю"
+   ></textarea>
+
+   <button
+    type="button"
+    class="btn-gold"
+    id="btn-admin-ticket-reply"
+   >
+    Отправить
+   </button>
+  </div>
+ </section>
+
+
+ <div class="admin-modal hidden" id="admin-node-modal" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+ <div class="admin-modal-card">
+ <div class="admin-modal-head">
+ <div class="admin-modal-identity">
+ <span class="admin-modal-flag" id="admin-modal-flag">🌐</span>
+ <div>
+ <h3 id="admin-modal-title">Сервер</h3>
+ <p id="admin-modal-subtitle"></p>
+ </div>
+ </div>
+ <div class="admin-modal-actions">
+ <span class="admin-node-status offline" id="admin-modal-status">OFFLINE</span>
+ <button type="button" class="admin-modal-close" id="admin-modal-close" aria-label="Закрыть">×</button>
+ </div>
+ </div>
+ <div class="admin-modal-details" id="admin-modal-details"></div>
+ </div>
+ </div>
+
+ <!-- ========== PAYMENT ========== -->
+ <section id="screen-payment" class="screen hidden">
+ <header class="page-head">
+ <button type="button" class="top-btn" id="payment-back" aria-label="Назад">
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+ <path d="M15 18l-6-6 6-6"/>
+ </svg>
+ </button>
+
+ <h2 id="purchase-modal-title">Купить подписку</h2>
+
+ <div class="top-btn-ph"></div>
+ </header>
+
+ <div class="payment-screen-intro">
+ <div class="payment-screen-icon">🛡️</div>
+ <div>
+ <strong id="payment-screen-title">Оформление подписки</strong>
+ <p id="purchase-modal-description"></p>
+ </div>
+ </div>
+
+ <div class="purchase-plan-summary">
+ <div>
+ <strong>Стандарт</strong>
+ <span>Все доступные серверы · 1 устройство</span>
+ </div>
+ <b>300 ₽</b>
+ </div>
+
+ <div id="purchase-step-bank">
+ <p class="purchase-step-title">Выберите банк для перевода</p>
+
+ <div class="purchase-bank-list">
+ <button type="button" class="purchase-bank" data-purchase-bank="TBANK">
+ <span class="purchase-bank-logo">
+ <img src="/assets/banks/tbank.svg" alt="" />
+ </span>
+ <strong>Т-Банк</strong>
+ <i>›</i>
+ </button>
+
+ <button type="button" class="purchase-bank" data-purchase-bank="SBER">
+ <span class="purchase-bank-logo">
+ <img src="/assets/banks/sber.svg" alt="" />
+ </span>
+ <strong>Сбербанк</strong>
+ <i>›</i>
+ </button>
+ </div>
+ </div>
+
+ <div class="hidden" id="purchase-step-details">
+ <div class="admin-modal-details purchase-details">
+ <div class="admin-modal-row">
+ <span>Банк</span>
+ <strong id="purchase-bank-name">—</strong>
+ </div>
+
+ <div class="admin-modal-row">
+ <span>Сумма</span>
+ <strong id="purchase-amount">300 ₽</strong>
+ </div>
+
+ <div class="admin-modal-row">
+ <span>Получатель</span>
+ <strong id="purchase-recipient">—</strong>
+ </div>
+
+ <div class="admin-modal-row">
+ <span>Номер телефона</span>
+ <strong id="purchase-phone">—</strong>
+ </div>
+ </div>
+
+ <button
+ type="button"
+ class="btn-outline-gold purchase-copy"
+ id="purchase-copy-phone"
+ >
+ 📋 Скопировать номер
+ </button>
+
+ <p class="purchase-warning">
+ Перед переводом проверьте банк и имя получателя.
+ После перевода загрузите чек.
+ </p>
+
+ <label class="purchase-upload">
+ <input
+ type="file"
+ id="purchase-proof"
+ accept="image/jpeg,image/png,image/webp,application/pdf"
+ />
+
+ <span>📎 Выбрать чек</span>
+
+ <small id="purchase-proof-name">
+ JPEG, PNG, WebP или PDF · до 10 МБ
+ </small>
+ </label>
+
+ <button
+ type="button"
+ class="btn-gold purchase-submit"
+ id="purchase-submit-proof"
+ >
+ ✅ Отправить чек на проверку
+ </button>
+ </div>
+
+ <div class="hidden purchase-success" id="purchase-step-success">
+ <div class="purchase-success-icon">✅</div>
+
+ <h3>Чек отправлен</h3>
+
+ <p>
+ Администратор проверит перевод.
+ После подтверждения подписка активируется
+ или продлится автоматически.
+ </p>
+
+ <button type="button" class="btn-gold" id="purchase-done">
+ Готово
+ </button>
+ </div>
+ </section>
+
+ <!-- TAB BAR -->
+ <nav class="tabbar" id="tabbar">
+ <button type="button" class="tab active" data-tab="home">
+ <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
+ <span>Главная</span>
+ </button>
+ <button type="button" class="tab" data-tab="servers">
+ <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+ <span>VPN</span>
+ </button>
+ <button type="button" class="tab" data-tab="devices">
+ <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+ <span>Устройства</span>
+ </button>
+ <button type="button" class="tab" data-tab="sub">
+ <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 6.5L22 9.5l-5 4.5L18.5 22 12 18.5 5.5 22 7 14 2 9.5l7-1L12 2z"/></svg>
+ <span>Подписка</span>
+ </button>
+ <button type="button" class="tab" data-tab="profile">
+ <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5"/></svg>
+ <span>Профиль</span>
+ </button>
+ </nav>
+
+ <div
+ class="theme-modal hidden"
+ id="theme-modal"
+ aria-hidden="true">
+
+ <div
+ class="theme-modal-backdrop"
+ id="theme-modal-backdrop">
+ </div>
+
+ <div class="theme-modal-card">
+
+ <div class="theme-modal-head">
+ <div>
+ <strong>Цвет интерфейса</strong>
+ <span>Выберите оформление</span>
+ </div>
+
+ <button
+ type="button"
+ class="theme-modal-close"
+ id="theme-modal-close"
+ aria-label="Закрыть">
+ ×
+ </button>
+ </div>
+
+ <div class="theme-grid">
+
+ <button
+ type="button"
+ class="theme-tile theme-tile-gold"
+ data-theme-value="gold">
+ <span class="theme-tile-preview">
+ <img
+  src="/assets/theme-previews/theme-default.jpg?v=2"
+  alt="Превью золотой темы"
+  loading="lazy"
+ />
+ </span>
+
+ <span class="theme-tile-check">✓</span>
+ </button>
+
+ <button
+ type="button"
+ class="theme-tile theme-tile-blue"
+ data-theme-value="blue">
+ <span class="theme-tile-preview">
+ <img
+  src="/assets/theme-previews/theme-blue.jpg?v=2"
+  alt="Превью синей темы"
+  loading="lazy"
+ />
+ </span>
+
+ <span class="theme-tile-check">✓</span>
+ </button>
+
+ <button
+ type="button"
+ class="theme-tile theme-tile-purple"
+ data-theme-value="purple">
+ <span class="theme-tile-preview">
+ <img
+  src="/assets/theme-previews/theme-purple.jpg?v=2"
+  alt="Превью фиолетовой темы"
+  loading="lazy"
+ />
+ </span>
+
+ <span class="theme-tile-check">✓</span>
+ </button>
+
+ <button
+ type="button"
+ class="theme-tile theme-tile-green"
+ data-theme-value="green">
+ <span class="theme-tile-preview">
+ <img
+  src="/assets/theme-previews/theme-green.jpg?v=2"
+  alt="Превью зелёной темы"
+  loading="lazy"
+ />
+ </span>
+
+ <span class="theme-tile-check">✓</span>
+ </button>
+
+ <button
+ type="button"
+ class="theme-tile theme-tile-red"
+ data-theme-value="red">
+ <span class="theme-tile-preview">
+ <img
+  src="/assets/theme-previews/theme-red.jpg?v=2"
+  alt="Превью красной темы"
+  loading="lazy"
+ />
+ </span>
+
+ <span class="theme-tile-check">✓</span>
+ </button>
+
+ <button
+ type="button"
+ class="theme-tile theme-tile-cyan"
+ data-theme-value="cyan">
+ <span class="theme-tile-preview">
+ <img
+  src="/assets/theme-previews/theme-cyan.jpg?v=2"
+  alt="Превью бирюзовой темы"
+  loading="lazy"
+ />
+ </span>
+
+ <span class="theme-tile-check">✓</span>
+ </button>
+
+ </div>
+ </div>
+ </div>
+
+<div id="toast" class="toast hidden"></div>
+ <div id="error-screen" class="error-screen hidden">
+ <p id="error-text">Ошибка</p>
+ <button type="button" class="btn-gold" id="btn-retry">Повторить</button>
+ </div>
+ </div>
+ <div class="notification-modal hidden" id="notification-modal">
+ <div class="notification-modal-card" role="dialog" aria-modal="true" aria-labelledby="notification-modal-title">
+ <button
+ type="button"
+ class="notification-modal-close"
+ id="notification-modal-close"
+ aria-label="Закрыть"
+ >×</button>
+
+ <div class="notification-modal-label">Уведомление</div>
+
+ <h3 id="notification-modal-title">—</h3>
+
+ <div
+ class="notification-modal-body"
+ id="notification-modal-body"
+ ></div>
+
+ <button
+ type="button"
+ class="btn-gold notification-modal-done"
+ id="notification-modal-done"
+ >
+ Понятно
+ </button>
+ </div>
+ </div>
+
+ <script src="/app.js?v=71"></script>
 </body>
 </html>

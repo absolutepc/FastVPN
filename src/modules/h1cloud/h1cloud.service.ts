@@ -209,10 +209,65 @@ export class H1CloudService {
   async getClientByName(
     name: string,
     nodeKey: H1CloudNodeKey = 'FI1',
+    timeoutMs?: number,
   ): Promise<H1Client | null> {
-    const clients = await this.getClients(nodeKey);
+    if (!timeoutMs) {
+      const clients = await this.getClients(nodeKey);
+      return clients.find((client) => client.name === name) || null;
+    }
 
-    return clients.find((client) => client.name === name) || null;
+    const controller = new AbortController();
+
+    const timer = setTimeout(
+      () => controller.abort(),
+      timeoutMs,
+    );
+
+    try {
+      const node = this.getNode(nodeKey);
+
+      const response = await fetch(
+        `${node.baseUrl}/api/clients`,
+        {
+          signal: controller.signal,
+          headers: {
+            Authorization: `Bearer ${node.token}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      const text = await response.text();
+
+      let data: {
+        clients?: H1Client[];
+      };
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(
+          `H1Cloud ${nodeKey} invalid JSON: HTTP ${response.status}`,
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `H1Cloud ${nodeKey} HTTP ${response.status}`,
+        );
+      }
+
+      const clients = data.clients || [];
+
+      return (
+        clients.find(
+          (client) => client.name === name,
+        ) || null
+      );
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async createClient(

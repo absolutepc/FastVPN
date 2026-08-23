@@ -17,3 +17,5 @@ coverage/
 *.broken
 *.bad
 webapp/subtest-*.txt
+webapp/uploads/avatars/
+webapp/uploads/support/

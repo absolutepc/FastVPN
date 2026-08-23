@@ -582,41 +582,838 @@ export class SubscriptionsService {
   }
 
 
-  async processReferralBonus(inviteeId: string, referrerId: string) {
-    const inviteeActive = await this.getActiveSubscription(inviteeId);
-    if (!inviteeActive) {
-      await this.createSubscription({
-        userId: inviteeId,
-        plan: PlanType.STANDARD,
-        days: TRIAL_DAYS,
-        isTrial: true,
-      });
-      this.logger.log(`Trial granted to invitee ${inviteeId}`);
-    }
+  async syncSubscriptionState(
+    subscriptionId: string,
+  ) {
+    const subscription =
+      await this.prisma.subscription
+        .findUniqueOrThrow({
+          where: {
+            id: subscriptionId,
+          },
+        });
 
-    const referrerSub = await this.getActiveSubscription(referrerId);
-
-    if (referrerSub) {
-      if (referrerSub.plan === PlanType.PREMIUM) {
-        this.logger.log(`Referrer ${referrerId} is PREMIUM — no bonus`);
-        return { inviteeTrial: !inviteeActive, referrerBonus: false };
-      }
-
-      await this.extendSubscription(referrerSub.id, REFERRAL_BONUS_DAYS);
-      this.logger.log(
-        `+${REFERRAL_BONUS_DAYS} days for referrer ${referrerId}`,
+    const active =
+      subscription.expiresAt >
+        new Date() &&
+      (
+        subscription.status ===
+          SubscriptionStatus.ACTIVE ||
+        subscription.status ===
+          SubscriptionStatus.TRIAL
       );
-      return { inviteeTrial: !inviteeActive, referrerBonus: true };
+
+    /*
+     * Xray sync делаем идемпотентным:
+     * remove -> add.
+     *
+     * Поэтому повтор после crash не выдаст
+     * пользователю дополнительные дни.
+     */
+    await this.xray
+      .removeUserFromPlanNodes({
+        uuid:
+          subscription.uuid,
+        plan:
+          subscription.plan,
+      })
+      .catch(error => {
+        this.logger.warn(
+          `Subscription Xray pre-sync remove failed ${subscription.id}: ${
+            error instanceof Error
+              ? error.message
+              : String(error)
+          }`,
+        );
+      });
+
+    if (active) {
+      await this.xray
+        .addUserToPlanNodes({
+          uuid:
+            subscription.uuid,
+          plan:
+            subscription.plan,
+        });
     }
 
-    await this.createSubscription({
-      userId: referrerId,
-      plan: PlanType.STANDARD,
-      days: REFERRAL_BONUS_DAYS,
-      isTrial: true,
-    });
-    this.logger.log(`Trial created for referrer ${referrerId} (no active sub)`);
-    return { inviteeTrial: !inviteeActive, referrerBonus: true };
+    /*
+     * Для H1Cloud используем абсолютный
+     * expiresAt из БД, а не повторный +N.
+     *
+     * Поэтому recovery после crash
+     * не может начислить +7 повторно.
+     */
+    if (
+      subscription.plan ===
+      PlanType.STANDARD
+    ) {
+      await this.syncSubscriptionExpiry(
+        subscription.id,
+      );
+    }
+
+    return subscription;
+  }
+
+
+  async syncReferralReward(
+    rewardId: string,
+  ) {
+    const reward =
+      await this.prisma.referralReward
+        .findUnique({
+          where: {
+            id: rewardId,
+          },
+        });
+
+    if (
+      !reward ||
+      !reward.appliedAt ||
+      reward.legacyBackfilled
+    ) {
+      return {
+        total: 0,
+        ok: 0,
+        fail: 0,
+      };
+    }
+
+    let total = 0;
+    let ok = 0;
+    let fail = 0;
+
+    if (
+      reward.inviteeSyncPending &&
+      reward.inviteeSubscriptionId
+    ) {
+      total++;
+
+      try {
+        await this.syncSubscriptionState(
+          reward.inviteeSubscriptionId,
+        );
+
+        await this.prisma.referralReward
+          .updateMany({
+            where: {
+              id:
+                reward.id,
+
+              inviteeSyncPending:
+                true,
+            },
+
+            data: {
+              inviteeSyncPending:
+                false,
+            },
+          });
+
+        ok++;
+      } catch (error) {
+        fail++;
+
+        this.logger.warn(
+          `Referral invitee sync failed ${reward.id}: ${
+            error instanceof Error
+              ? error.message
+              : String(error)
+          }`,
+        );
+      }
+    }
+
+    if (
+      reward.referrerSyncPending &&
+      reward.referrerSubscriptionId
+    ) {
+      total++;
+
+      try {
+        await this.syncSubscriptionState(
+          reward.referrerSubscriptionId,
+        );
+
+        await this.prisma.referralReward
+          .updateMany({
+            where: {
+              id:
+                reward.id,
+
+              referrerSyncPending:
+                true,
+            },
+
+            data: {
+              referrerSyncPending:
+                false,
+            },
+          });
+
+        ok++;
+      } catch (error) {
+        fail++;
+
+        this.logger.warn(
+          `Referral referrer sync failed ${reward.id}: ${
+            error instanceof Error
+              ? error.message
+              : String(error)
+          }`,
+        );
+      }
+    }
+
+    return {
+      total,
+      ok,
+      fail,
+    };
+  }
+
+
+  async syncPendingReferralRewards(
+    limit = 50,
+  ) {
+    const rewards =
+      await this.prisma.referralReward
+        .findMany({
+          where: {
+            appliedAt: {
+              not: null,
+            },
+
+            legacyBackfilled:
+              false,
+
+            OR: [
+              {
+                inviteeSyncPending:
+                  true,
+              },
+              {
+                referrerSyncPending:
+                  true,
+              },
+            ],
+          },
+
+          orderBy: {
+            updatedAt:
+              'asc',
+          },
+
+          take:
+            limit,
+        });
+
+    let ok = 0;
+    let fail = 0;
+
+    for (const reward of rewards) {
+      const result =
+        await this.syncReferralReward(
+          reward.id,
+        );
+
+      ok += result.ok;
+      fail += result.fail;
+    }
+
+    return {
+      rewards:
+        rewards.length,
+      ok,
+      fail,
+    };
+  }
+
+
+  async processReferralBonus(
+    inviteeId: string,
+    referrerId: string,
+  ) {
+    let result:
+      | {
+          rewardId: string;
+          processed: boolean;
+          inviteeTrial: boolean;
+          referrerBonus: boolean;
+        }
+      | undefined;
+
+    for (
+      let attempt = 1;
+      attempt <= 3;
+      attempt++
+    ) {
+      try {
+        result =
+          await this.prisma.$transaction(
+            async (tx) => {
+              const now =
+                new Date();
+
+              const invitee =
+                await tx.user.findUnique({
+                  where: {
+                    id:
+                      inviteeId,
+                  },
+
+                  select: {
+                    id:
+                      true,
+
+                    referredById:
+                      true,
+
+                    isBlocked:
+                      true,
+                  },
+                });
+
+              if (
+                !invitee ||
+                invitee.referredById !==
+                  referrerId
+              ) {
+                throw new Error(
+                  'REFERRAL_RELATION_INVALID',
+                );
+              }
+
+              const referrer =
+                await tx.user.findUnique({
+                  where: {
+                    id:
+                      referrerId,
+                  },
+
+                  select: {
+                    id:
+                      true,
+
+                    isBlocked:
+                      true,
+                  },
+                });
+
+              if (!referrer) {
+                throw new Error(
+                  'REFERRER_NOT_FOUND',
+                );
+              }
+
+              let reward =
+                await tx.referralReward
+                  .findUnique({
+                    where: {
+                      inviteeId,
+                    },
+                  });
+
+              /*
+               * Уже применённый referral
+               * повторно НИКОГДА не начисляем.
+               */
+              if (
+                reward?.appliedAt
+              ) {
+                return {
+                  rewardId:
+                    reward.id,
+
+                  processed:
+                    false,
+
+                  inviteeTrial:
+                    reward.inviteeTrial ===
+                    true,
+
+                  referrerBonus:
+                    false,
+                };
+              }
+
+              if (
+                reward &&
+                reward.referrerId !==
+                  referrerId
+              ) {
+                throw new Error(
+                  'REFERRAL_REWARD_MISMATCH',
+                );
+              }
+
+              if (!reward) {
+                reward =
+                  await tx.referralReward
+                    .create({
+                      data: {
+                        inviteeId,
+                        referrerId,
+                      },
+                    });
+              }
+
+              /*
+               * Если invitee заблокирован,
+               * фиксируем referral как обработанный,
+               * но ничего никому не начисляем.
+               */
+              if (invitee.isBlocked) {
+                await tx.referralReward
+                  .update({
+                    where: {
+                      id:
+                        reward.id,
+                    },
+
+                    data: {
+                      inviteeTrial:
+                        false,
+
+                      referrerBonus:
+                        false,
+
+                      appliedAt:
+                        now,
+
+                      legacyBackfilled:
+                        false,
+                    },
+                  });
+
+                return {
+                  rewardId:
+                    reward.id,
+
+                  processed:
+                    true,
+
+                  inviteeTrial:
+                    false,
+
+                  referrerBonus:
+                    false,
+                };
+              }
+
+              let inviteeTrial =
+                false;
+
+              let inviteeSubscriptionId:
+                string | null =
+                null;
+
+              /*
+               * Повторяем прежнюю бизнес-логику:
+               * если у invitee уже есть активная
+               * подписка любого тарифа —
+               * отдельный trial не создаём.
+               */
+              const inviteeActive =
+                await tx.subscription
+                  .findFirst({
+                    where: {
+                      userId:
+                        inviteeId,
+
+                      status: {
+                        in: [
+                          SubscriptionStatus.ACTIVE,
+                          SubscriptionStatus.TRIAL,
+                        ],
+                      },
+
+                      expiresAt: {
+                        gt:
+                          now,
+                      },
+                    },
+
+                    orderBy: {
+                      expiresAt:
+                        'desc',
+                    },
+                  });
+
+              if (!inviteeActive) {
+                const expiredInvitee =
+                  await tx.subscription
+                    .findFirst({
+                      where: {
+                        userId:
+                          inviteeId,
+
+                        plan:
+                          PlanType.STANDARD,
+
+                        status:
+                          SubscriptionStatus.EXPIRED,
+                      },
+
+                      orderBy: {
+                        createdAt:
+                          'desc',
+                      },
+                    });
+
+                const expiresAt =
+                  new Date(now);
+
+                expiresAt.setDate(
+                  expiresAt.getDate() +
+                    TRIAL_DAYS,
+                );
+
+                if (expiredInvitee) {
+                  const restored =
+                    await tx.subscription
+                      .update({
+                        where: {
+                          id:
+                            expiredInvitee.id,
+                        },
+
+                        data: {
+                          startsAt:
+                            now,
+
+                          expiresAt,
+
+                          status:
+                            SubscriptionStatus.TRIAL,
+
+                          isTrial:
+                            true,
+                        },
+                      });
+
+                  inviteeSubscriptionId =
+                    restored.id;
+                } else {
+                  const created =
+                    await tx.subscription
+                      .create({
+                        data: {
+                          userId:
+                            inviteeId,
+
+                          plan:
+                            PlanType.STANDARD,
+
+                          status:
+                            SubscriptionStatus.TRIAL,
+
+                          uuid:
+                            randomUUID(),
+
+                          subToken:
+                            randomBytes(24)
+                              .toString(
+                                'hex',
+                              ),
+
+                          startsAt:
+                            now,
+
+                          expiresAt,
+
+                          isTrial:
+                            true,
+                        },
+                      });
+
+                  inviteeSubscriptionId =
+                    created.id;
+                }
+
+                inviteeTrial =
+                  true;
+              }
+
+              let referrerBonus =
+                false;
+
+              let referrerSubscriptionId:
+                string | null =
+                null;
+
+              /*
+               * Заблокированному referrer бонус
+               * не начисляем.
+               */
+              if (!referrer.isBlocked) {
+                const referrerActive =
+                  await tx.subscription
+                    .findFirst({
+                      where: {
+                        userId:
+                          referrerId,
+
+                        status: {
+                          in: [
+                            SubscriptionStatus.ACTIVE,
+                            SubscriptionStatus.TRIAL,
+                          ],
+                        },
+
+                        expiresAt: {
+                          gt:
+                            now,
+                        },
+                      },
+
+                      orderBy: {
+                        expiresAt:
+                          'desc',
+                      },
+                    });
+
+                if (referrerActive) {
+                  if (
+                    referrerActive.plan !==
+                    PlanType.PREMIUM
+                  ) {
+                    const expiresAt =
+                      new Date(
+                        referrerActive.expiresAt,
+                      );
+
+                    expiresAt.setDate(
+                      expiresAt.getDate() +
+                        REFERRAL_BONUS_DAYS,
+                    );
+
+                    const updated =
+                      await tx.subscription
+                        .update({
+                          where: {
+                            id:
+                              referrerActive.id,
+                          },
+
+                          data: {
+                            expiresAt,
+
+                            status:
+                              SubscriptionStatus.ACTIVE,
+
+                            /*
+                             * Сохраняем старое
+                             * поведение extendSubscription().
+                             */
+                            isTrial:
+                              false,
+                          },
+                        });
+
+                    referrerSubscriptionId =
+                      updated.id;
+
+                    referrerBonus =
+                      true;
+                  }
+                } else {
+                  const expiredReferrer =
+                    await tx.subscription
+                      .findFirst({
+                        where: {
+                          userId:
+                            referrerId,
+
+                          plan:
+                            PlanType.STANDARD,
+
+                          status:
+                            SubscriptionStatus.EXPIRED,
+                        },
+
+                        orderBy: {
+                          createdAt:
+                            'desc',
+                        },
+                      });
+
+                  const expiresAt =
+                    new Date(now);
+
+                  expiresAt.setDate(
+                    expiresAt.getDate() +
+                      REFERRAL_BONUS_DAYS,
+                  );
+
+                  if (expiredReferrer) {
+                    const restored =
+                      await tx.subscription
+                        .update({
+                          where: {
+                            id:
+                              expiredReferrer.id,
+                          },
+
+                          data: {
+                            startsAt:
+                              now,
+
+                            expiresAt,
+
+                            status:
+                              SubscriptionStatus.TRIAL,
+
+                            isTrial:
+                              true,
+                          },
+                        });
+
+                    referrerSubscriptionId =
+                      restored.id;
+                  } else {
+                    const created =
+                      await tx.subscription
+                        .create({
+                          data: {
+                            userId:
+                              referrerId,
+
+                            plan:
+                              PlanType.STANDARD,
+
+                            status:
+                              SubscriptionStatus.TRIAL,
+
+                            uuid:
+                              randomUUID(),
+
+                            subToken:
+                              randomBytes(24)
+                                .toString(
+                                  'hex',
+                                ),
+
+                            startsAt:
+                              now,
+
+                            expiresAt,
+
+                            isTrial:
+                              true,
+                          },
+                        });
+
+                    referrerSubscriptionId =
+                      created.id;
+                  }
+
+                  referrerBonus =
+                    true;
+                }
+              }
+
+              await tx.referralReward
+                .update({
+                  where: {
+                    id:
+                      reward.id,
+                  },
+
+                  data: {
+                    inviteeTrial,
+
+                    referrerBonus,
+
+                    inviteeSubscriptionId,
+
+                    referrerSubscriptionId,
+
+                    inviteeSyncPending:
+                      inviteeTrial &&
+                      inviteeSubscriptionId !==
+                        null,
+
+                    referrerSyncPending:
+                      referrerBonus &&
+                      referrerSubscriptionId !==
+                        null,
+
+                    appliedAt:
+                      now,
+
+                    legacyBackfilled:
+                      false,
+                  },
+                });
+
+              return {
+                rewardId:
+                  reward.id,
+
+                processed:
+                  true,
+
+                inviteeTrial,
+
+                referrerBonus,
+              };
+            },
+            {
+              isolationLevel:
+                Prisma
+                  .TransactionIsolationLevel
+                  .Serializable,
+            },
+          );
+
+        break;
+      } catch (error) {
+        const retryable =
+          error instanceof
+            Prisma.PrismaClientKnownRequestError &&
+          (
+            error.code === 'P2034' ||
+            error.code === 'P2002'
+          );
+
+        if (
+          !retryable ||
+          attempt === 3
+        ) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Serializable referral conflict; retry ${attempt}/3`,
+        );
+      }
+    }
+
+    if (!result) {
+      throw new Error(
+        'REFERRAL_PROCESSING_FAILED',
+      );
+    }
+
+    /*
+     * DB entitlement уже атомарно сохранён.
+     *
+     * Ниже только идемпотентная внешняя
+     * синхронизация по абсолютному состоянию БД.
+     */
+    await this.syncReferralReward(
+      result.rewardId,
+    );
+
+    if (result.processed) {
+      this.logger.log(
+        `Referral processed: invitee=${inviteeId} referrer=${referrerId} inviteeTrial=${result.inviteeTrial} referrerBonus=${result.referrerBonus}`,
+      );
+    }
+
+    return result;
   }
 
   async expireOverdueSubscriptions() {

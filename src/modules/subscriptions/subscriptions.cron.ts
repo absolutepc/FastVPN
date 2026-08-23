@@ -10,6 +10,7 @@ export class SubscriptionsCron {
   private recoveryRunning = false;
   private h1RecoveryRunning = false;
   private h1ExpiryReconcileRunning = false;
+  private referralSyncRunning = false;
 
   constructor(
     private readonly subscriptions: SubscriptionsService,
@@ -133,6 +134,43 @@ export class SubscriptionsCron {
       );
     } finally {
       this.h1ExpiryReconcileRunning = false;
+    }
+  }
+
+
+  /** Догоняем внешнюю синхронизацию referral после crash */
+  @Cron('*/2 * * * *')
+  async syncPendingReferralRewards() {
+    if (this.referralSyncRunning) {
+      return;
+    }
+
+    this.referralSyncRunning =
+      true;
+
+    try {
+      const result =
+        await this.subscriptions
+          .syncPendingReferralRewards();
+
+      if (
+        result.rewards > 0 ||
+        result.fail > 0
+      ) {
+        this.logger.log(
+          `Referral sync: rewards=${result.rewards} ok=${result.ok} fail=${result.fail}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        'Referral sync failed',
+        error instanceof Error
+          ? error.message
+          : error,
+      );
+    } finally {
+      this.referralSyncRunning =
+        false;
     }
   }
 

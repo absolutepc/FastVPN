@@ -92,65 +92,201 @@ export class BotService implements OnModuleInit {
     ctx.session.adminData = {};
   }
 
-  async findOrCreateUser(ctx: BotContext, referralCode?: string) {
-    const tgId = BigInt(ctx.from!.id);
-
-    let user = await this.prisma.user.findUnique({
-      where: { telegramId: tgId },
-    });
-
-    if (user) {
-      return { user, isNew: false, referralProcessed: false };
+  private async notifyReferrer(
+    telegramId: bigint,
+  ) {
+    try {
+      await this.bot.api.sendMessage(
+        Number(telegramId),
+        `🎉 Друг присоединился по вашей ссылке!\n\nВам начислено <b>+7 дней</b> (Стандарт).`,
+        {
+          parse_mode:
+            'HTML',
+        },
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Could not notify referrer ${telegramId}`,
+        error,
+      );
     }
+  }
 
-    let referredById: string | undefined;
-    let referrerTelegramId: bigint | undefined;
 
-    if (referralCode) {
-      const referrer = await this.prisma.user.findUnique({
-        where: { referralCode },
+  async findOrCreateUser(
+    ctx: BotContext,
+    referralCode?: string,
+  ) {
+    const tgId =
+      BigInt(ctx.from!.id);
+
+    let user =
+      await this.prisma.user.findUnique({
+        where: {
+          telegramId:
+            tgId,
+        },
       });
-      if (referrer && referrer.telegramId !== tgId && !referrer.isBlocked) {
-        referredById = referrer.id;
-        referrerTelegramId = referrer.telegramId;
-      }
-    }
 
-    const newReferralCode = randomBytes(4).toString('hex');
+    /*
+     * ВАЖНО:
+     *
+     * существующий user может быть результатом
+     * crash между user.create() и referral processing.
+     *
+     * Поэтому referredById теперь всегда
+     * безопасно проверяем через идемпотентный ledger.
+     */
+    if (user) {
+      let referralProcessed =
+        false;
 
-    user = await this.prisma.user.create({
-      data: {
-        telegramId: tgId,
-        username: ctx.from?.username ?? null,
-        firstName: ctx.from?.first_name ?? null,
-        lastName: ctx.from?.last_name ?? null,
-        referralCode: newReferralCode,
-        referredById,
-      },
-    });
+      if (user.referredById) {
+        const result =
+          await this.subscriptions
+            .processReferralBonus(
+              user.id,
+              user.referredById,
+            );
 
-    this.logger.log(`New user: ${tgId} (ref: ${referralCode ?? 'none'})`);
+        referralProcessed =
+          result.processed;
 
-    let referralProcessed = false;
+        if (
+          result.processed &&
+          result.referrerBonus
+        ) {
+          const referrer =
+            await this.prisma.user
+              .findUnique({
+                where: {
+                  id:
+                    user.referredById,
+                },
 
-    if (referredById) {
-      const result = await this.subscriptions.processReferralBonus(user.id, referredById);
-      referralProcessed = true;
+                select: {
+                  telegramId:
+                    true,
+                },
+              });
 
-      if (result.referrerBonus && referrerTelegramId) {
-        try {
-          await this.bot.api.sendMessage(
-            Number(referrerTelegramId),
-            `🎉 Друг присоединился по вашей ссылке!\n\nВам начислено <b>+7 дней</b> (Стандарт).`,
-            { parse_mode: 'HTML' },
-          );
-        } catch (e) {
-          this.logger.warn(`Could not notify referrer ${referrerTelegramId}`, e);
+          if (referrer) {
+            await this.notifyReferrer(
+              referrer.telegramId,
+            );
+          }
         }
       }
+
+      return {
+        user,
+        isNew:
+          false,
+        referralProcessed,
+      };
     }
 
-    return { user, isNew: true, referralProcessed };
+    let referredById:
+      string | undefined;
+
+    let referrerTelegramId:
+      bigint | undefined;
+
+    if (referralCode) {
+      const referrer =
+        await this.prisma.user
+          .findUnique({
+            where: {
+              referralCode,
+            },
+          });
+
+      if (
+        referrer &&
+        referrer.telegramId !==
+          tgId &&
+        !referrer.isBlocked
+      ) {
+        referredById =
+          referrer.id;
+
+        referrerTelegramId =
+          referrer.telegramId;
+      }
+    }
+
+    const newReferralCode =
+      randomBytes(4)
+        .toString('hex');
+
+    /*
+     * User и referral entitlement специально
+     * не обязаны быть одной transaction.
+     *
+     * Если процесс упадёт сразу после user.create,
+     * следующий /start увидит referredById
+     * и безопасно догонит processReferralBonus().
+     */
+    user =
+      await this.prisma.user.create({
+        data: {
+          telegramId:
+            tgId,
+
+          username:
+            ctx.from?.username ??
+            null,
+
+          firstName:
+            ctx.from?.first_name ??
+            null,
+
+          lastName:
+            ctx.from?.last_name ??
+            null,
+
+          referralCode:
+            newReferralCode,
+
+          referredById,
+        },
+      });
+
+    this.logger.log(
+      `New user: ${tgId} (ref: ${referralCode ?? 'none'})`,
+    );
+
+    let referralProcessed =
+      false;
+
+    if (referredById) {
+      const result =
+        await this.subscriptions
+          .processReferralBonus(
+            user.id,
+            referredById,
+          );
+
+      referralProcessed =
+        result.processed;
+
+      if (
+        result.processed &&
+        result.referrerBonus &&
+        referrerTelegramId
+      ) {
+        await this.notifyReferrer(
+          referrerTelegramId,
+        );
+      }
+    }
+
+    return {
+      user,
+      isNew:
+        true,
+      referralProcessed,
+    };
   }
 
   async getActiveSubscription(userId: string) {

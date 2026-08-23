@@ -64,6 +64,8 @@ model User {
   referredById        String?
   referredBy          User?              @relation("Referrals", fields: [referredById], references: [id])
   referrals           User[]             @relation("Referrals")
+  referralReward      ReferralReward?    @relation("ReferralRewardInvitee")
+  referralRewards     ReferralReward[]   @relation("ReferralRewardReferrer")
   isBlocked           Boolean            @default(false)
   legalAcceptedAt     DateTime?
   legalVersion        String?
@@ -331,4 +333,35 @@ model PromoRedemption {
   @@index([promoCodeId, userId])
   @@index([userId, createdAt])
   @@map("promo_redemptions")
+}
+
+model ReferralReward {
+  id String @id @default(cuid())
+
+  inviteeId String @unique
+  invitee   User   @relation("ReferralRewardInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  referrerId String
+  referrer   User   @relation("ReferralRewardReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+
+  inviteeTrial  Boolean?
+  referrerBonus Boolean?
+
+  inviteeSubscriptionId  String?
+  referrerSubscriptionId String?
+
+  inviteeSyncPending  Boolean @default(false)
+  referrerSyncPending Boolean @default(false)
+
+  appliedAt DateTime?
+
+  legacyBackfilled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([referrerId, createdAt])
+  @@index([inviteeSyncPending])
+  @@index([referrerSyncPending])
+  @@map("referral_rewards")
 }

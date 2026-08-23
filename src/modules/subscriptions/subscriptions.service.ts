@@ -33,8 +33,34 @@ export class SubscriptionsService {
     { key: "NL1", name: "🇳🇱 Netherlands" },
   ];
 
-  private getConfiguredH1Nodes() {
-    return this.h1Nodes.filter((node) => this.h1cloud.isConfigured(node.key));
+  private getMaintenanceH1Nodes(): Set<string> {
+    return new Set(
+      (process.env.H1CLOUD_MAINTENANCE_NODES || '')
+        .split(',')
+        .map((value) => value.trim().toUpperCase())
+        .filter(Boolean),
+    );
+  }
+
+  private getConfiguredH1Nodes(options?: {
+    includeMaintenance?: boolean;
+  }) {
+    const maintenance = this.getMaintenanceH1Nodes();
+
+    return this.h1Nodes.filter((node) => {
+      if (!this.h1cloud.isConfigured(node.key)) {
+        return false;
+      }
+
+      if (
+        options?.includeMaintenance !== true &&
+        maintenance.has(node.key)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
   }
 
   private getRemainingDays(expiresAt: Date) {
@@ -615,9 +641,40 @@ export class SubscriptionsService {
     const expected =
       await this.countExpectedH1CloudClients();
 
+    const maintenance =
+      this.getMaintenanceH1Nodes();
+
     return Promise.all(
-      this.getConfiguredH1Nodes().map(
+      this.getConfiguredH1Nodes({
+        includeMaintenance: true,
+      }).map(
         async (node) => {
+          if (maintenance.has(node.key)) {
+            return {
+              nodeKey: node.key,
+              name: node.name,
+              apiOk: false,
+              latencyMs: 0,
+              clients: 0,
+              active: 0,
+              expired: 0,
+              banned: 0,
+              online: 0,
+              expected,
+              trafficBytes: 0,
+              devices: 0,
+              deviceLimit: 0,
+              nearestExpiry: null,
+              domain: null,
+              version: null,
+              transportMode: null,
+              egressMode: null,
+              realityEnabled: false,
+              inbound: null,
+              error: 'maintenance',
+            };
+          }
+
           const startedAt = Date.now();
 
           try {

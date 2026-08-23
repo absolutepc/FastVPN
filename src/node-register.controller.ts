@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from './prisma/prisma.service';
 import { NodeType } from '@prisma/client';
 import { isIP } from 'net';
+import { timingSafeEqual } from 'crypto';
 
 type RegisterNodeBody = {
   name: string;
@@ -153,16 +154,34 @@ export class NodeRegisterController {
     const expected =
   this.config.get<string>('NODE_REGISTER_TOKEN');
 
-const prefix = 'Bearer ';
+    const prefix = 'Bearer ';
 
-if (
-  !expected ||
-  !authorization ||
-  !authorization.startsWith(prefix) ||
-  authorization.slice(prefix.length) !== expected
-) {
-  throw new UnauthorizedException();
-}
+    if (
+      !expected ||
+      !authorization ||
+      !authorization.startsWith(prefix)
+    ) {
+      throw new UnauthorizedException();
+    }
+
+    const provided =
+      authorization.slice(prefix.length);
+
+    const expectedBuffer =
+      Buffer.from(expected);
+
+    const providedBuffer =
+      Buffer.from(provided);
+
+    if (
+      expectedBuffer.length !== providedBuffer.length ||
+      !timingSafeEqual(
+        expectedBuffer,
+        providedBuffer,
+      )
+    ) {
+      throw new UnauthorizedException();
+    }
 
     if (
       !body.name ||

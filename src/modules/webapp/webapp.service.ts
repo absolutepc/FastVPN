@@ -9,7 +9,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
-import { createHmac, randomBytes, randomUUID } from 'crypto';
+import {
+  createHmac,
+  randomBytes,
+  randomUUID,
+  timingSafeEqual,
+} from 'crypto';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { Response } from 'express';
@@ -63,13 +68,39 @@ export class WebappService {
     const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();
     const calculated = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-    if (calculated !== hash) {
+    const calculatedBuffer =
+      Buffer.from(calculated, 'hex');
+
+    const hashBuffer =
+      Buffer.from(hash, 'hex');
+
+    if (
+      calculatedBuffer.length !== hashBuffer.length ||
+      !timingSafeEqual(
+        calculatedBuffer,
+        hashBuffer,
+      )
+    ) {
       this.logger.warn('Invalid initData hash');
       throw new UnauthorizedException('Invalid initData');
     }
 
-    const authDate = Number(params.get('auth_date') || 0);
-    if (authDate && Date.now() / 1000 - authDate > 86400) throw new UnauthorizedException('initData expired');
+    const authDate =
+      Number(params.get('auth_date') || 0);
+
+    const now =
+      Math.floor(Date.now() / 1000);
+
+    if (
+      !Number.isFinite(authDate) ||
+      authDate <= 0 ||
+      authDate < now - 86400 ||
+      authDate > now + 300
+    ) {
+      throw new UnauthorizedException(
+        'initData expired or invalid',
+      );
+    }
 
     const userRaw = params.get('user');
     if (!userRaw) throw new UnauthorizedException('No user in initData');

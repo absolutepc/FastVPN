@@ -27,6 +27,7 @@ import {
   BonusType,
   PaymentStatus,
   PlanType,
+  Prisma,
   SubscriptionStatus,
 } from '@prisma/client';
 import { XrayService } from '../xray/xray.service';
@@ -1199,123 +1200,158 @@ export class WebappService {
   private async revokeTelegramBonus(
     claimId: string,
   ) {
-    const claim =
-      await this.prisma.bonusClaim.findUnique({
-        where: {
-          id: claimId,
-        },
+    let result:
+      | {
+          revoked: boolean;
+          subscriptionId: string | null;
+        }
+      | undefined;
 
-        include: {
-          subscription: true,
-        },
-      });
+    for (
+      let attempt = 1;
+      attempt <= 3;
+      attempt++
+    ) {
+      try {
+        result =
+          await this.prisma.$transaction(
+            async (tx) => {
+              /*
+               * Claim и актуальный expiresAt
+               * читаются внутри одной Serializable
+               * transaction.
+               */
+              const current =
+                await tx.bonusClaim.findUnique({
+                  where: {
+                    id: claimId,
+                  },
+                  include: {
+                    subscription: true,
+                  },
+                });
+
+              if (
+                !current ||
+                current.status !==
+                  BonusClaimStatus.PENDING
+              ) {
+                return {
+                  revoked: false,
+                  subscriptionId:
+                    current?.subscriptionId ||
+                    null,
+                };
+              }
+
+              const revokedExpiresAt =
+                new Date(
+                  current.subscription
+                    .expiresAt.getTime() -
+                  current.bonusDays *
+                    24 *
+                    60 *
+                    60 *
+                    1000,
+                );
+
+              await tx.subscription.update({
+                where: {
+                  id:
+                    current.subscriptionId,
+                },
+                data: {
+                  expiresAt:
+                    revokedExpiresAt,
+                },
+              });
+
+              await tx.bonusClaim.update({
+                where: {
+                  id:
+                    current.id,
+                },
+                data: {
+                  status:
+                    BonusClaimStatus.REVOKED,
+                  revokedAt:
+                    new Date(),
+                  syncPending:
+                    true,
+                },
+              });
+
+              await tx.notification.create({
+                data: {
+                  title:
+                    'Бонусные дни списаны',
+
+                  body:
+                    'Вы отписались от канала @fourstepsinfo в течение контрольных 7 дней. Поэтому бонусные 7 дней были списаны с вашей подписки.',
+
+                  isActive:
+                    true,
+
+                  recipientUserId:
+                    current.userId,
+                },
+              });
+
+              return {
+                revoked: true,
+                subscriptionId:
+                  current.subscriptionId,
+              };
+            },
+            {
+              isolationLevel:
+                Prisma
+                  .TransactionIsolationLevel
+                  .Serializable,
+            },
+          );
+
+        break;
+      } catch (error) {
+        const retryable =
+          error instanceof
+            Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+
+        if (
+          !retryable ||
+          attempt === 3
+        ) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Serializable bonus revoke conflict; retry ${attempt}/3`,
+        );
+      }
+    }
 
     if (
-      !claim ||
-      claim.status !==
-        BonusClaimStatus.PENDING
+      !result?.revoked ||
+      !result.subscriptionId
     ) {
       return;
     }
 
-    const currentExpiresAt =
-      claim.subscription.expiresAt;
-
-    const revokedExpiresAt =
-      new Date(
-        currentExpiresAt.getTime() -
-        claim.bonusDays *
-          24 *
-          60 *
-          60 *
-          1000,
-      );
-
     /*
-     * БД меняем атомарно:
-     * бонус снимается ровно один раз.
-     */
-    await this.prisma.$transaction(
-      async (tx) => {
-        const current =
-          await tx.bonusClaim.findUnique({
-            where: {
-              id: claim.id,
-            },
-          });
-
-        if (
-          !current ||
-          current.status !==
-            BonusClaimStatus.PENDING
-        ) {
-          return;
-        }
-
-        await tx.subscription.update({
-          where: {
-            id:
-              claim.subscriptionId,
-          },
-
-          data: {
-            expiresAt:
-              revokedExpiresAt,
-          },
-        });
-
-        await tx.bonusClaim.update({
-          where: {
-            id:
-              claim.id,
-          },
-
-          data: {
-            status:
-              BonusClaimStatus.REVOKED,
-
-            revokedAt:
-              new Date(),
-
-            syncPending:
-              true,
-          },
-        });
-
-        await tx.notification.create({
-          data: {
-            title:
-              'Бонусные дни списаны',
-
-            body:
-              'Вы отписались от канала @fourstepsinfo в течение контрольных 7 дней. Поэтому бонусные 7 дней были списаны с вашей подписки.',
-
-            isActive:
-              true,
-
-            recipientUserId:
-              claim.userId,
-          },
-        });
-      },
-    );
-
-    /*
-     * Обновляем срок H1Cloud уже по
-     * актуальному expiresAt в базе.
+     * H1Cloud синхронизируется уже после
+     * успешного commit БД.
      */
     try {
       await this.subscriptions
         .syncSubscriptionExpiry(
-          claim.subscriptionId,
+          result.subscriptionId,
         );
 
       await this.prisma.bonusClaim.update({
         where: {
-          id:
-            claim.id,
+          id: claimId,
         },
-
         data: {
           syncPending:
             false,
@@ -1323,7 +1359,7 @@ export class WebappService {
       });
     } catch (error) {
       this.logger.error(
-        `Bonus revoke sync failed: ${claim.id}: ${
+        `Bonus revoke sync failed: ${claimId}: ${
           error instanceof Error
             ? error.message
             : String(error)
@@ -1332,10 +1368,9 @@ export class WebappService {
     }
 
     this.logger.warn(
-      `Telegram bonus revoked: claim=${claim.id}`,
+      `Telegram bonus revoked: claim=${claimId}`,
     );
   }
-
 
   @Cron('*/5 * * * *')
   async checkTelegramChannelBonuses() {

@@ -6,7 +6,11 @@ import {
   type H1CloudNodeKey,
   H1CloudService,
 } from "../h1cloud/h1cloud.service";
-import { PlanType, SubscriptionStatus } from "@prisma/client";
+import {
+  PlanType,
+  Prisma,
+  SubscriptionStatus,
+} from "@prisma/client";
 import { randomUUID, randomBytes } from "crypto";
 
 const TRIAL_DAYS = 7;
@@ -21,6 +25,42 @@ export class SubscriptionsService {
     private readonly xray: XrayService,
     private readonly h1cloud: H1CloudService,
   ) {}
+
+  private async withSerializableRetry<T>(
+    operation: () => Promise<T>,
+    attempts = 3,
+  ): Promise<T> {
+    for (
+      let attempt = 1;
+      attempt <= attempts;
+      attempt++
+    ) {
+      try {
+        return await operation();
+      } catch (error) {
+        const retryable =
+          error instanceof
+            Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+
+        if (
+          !retryable ||
+          attempt === attempts
+        ) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Serializable subscription conflict; retry ${attempt}/${attempts}`,
+        );
+      }
+    }
+
+    throw new Error(
+      'SERIALIZABLE_SUBSCRIPTION_RETRY_EXHAUSTED',
+    );
+  }
+
 
   private readonly h1Nodes: ReadonlyArray<{
     key: H1CloudNodeKey;
@@ -401,36 +441,103 @@ export class SubscriptionsService {
     });
   }
 
-  async extendSubscription(subscriptionId: string, days: number) {
-    const sub = await this.prisma.subscription.findUniqueOrThrow({
-      where: { id: subscriptionId },
-    });
+  async extendSubscription(
+    subscriptionId: string,
+    days: number,
+  ) {
+    if (
+      !Number.isInteger(days) ||
+      days <= 0
+    ) {
+      throw new Error(
+        'INVALID_SUBSCRIPTION_EXTENSION_DAYS',
+      );
+    }
 
-    const wasExpired =
-      sub.expiresAt <= new Date() || sub.status === SubscriptionStatus.EXPIRED;
+    const result =
+      await this.withSerializableRetry(() =>
+        this.prisma.$transaction(
+          async (tx) => {
+            const sub =
+              await tx.subscription
+                .findUniqueOrThrow({
+                  where: {
+                    id: subscriptionId,
+                  },
+                });
 
-    const base = sub.expiresAt > new Date() ? sub.expiresAt : new Date();
-    const newExpires = new Date(base);
-    newExpires.setDate(newExpires.getDate() + days);
+            const now =
+              new Date();
 
-    const updated = await this.prisma.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        expiresAt: newExpires,
-        status: SubscriptionStatus.ACTIVE,
-        isTrial: false,
-      },
-    });
+            const wasExpired =
+              sub.expiresAt <= now ||
+              sub.status ===
+                SubscriptionStatus.EXPIRED;
 
-    if (wasExpired) {
+            const base =
+              sub.expiresAt > now
+                ? sub.expiresAt
+                : now;
+
+            const newExpires =
+              new Date(base);
+
+            newExpires.setDate(
+              newExpires.getDate() + days,
+            );
+
+            const updated =
+              await tx.subscription.update({
+                where: {
+                  id: subscriptionId,
+                },
+                data: {
+                  expiresAt:
+                    newExpires,
+                  status:
+                    SubscriptionStatus.ACTIVE,
+                  isTrial:
+                    false,
+                },
+              });
+
+            return {
+              subscription:
+                updated,
+              wasExpired,
+            };
+          },
+          {
+            isolationLevel:
+              Prisma.TransactionIsolationLevel
+                .Serializable,
+          },
+        ),
+      );
+
+    const updated =
+      result.subscription;
+
+    /*
+     * Внешние Xray/H1Cloud операции выполняем
+     * только после успешного commit БД.
+     */
+    if (result.wasExpired) {
       await this.xray.addUserToPlanNodes({
         uuid: updated.uuid,
         plan: updated.plan,
       });
     }
 
-    if (updated.plan === PlanType.STANDARD) {
-      await this.extendH1Cloud(updated.id, days, updated.expiresAt);
+    if (
+      updated.plan ===
+      PlanType.STANDARD
+    ) {
+      await this.extendH1Cloud(
+        updated.id,
+        days,
+        updated.expiresAt,
+      );
     }
 
     return updated;

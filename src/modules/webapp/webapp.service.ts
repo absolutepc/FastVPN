@@ -1497,6 +1497,12 @@ export class WebappService {
     const user =
       await this.findOrCreateFromTelegram(tg);
 
+    if (user.isBlocked) {
+      throw new ForbiddenException(
+        'Access denied',
+      );
+    }
+
     const code =
       String(codeRaw || '')
         .trim()
@@ -1511,249 +1517,531 @@ export class WebappService {
       );
     }
 
-    const now =
-      new Date();
+    /*
+     * PREMIUM capacity — внешний Xray check,
+     * поэтому его нельзя помещать внутрь
+     * DB transaction.
+     *
+     * Это только preflight. Все promo-лимиты
+     * повторно проверяются уже атомарно ниже.
+     */
+    const promoPreview =
+      await this.prisma.promoCode.findUnique({
+        where: {
+          code,
+        },
+        select: {
+          plan: true,
+        },
+      });
 
-    let reserved:
+    if (
+      promoPreview?.plan ===
+      PlanType.PREMIUM
+    ) {
+      const now =
+        new Date();
+
+      const activePremium =
+        await this.prisma.subscription
+          .findFirst({
+            where: {
+              userId:
+                user.id,
+
+              plan:
+                PlanType.PREMIUM,
+
+              status: {
+                in: [
+                  SubscriptionStatus.ACTIVE,
+                  SubscriptionStatus.TRIAL,
+                ],
+              },
+
+              expiresAt: {
+                gt: now,
+              },
+            },
+          });
+
+      /*
+       * Для продления уже существующей PREMIUM
+       * capacity check не требуется — так же,
+       * как работала предыдущая реализация.
+       */
+      if (!activePremium) {
+        const can =
+          await this.xray
+            .canAcceptPremium();
+
+        if (!can) {
+          throw new Error(
+            'PREMIUM_FULL',
+          );
+        }
+      }
+    }
+
+    let applied:
       | {
-          redemptionId: string;
           promoId: string;
           plan: PlanType;
           days: number;
+          mode:
+            | 'CREATED'
+            | 'RESTORED'
+            | 'EXTENDED';
+          subscription: {
+            id: string;
+            plan: PlanType;
+            status: SubscriptionStatus;
+            expiresAt: Date;
+          };
         }
       | undefined;
 
-    try {
-      reserved =
-        await this.prisma.$transaction(
-          async (tx) => {
-            const promo =
-              await tx.promoCode.findUnique({
-                where: {
-                  code,
-                },
-              });
+    for (
+      let attempt = 1;
+      attempt <= 3;
+      attempt++
+    ) {
+      try {
+        applied =
+          await this.prisma.$transaction(
+            async (tx) => {
+              const now =
+                new Date();
 
-            if (promo === null) {
-              throw new BadRequestException(
-                'Promo code not found',
-              );
-            }
+              const promo =
+                await tx.promoCode
+                  .findUnique({
+                    where: {
+                      code,
+                    },
+                  });
 
-            if (promo.isActive === false) {
-              throw new BadRequestException(
-                'Promo code is disabled',
-              );
-            }
+              if (!promo) {
+                throw new BadRequestException(
+                  'Promo code not found',
+                );
+              }
 
-            if (
-              promo.validUntil !== null &&
-              promo.validUntil <= now
-            ) {
-              throw new BadRequestException(
-                'Promo code has expired',
-              );
-            }
+              if (!promo.isActive) {
+                throw new BadRequestException(
+                  'Promo code is disabled',
+                );
+              }
 
-            if (
-              promo.maxUses !== null &&
-              promo.usedCount >= promo.maxUses
-            ) {
-              throw new BadRequestException(
-                'Promo code usage limit reached',
-              );
-            }
+              if (
+                promo.validUntil &&
+                promo.validUntil <= now
+              ) {
+                throw new BadRequestException(
+                  'Promo code has expired',
+                );
+              }
 
-            const userUses =
-              await tx.promoRedemption.count({
-                where: {
-                  promoCodeId: promo.id,
-                  userId: user.id,
-                },
-              });
+              if (
+                promo.maxUses !== null &&
+                promo.usedCount >=
+                  promo.maxUses
+              ) {
+                throw new BadRequestException(
+                  'Promo code usage limit reached',
+                );
+              }
 
-            if (
-              userUses >= promo.perUserLimit
-            ) {
-              throw new BadRequestException(
-                'Promo code user limit reached',
-              );
-            }
+              const userUses =
+                await tx.promoRedemption
+                  .count({
+                    where: {
+                      promoCodeId:
+                        promo.id,
+                      userId:
+                        user.id,
+                    },
+                  });
 
-            const redemption =
-              await tx.promoRedemption.create({
-                data: {
-                  promoCodeId: promo.id,
-                  userId: user.id,
-                  plan: promo.plan,
-                  days: promo.days,
-                },
-              });
+              if (
+                userUses >=
+                promo.perUserLimit
+              ) {
+                throw new BadRequestException(
+                  'Promo code user limit reached',
+                );
+              }
 
-            const updated =
-              await tx.promoCode.updateMany({
-                where: {
-                  id: promo.id,
-                  usedCount: promo.usedCount,
-                },
-                data: {
-                  usedCount: {
-                    increment: 1,
+              /*
+               * Сначала определяем, куда именно
+               * будут начислены дни.
+               *
+               * Всё ниже происходит в ТОЙ ЖЕ
+               * Serializable transaction, что и
+               * PromoRedemption + usedCount.
+               */
+              const active =
+                await tx.subscription
+                  .findFirst({
+                    where: {
+                      userId:
+                        user.id,
+
+                      plan:
+                        promo.plan,
+
+                      status: {
+                        in: [
+                          SubscriptionStatus.ACTIVE,
+                          SubscriptionStatus.TRIAL,
+                        ],
+                      },
+
+                      expiresAt: {
+                        gt: now,
+                      },
+                    },
+
+                    orderBy: {
+                      expiresAt:
+                        'desc',
+                    },
+                  });
+
+              let subscription;
+              let mode:
+                | 'CREATED'
+                | 'RESTORED'
+                | 'EXTENDED';
+
+              if (active) {
+                const newExpires =
+                  new Date(
+                    active.expiresAt,
+                  );
+
+                newExpires.setDate(
+                  newExpires.getDate() +
+                    promo.days,
+                );
+
+                subscription =
+                  await tx.subscription
+                    .update({
+                      where: {
+                        id:
+                          active.id,
+                      },
+
+                      data: {
+                        expiresAt:
+                          newExpires,
+
+                        status:
+                          SubscriptionStatus.ACTIVE,
+
+                        isTrial:
+                          false,
+                      },
+                    });
+
+                mode =
+                  'EXTENDED';
+              } else {
+                const expired =
+                  await tx.subscription
+                    .findFirst({
+                      where: {
+                        userId:
+                          user.id,
+
+                        plan:
+                          promo.plan,
+
+                        status:
+                          SubscriptionStatus.EXPIRED,
+                      },
+
+                      orderBy: {
+                        createdAt:
+                          'desc',
+                      },
+                    });
+
+                const expiresAt =
+                  new Date(now);
+
+                expiresAt.setDate(
+                  expiresAt.getDate() +
+                    promo.days,
+                );
+
+                if (expired) {
+                  subscription =
+                    await tx.subscription
+                      .update({
+                        where: {
+                          id:
+                            expired.id,
+                        },
+
+                        data: {
+                          startsAt:
+                            now,
+
+                          expiresAt,
+
+                          status:
+                            SubscriptionStatus.ACTIVE,
+
+                          isTrial:
+                            false,
+                        },
+                      });
+
+                  mode =
+                    'RESTORED';
+                } else {
+                  subscription =
+                    await tx.subscription
+                      .create({
+                        data: {
+                          userId:
+                            user.id,
+
+                          plan:
+                            promo.plan,
+
+                          status:
+                            SubscriptionStatus.ACTIVE,
+
+                          uuid:
+                            randomUUID(),
+
+                          subToken:
+                            randomBytes(24)
+                              .toString(
+                                'hex',
+                              ),
+
+                          startsAt:
+                            now,
+
+                          expiresAt,
+
+                          isTrial:
+                            false,
+                        },
+                      });
+
+                  mode =
+                    'CREATED';
+                }
+              }
+
+              /*
+               * Факт использования промокода
+               * записывается в той же transaction,
+               * что и изменение подписки.
+               */
+              await tx.promoRedemption
+                .create({
+                  data: {
+                    promoCodeId:
+                      promo.id,
+
+                    userId:
+                      user.id,
+
+                    plan:
+                      promo.plan,
+
+                    days:
+                      promo.days,
                   },
+                });
+
+              /*
+               * CAS защищает maxUses при
+               * конкурентных активациях.
+               */
+              const updatedPromo =
+                await tx.promoCode
+                  .updateMany({
+                    where: {
+                      id:
+                        promo.id,
+
+                      usedCount:
+                        promo.usedCount,
+                    },
+
+                    data: {
+                      usedCount: {
+                        increment:
+                          1,
+                      },
+                    },
+                  });
+
+              if (
+                updatedPromo.count !== 1
+              ) {
+                throw new Error(
+                  'PROMO_CONCURRENT_UPDATE',
+                );
+              }
+
+              return {
+                promoId:
+                  promo.id,
+
+                plan:
+                  promo.plan,
+
+                days:
+                  promo.days,
+
+                mode,
+
+                subscription: {
+                  id:
+                    subscription.id,
+
+                  plan:
+                    subscription.plan,
+
+                  status:
+                    subscription.status,
+
+                  expiresAt:
+                    subscription.expiresAt,
                 },
-              });
+              };
+            },
+            {
+              isolationLevel:
+                Prisma
+                  .TransactionIsolationLevel
+                  .Serializable,
+            },
+          );
 
-            if (updated.count !== 1) {
-              throw new Error(
-                'PROMO_CONCURRENT_UPDATE',
-              );
-            }
+        break;
+      } catch (error) {
+        if (
+          error instanceof
+          BadRequestException
+        ) {
+          throw error;
+        }
 
-            return {
-              redemptionId:
-                redemption.id,
-              promoId:
-                promo.id,
-              plan:
-                promo.plan,
-              days:
-                promo.days,
-            };
-          },
-          {
-            isolationLevel:
-              'Serializable',
-          },
-        );
-    } catch (error) {
-      if (
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
+        const retryable =
+          (
+            error instanceof
+              Prisma
+                .PrismaClientKnownRequestError &&
+            error.code === 'P2034'
+          ) ||
+          (
+            error instanceof Error &&
+            error.message ===
+              'PROMO_CONCURRENT_UPDATE'
+          );
 
-      const prismaCode =
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error
-          ? String(
-              (error as {
-                code?: unknown;
-              }).code || '',
-            )
-          : '';
+        if (
+          !retryable ||
+          attempt === 3
+        ) {
+          if (retryable) {
+            throw new BadRequestException(
+              'Promo code is busy, try again',
+            );
+          }
 
-      const message =
-        error instanceof Error
-          ? error.message
-          : String(error);
+          throw error;
+        }
 
-      if (
-        prismaCode === 'P2034' ||
-        message ===
-          'PROMO_CONCURRENT_UPDATE'
-      ) {
-        throw new BadRequestException(
-          'Promo code is busy, try again',
+        this.logger.warn(
+          `Serializable promo transaction conflict; retry ${attempt}/3`,
         );
       }
-
-      throw error;
     }
 
-    if (reserved === undefined) {
+    if (!applied) {
       throw new BadRequestException(
         'Promo activation failed',
       );
     }
 
+    /*
+     * На этом этапе DB commit уже содержит:
+     *
+     * - PromoRedemption
+     * - promo.usedCount +1
+     * - фактически начисленные дни
+     *
+     * Поэтому сбой/рестарт процесса больше не
+     * может оставить "использованный" промокод
+     * без подписки.
+     *
+     * Xray/H1Cloud — post-commit sync.
+     */
     try {
-      const active =
-        await this.subscriptions
-          .getActiveSubscription(
-            user.id,
-          );
-
-      let subscription;
-
-      if (
-        active !== null &&
-        active.plan === reserved.plan
-      ) {
-        subscription =
-          await this.subscriptions
-            .extendSubscription(
-              active.id,
-              reserved.days,
-            );
-      } else {
-        subscription =
-          await this.subscriptions
-            .createSubscription({
-              userId: user.id,
-              plan: reserved.plan,
-              days: reserved.days,
-              isTrial: false,
-            });
-      }
-
-      return {
-        ok: true,
-        promo: {
-          code,
-          plan:
-            reserved.plan,
-          days:
-            reserved.days,
-        },
-        subscription: {
-          id:
-            subscription.id,
-          plan:
-            subscription.plan,
-          status:
-            subscription.status,
-          expiresAt:
-            subscription.expiresAt
-              .toISOString(),
-        },
-      };
+      await this.subscriptions
+        .syncPaymentSubscription(
+          applied.subscription.id,
+          applied.days,
+          applied.mode,
+        );
     } catch (error) {
-      await this.prisma.$transaction(
-        async (tx) => {
-          const removed =
-            await tx.promoRedemption
-              .deleteMany({
-                where: {
-                  id:
-                    reserved.redemptionId,
-                  promoCodeId:
-                    reserved.promoId,
-                  userId:
-                    user.id,
-                },
-              });
-
-          if (removed.count === 1) {
-            await tx.promoCode.update({
-              where: {
-                id:
-                  reserved.promoId,
-              },
-              data: {
-                usedCount: {
-                  decrement: 1,
-                },
-              },
-            });
-          }
-        },
+      /*
+       * DB entitlement уже применён.
+       * Не откатываем его из-за временной
+       * ошибки внешнего VPN backend.
+       *
+       * Xray/H1Cloud recovery/reconcile
+       * восстановят состояние из БД.
+       */
+      this.logger.error(
+        `Promo subscription sync failed: promo=${code} subscription=${applied.subscription.id}: ${
+          error instanceof Error
+            ? error.message
+            : String(error)
+        }`,
       );
-
-      throw error;
     }
-  }
 
+    return {
+      ok: true,
+
+      promo: {
+        code,
+
+        plan:
+          applied.plan,
+
+        days:
+          applied.days,
+      },
+
+      subscription: {
+        id:
+          applied.subscription.id,
+
+        plan:
+          applied.subscription.plan,
+
+        status:
+          applied.subscription.status,
+
+        expiresAt:
+          applied.subscription
+            .expiresAt
+            .toISOString(),
+      },
+    };
+  }
 
   async getAdminPromoRedemptions(
     initData: string,

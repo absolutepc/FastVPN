@@ -817,6 +817,151 @@ const inbound =
     return { total, ok, fail };
   }
 
+
+  async reconcileH1CloudExpiries() {
+    let total = 0;
+    let synced = 0;
+    let missing = 0;
+    let ok = 0;
+    let fail = 0;
+
+    const subscriptions =
+      await this.prisma.subscription.findMany({
+        where: {
+          plan: PlanType.STANDARD,
+          status: {
+            in: [
+              SubscriptionStatus.ACTIVE,
+              SubscriptionStatus.TRIAL,
+            ],
+          },
+          expiresAt: {
+            gt: new Date(),
+          },
+          user: {
+            isBlocked: false,
+          },
+        },
+        select: {
+          id: true,
+          expiresAt: true,
+        },
+      });
+
+    for (const node of this.getConfiguredH1Nodes()) {
+      let remoteClients: H1Client[];
+
+      try {
+        remoteClients =
+          await this.h1cloud.getClients(node.key);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
+        this.logger.warn(
+          `H1Cloud expiry reconcile skipped for ${node.key}: ${message}`,
+        );
+
+        continue;
+      }
+
+      const byName = new Map(
+        remoteClients.map((client) => [
+          client.name,
+          client,
+        ]),
+      );
+
+      for (const sub of subscriptions) {
+        total++;
+
+        const name = `sub_${sub.id}`;
+        const remote = byName.get(name);
+
+        if (!remote) {
+          missing++;
+
+          /*
+           * Отсутствующих клиентов создаёт отдельный
+           * recoverMissingH1CloudClients().
+           */
+          continue;
+        }
+
+        const localExpires =
+          Math.floor(sub.expiresAt.getTime() / 1000);
+
+        const remoteExpires =
+          Number(remote.expires_at || 0);
+
+        /*
+         * H1Cloud работает целыми днями и может
+         * иметь небольшой запас из-за Math.ceil().
+         *
+         * Поэтому синхронизируем только если
+         * удалённый срок реально отстаёт более чем
+         * на один час.
+         */
+        const driftSeconds =
+          localExpires - remoteExpires;
+
+        if (driftSeconds <= 3600) {
+          ok++;
+          continue;
+        }
+
+        const days =
+          Math.max(
+            1,
+            Math.ceil(driftSeconds / 86400),
+          );
+
+        try {
+          const client =
+            await this.h1cloud.extendForSubscription(
+              sub.id,
+              days,
+              node.key,
+              this.getRemainingDays(sub.expiresAt),
+            );
+
+          await this.saveH1CloudClient(
+            node.key,
+            sub.id,
+            client,
+          );
+
+          synced++;
+
+          this.logger.log(
+            `H1Cloud expiry reconciled for ${node.key} subscription ${sub.id}: +${days} day(s)`,
+          );
+        } catch (error) {
+          fail++;
+
+          const message =
+            error instanceof Error
+              ? error.message
+              : String(error);
+
+          this.logger.error(
+            `H1Cloud expiry reconcile failed for ${node.key} subscription ${sub.id}: ${message}`,
+          );
+        }
+      }
+    }
+
+    return {
+      total,
+      ok,
+      synced,
+      missing,
+      fail,
+    };
+  }
+
   async buildSubscriptionLinks(sub: {
     id?: string;
     uuid: string;

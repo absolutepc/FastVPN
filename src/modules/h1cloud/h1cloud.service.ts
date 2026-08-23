@@ -155,35 +155,62 @@ export class H1CloudService {
   ): Promise<T> {
     const node = this.getNode(nodeKey);
 
-    const response = await fetch(`${node.baseUrl}${path}`, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${node.token}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        ...(init.headers || {}),
-      },
-    });
+    const controller = new AbortController();
+    const timeoutMs = 5000;
 
-    const text = await response.text();
-
-    let data: unknown;
+    const timer = setTimeout(
+      () => controller.abort(),
+      timeoutMs,
+    );
 
     try {
-      data = text ? JSON.parse(text) : {};
-    } catch {
-      throw new Error(
-        `H1Cloud ${nodeKey} invalid JSON: HTTP ${response.status}`,
+      const response = await fetch(
+        `${node.baseUrl}${path}`,
+        {
+          ...init,
+          signal: init.signal || controller.signal,
+          headers: {
+            Authorization: `Bearer ${node.token}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            ...(init.headers || {}),
+          },
+        },
       );
-    }
 
-    if (!response.ok) {
-      throw new Error(
-        `H1Cloud ${nodeKey} HTTP ${response.status}: ${JSON.stringify(data)}`,
-      );
-    }
+      const text = await response.text();
 
-    return data as T;
+      let data: unknown;
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(
+          `H1Cloud ${nodeKey} invalid JSON: HTTP ${response.status}`,
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `H1Cloud ${nodeKey} HTTP ${response.status}: ${JSON.stringify(data)}`,
+        );
+      }
+
+      return data as T;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.name === 'AbortError'
+      ) {
+        throw new Error(
+          `H1Cloud ${nodeKey} request timeout after ${timeoutMs}ms`,
+        );
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async status(nodeKey: H1CloudNodeKey = 'FI1'): Promise<H1Status> {

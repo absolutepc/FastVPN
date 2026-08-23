@@ -9,6 +9,7 @@ export class SubscriptionsCron {
   private readonly logger = new Logger(SubscriptionsCron.name);
   private recoveryRunning = false;
   private h1RecoveryRunning = false;
+  private h1ExpiryReconcileRunning = false;
 
   constructor(
     private readonly subscriptions: SubscriptionsService,
@@ -103,4 +104,36 @@ export class SubscriptionsCron {
       this.h1RecoveryRunning = false;
     }
   }
+
+  /** Синхронизируем отставшие сроки H1Cloud */
+  @Cron('*/2 * * * *')
+  async reconcileH1CloudExpiries() {
+    if (this.h1ExpiryReconcileRunning) return;
+
+    this.h1ExpiryReconcileRunning = true;
+
+    try {
+      const result =
+        await this.subscriptions.reconcileH1CloudExpiries();
+
+      if (
+        result.synced > 0 ||
+        result.fail > 0
+      ) {
+        this.logger.log(
+          `H1Cloud expiry reconcile: total=${result.total} ok=${result.ok} synced=${result.synced} missing=${result.missing} fail=${result.fail}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        'H1Cloud expiry reconcile failed',
+        error instanceof Error
+          ? error.message
+          : error,
+      );
+    } finally {
+      this.h1ExpiryReconcileRunning = false;
+    }
+  }
+
 }

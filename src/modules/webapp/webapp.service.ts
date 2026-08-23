@@ -1560,6 +1560,52 @@ export class WebappService {
     );
   }
 
+  private subscriptionStateSyncRunning =
+    false;
+
+  /*
+   * Durable recovery для операций, которые
+   * уже committed в БД, но не успели
+   * синхронизировать Xray/H1Cloud.
+   */
+  @Cron('*/2 * * * *')
+  async syncPendingSubscriptionStates() {
+    if (
+      this.subscriptionStateSyncRunning
+    ) {
+      return;
+    }
+
+    this.subscriptionStateSyncRunning =
+      true;
+
+    try {
+      const result =
+        await this.subscriptions
+          .syncPendingSubscriptionStates();
+
+      if (
+        result.total > 0
+      ) {
+        this.logger.log(
+          `Subscription state recovery: total=${result.total} ok=${result.ok} fail=${result.fail}`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Subscription state recovery failed: ${
+          error instanceof Error
+            ? error.message
+            : String(error)
+        }`,
+      );
+    } finally {
+      this.subscriptionStateSyncRunning =
+        false;
+    }
+  }
+
+
   @Cron('*/5 * * * *')
   async checkTelegramChannelBonuses() {
     const claims =

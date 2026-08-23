@@ -124,6 +124,7 @@ model Subscription {
   startsAt       DateTime           @default(now())
   expiresAt      DateTime
   isTrial        Boolean            @default(false)
+  vpnSyncPending Boolean            @default(false)
   device         Device?
   h1CloudClients H1CloudClient[]
   bonusClaims    BonusClaim[]
@@ -132,6 +133,7 @@ model Subscription {
 
   @@index([userId])
   @@index([status, expiresAt])
+  @@index([vpnSyncPending])
   @@map("subscriptions")
 }
 

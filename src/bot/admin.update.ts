@@ -853,86 +853,269 @@ private countryFlag(name: string): string {
     }
   }
 
-  private async handleBlock(ctx: BotContext, text: string, block: boolean) {
-    const tgId = text.replace(/\D/g, '');
-    if (!tgId) return ctx.reply('Некорректный telegram_id');
+  private async handleBlock(
+    ctx: BotContext,
+    text: string,
+    block: boolean,
+  ) {
+    const tgId =
+      text.replace(/\D/g, '');
 
-    const user = await this.prisma.user.findUnique({
-      where: { telegramId: BigInt(tgId) },
-    });
-    if (!user) return ctx.reply('Пользователь не найден');
+    if (!tgId) {
+      return ctx.reply(
+        'Некорректный telegram_id',
+      );
+    }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { isBlocked: block },
-    });
+    const user =
+      await this.prisma.user.findUnique({
+        where: {
+          telegramId:
+            BigInt(tgId),
+        },
+      });
+
+    if (!user) {
+      return ctx.reply(
+        'Пользователь не найден',
+      );
+    }
+
+    let affectedSubscriptionIds:
+      string[] = [];
 
     if (block) {
-  const subs = await this.prisma.subscription.findMany({
-    where: {
-      userId: user.id,
-      status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
-    },
-  });
+      /*
+       * Сначала фиксируем источник истины
+       * в БД: пользователь заблокирован,
+       * все живые подписки CANCELLED.
+       */
+      affectedSubscriptionIds =
+        await this.prisma.$transaction(
+          async (tx) => {
+            await tx.user.update({
+              where: {
+                id:
+                  user.id,
+              },
 
-  await this.prisma.subscription.updateMany({
-    where: {
-      userId: user.id,
-      status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
-    },
-    data: { status: SubscriptionStatus.CANCELLED },
-  });
+              data: {
+                isBlocked:
+                  true,
+              },
+            });
 
-  for (const sub of subs) {
-    await this.xray.removeUserFromPlanNodes({
-      uuid: sub.uuid,
-      plan: sub.plan,
-    });
-  }
-} else {
-  const cancelled = await this.prisma.subscription.findFirst({
-    where: {
-      userId: user.id,
-      status: SubscriptionStatus.CANCELLED,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: {
-      updatedAt: 'desc',
-    },
-  });
+            const subscriptions =
+              await tx.subscription.findMany({
+                where: {
+                  userId:
+                    user.id,
 
-  if (cancelled) {
-    const restoredStatus = cancelled.isTrial
-      ? SubscriptionStatus.TRIAL
-      : SubscriptionStatus.ACTIVE;
+                  status: {
+                    in: [
+                      SubscriptionStatus.ACTIVE,
+                      SubscriptionStatus.TRIAL,
+                    ],
+                  },
+                },
 
-    const restored = await this.prisma.subscription.update({
-      where: { id: cancelled.id },
-      data: {
-        status: restoredStatus,
-      },
-    });
+                select: {
+                  id:
+                    true,
+                },
+              });
 
-    await this.xray.addUserToPlanNodes({
-      uuid: restored.uuid,
-      plan: restored.plan,
-    });
-  }
-}
+            if (
+              subscriptions.length > 0
+            ) {
+              await tx.subscription.updateMany({
+                where: {
+                  id: {
+                    in:
+                      subscriptions.map(
+                        subscription =>
+                          subscription.id,
+                      ),
+                  },
+                },
 
-    this.botService.clearAdminSession(ctx);
+                data: {
+                  status:
+                    SubscriptionStatus.CANCELLED,
+
+                  vpnSyncPending:
+                    true,
+                },
+              });
+            }
+
+            return subscriptions.map(
+              subscription =>
+                subscription.id,
+            );
+          },
+        );
+    } else {
+      /*
+       * Разблокировка:
+       * возвращаем последнюю ещё не истёкшую
+       * CANCELLED подписку в её прежний
+       * ACTIVE/TRIAL статус.
+       */
+      const restoredId =
+        await this.prisma.$transaction(
+          async (tx) => {
+            await tx.user.update({
+              where: {
+                id:
+                  user.id,
+              },
+
+              data: {
+                isBlocked:
+                  false,
+              },
+            });
+
+            const cancelled =
+              await tx.subscription.findFirst({
+                where: {
+                  userId:
+                    user.id,
+
+                  status:
+                    SubscriptionStatus.CANCELLED,
+
+                  expiresAt: {
+                    gt:
+                      new Date(),
+                  },
+                },
+
+                orderBy: {
+                  updatedAt:
+                    'desc',
+                },
+              });
+
+            if (!cancelled) {
+              return null;
+            }
+
+            const restoredStatus =
+              cancelled.isTrial
+                ? SubscriptionStatus.TRIAL
+                : SubscriptionStatus.ACTIVE;
+
+            const restored =
+              await tx.subscription.update({
+                where: {
+                  id:
+                    cancelled.id,
+                },
+
+                data: {
+                  status:
+                    restoredStatus,
+
+                  vpnSyncPending:
+                    true,
+                },
+              });
+
+            return restored.id;
+          },
+        );
+
+      if (restoredId) {
+        affectedSubscriptionIds = [
+          restoredId,
+        ];
+      }
+    }
+
+    /*
+     * Внешние backend'ы синхронизируем
+     * только после успешного DB commit.
+     *
+     * syncSubscriptionState() сам приводит:
+     * - Xray
+     * - H1Cloud
+     *
+     * к абсолютному состоянию подписки
+     * в БД.
+     */
+    let syncFailed = 0;
+
+    for (
+      const subscriptionId of
+      affectedSubscriptionIds
+    ) {
+      try {
+        await this.subscriptions
+          .syncSubscriptionState(
+            subscriptionId,
+          );
+
+        await this.prisma.subscription
+          .updateMany({
+            where: {
+              id:
+                subscriptionId,
+
+              vpnSyncPending:
+                true,
+            },
+
+            data: {
+              vpnSyncPending:
+                false,
+            },
+          });
+      } catch (error) {
+        syncFailed++;
+
+        this.logger.error(
+          `Blocked user subscription sync failed: user=${user.id} subscription=${subscriptionId}: ${
+            error instanceof Error
+              ? error.message
+              : String(error)
+          }`,
+        );
+      }
+    }
+
+    this.botService
+      .clearAdminSession(ctx);
+
+    if (syncFailed > 0) {
+      return ctx.reply(
+        block
+          ? `⚠️ <code>${tgId}</code> заблокирован в БД, но ${syncFailed} подписк(и) требуют повторной синхронизации VPN.`
+          : `⚠️ <code>${tgId}</code> разблокирован в БД, но синхронизация VPN требует повторной попытки.`,
+        {
+          parse_mode:
+            'HTML',
+
+          reply_markup:
+            this.manageKeyboard(),
+        },
+      );
+    }
 
     return ctx.reply(
       block
         ? `🚫 <code>${tgId}</code> заблокирован, доступ с нод снят.`
         : `✅ <code>${tgId}</code> разблокирован.`,
       {
-        parse_mode: 'HTML',
-        reply_markup: this.manageKeyboard(),
+        parse_mode:
+          'HTML',
+
+        reply_markup:
+          this.manageKeyboard(),
       },
     );
   }
-
   private async handlePromo(ctx: BotContext, text: string) {
     const parts = text.trim().split(/\s+/);
 

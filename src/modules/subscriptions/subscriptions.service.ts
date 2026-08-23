@@ -657,6 +657,78 @@ export class SubscriptionsService {
   }
 
 
+  async syncPendingSubscriptionStates(
+    limit = 50,
+  ) {
+    const subscriptions =
+      await this.prisma.subscription.findMany({
+        where: {
+          vpnSyncPending:
+            true,
+        },
+
+        orderBy: {
+          updatedAt:
+            'asc',
+        },
+
+        take:
+          limit,
+      });
+
+    let ok = 0;
+    let fail = 0;
+
+    for (
+      const subscription of
+      subscriptions
+    ) {
+      try {
+        await this.syncSubscriptionState(
+          subscription.id,
+        );
+
+        await this.prisma.subscription
+          .updateMany({
+            where: {
+              id:
+                subscription.id,
+
+              vpnSyncPending:
+                true,
+            },
+
+            data: {
+              vpnSyncPending:
+                false,
+            },
+          });
+
+        ok++;
+      } catch (error) {
+        fail++;
+
+        this.logger.warn(
+          `Subscription state sync retry failed ${subscription.id}: ${
+            error instanceof Error
+              ? error.message
+              : String(error)
+          }`,
+        );
+      }
+    }
+
+    return {
+      total:
+        subscriptions.length,
+
+      ok,
+      fail,
+    };
+  }
+
+
+
   async syncReferralReward(
     rewardId: string,
   ) {

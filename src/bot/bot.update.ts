@@ -574,7 +574,17 @@ export class BotUpdate implements OnModuleInit {
           return ctx.editMessageText('❌ Эта заявка уже отклонена.');
         }
 
-        await this.payments.approveManualPayment(paymentId, String(ctx.from!.id));
+        const approval =
+          await this.payments.approveManualPayment(
+            paymentId,
+            String(ctx.from!.id),
+          );
+
+        if (!approval.applied) {
+          return ctx.editMessageText(
+            '✅ Эта заявка уже была подтверждена.',
+          );
+        }
 
         const sub = await this.botService.getActiveSubscription(payment.userId);
         const appUrl = (this.config.get<string>('APP_URL') || '').replace(/\/$/, '');
@@ -628,14 +638,26 @@ export class BotUpdate implements OnModuleInit {
           return ctx.editMessageText('✅ Эта заявка уже подтверждена.');
         }
 
-        await this.botService.prismaService.payment.update({
-          where: { id: paymentId },
-          data: {
-            status: PaymentStatus.CANCELLED,
-            reviewedAt: new Date(),
-            reviewedBy: String(ctx.from!.id),
-          },
-        });
+        const rejection =
+          await this.payments.rejectManualPayment(
+            paymentId,
+            String(ctx.from!.id),
+          );
+
+        if (!rejection.rejected) {
+          if (
+            rejection.payment.status ===
+            PaymentStatus.SUCCEEDED
+          ) {
+            return ctx.editMessageText(
+              '✅ Эта заявка уже подтверждена.',
+            );
+          }
+
+          return ctx.editMessageText(
+            '❌ Эта заявка уже была обработана.',
+          );
+        }
 
         try {
           await bot.api.sendMessage(

@@ -2,8 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { PlanType, PaymentStatus } from '@prisma/client';
-import { randomUUID } from 'crypto';
+import {
+  PlanType,
+  PaymentStatus,
+  Prisma,
+  SubscriptionStatus,
+} from '@prisma/client';
+import { randomBytes, randomUUID } from 'crypto';
 
 const PLAN_PRICES: Record<PlanType, number> = {
   STANDARD: 30000,
@@ -28,6 +33,38 @@ export class PaymentsService {
     this.secretKey = this.config.get<string>('YOOKASSA_SECRET_KEY') || '';
     this.returnUrl =
       this.config.get<string>('YOOKASSA_RETURN_URL') || 'https://t.me/';
+  }
+
+  private async withSerializableRetry<T>(
+    operation: () => Promise<T>,
+    attempts = 3,
+  ): Promise<T> {
+    for (
+      let attempt = 1;
+      attempt <= attempts;
+      attempt++
+    ) {
+      try {
+        return await operation();
+      } catch (error) {
+        const retryable =
+          error instanceof
+            Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034';
+
+        if (!retryable || attempt === attempts) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Serializable payment transaction conflict; retry ${attempt}/${attempts}`,
+        );
+      }
+    }
+
+    throw new Error(
+      'SERIALIZABLE_PAYMENT_RETRY_EXHAUSTED',
+    );
   }
 
   getPrice(plan: PlanType): number {
@@ -200,7 +237,10 @@ export class PaymentsService {
   });
 }
 
-async approveManualPayment(paymentId: string, adminTelegramId: string) {
+async rejectManualPayment(
+  paymentId: string,
+  adminTelegramId: string,
+) {
   const payment = await this.prisma.payment.findUnique({
     where: { id: paymentId },
   });
@@ -209,34 +249,315 @@ async approveManualPayment(paymentId: string, adminTelegramId: string) {
     throw new Error('PAYMENT_NOT_FOUND');
   }
 
-  if (payment.status === PaymentStatus.SUCCEEDED) {
-    return payment;
+  if (
+    payment.paymentProvider !== 'MANUAL' ||
+    payment.paymentMethod !== 'MANUAL_SBP'
+  ) {
+    throw new Error('PAYMENT_NOT_MANUAL');
   }
 
-  const updated = await this.prisma.payment.update({
-    where: { id: paymentId },
-    data: {
-      status: PaymentStatus.SUCCEEDED,
-      reviewedAt: new Date(),
-      reviewedBy: adminTelegramId,
-    },
-  });
-
-  const active = await this.subscriptions.getActiveSubscription(payment.userId);
-
-  if (active && active.plan === payment.plan) {
-    await this.subscriptions.extendSubscription(active.id, PLAN_DAYS);
-  } else {
-    await this.subscriptions.createSubscription({
-      userId: payment.userId,
-      plan: payment.plan,
-      days: PLAN_DAYS,
-      isTrial: false,
+  const rejected =
+    await this.prisma.payment.updateMany({
+      where: {
+        id: paymentId,
+        status: PaymentStatus.PENDING,
+        appliedAt: null,
+        paymentProvider: 'MANUAL',
+        paymentMethod: 'MANUAL_SBP',
+      },
+      data: {
+        status: PaymentStatus.CANCELLED,
+        reviewedAt: new Date(),
+        reviewedBy: adminTelegramId,
+      },
     });
+
+  if (rejected.count === 1) {
+    const updated =
+      await this.prisma.payment.findUniqueOrThrow({
+        where: { id: paymentId },
+      });
+
+    this.logger.log(
+      `Manual payment ${paymentId} rejected`,
+    );
+
+    return {
+      payment: updated,
+      rejected: true,
+    };
   }
 
-  this.logger.log(`Manual payment ${paymentId} approved`);
+  const current =
+    await this.prisma.payment.findUniqueOrThrow({
+      where: { id: paymentId },
+    });
 
-  return updated;
+  return {
+    payment: current,
+    rejected: false,
+  };
+}
+
+async approveManualPayment(
+  paymentId: string,
+  adminTelegramId: string,
+) {
+  const result =
+    await this.withSerializableRetry(() =>
+      this.prisma.$transaction(
+    async (tx) => {
+      const payment = await tx.payment.findUnique({
+        where: { id: paymentId },
+      });
+
+      if (!payment) {
+        throw new Error('PAYMENT_NOT_FOUND');
+      }
+
+      if (
+        payment.paymentProvider !== 'MANUAL' ||
+        payment.paymentMethod !== 'MANUAL_SBP'
+      ) {
+        throw new Error('PAYMENT_NOT_MANUAL');
+      }
+
+      if (
+        payment.appliedAt ||
+        payment.status === PaymentStatus.SUCCEEDED
+      ) {
+        return {
+          payment,
+          applied: false,
+          subscriptionId:
+            payment.appliedSubscriptionId,
+          mode: null as
+            | 'CREATED'
+            | 'RESTORED'
+            | 'EXTENDED'
+            | null,
+        };
+      }
+
+      if (payment.status !== PaymentStatus.PENDING) {
+        throw new Error('PAYMENT_NOT_PENDING');
+      }
+
+      const now = new Date();
+
+      /*
+       * Атомарно "захватываем" платёж.
+       * Второй approve будет ждать эту транзакцию,
+       * а после commit уже не сможет получить count=1.
+       *
+       * Если транзакция упадёт дальше — этот UPDATE
+       * тоже откатится.
+       */
+      const claimed = await tx.payment.updateMany({
+        where: {
+          id: payment.id,
+          status: PaymentStatus.PENDING,
+          appliedAt: null,
+        },
+        data: {
+          status: PaymentStatus.SUCCEEDED,
+          appliedAt: now,
+          reviewedAt: now,
+          reviewedBy: adminTelegramId,
+        },
+      });
+
+      if (claimed.count !== 1) {
+        const current = await tx.payment.findUnique({
+          where: { id: payment.id },
+        });
+
+        if (
+          current?.appliedAt ||
+          current?.status === PaymentStatus.SUCCEEDED
+        ) {
+          return {
+            payment: current,
+            applied: false,
+            subscriptionId:
+              current.appliedSubscriptionId,
+            mode: null as
+              | 'CREATED'
+              | 'RESTORED'
+              | 'EXTENDED'
+              | null,
+          };
+        }
+
+        throw new Error('PAYMENT_ALREADY_PROCESSING');
+      }
+
+      const expiresAt = new Date(now);
+      expiresAt.setDate(
+        expiresAt.getDate() + PLAN_DAYS,
+      );
+
+      let subscription;
+      let mode:
+        | 'CREATED'
+        | 'RESTORED'
+        | 'EXTENDED';
+
+      const active = await tx.subscription.findFirst({
+        where: {
+          userId: payment.userId,
+          plan: payment.plan,
+          status: {
+            in: [
+              SubscriptionStatus.ACTIVE,
+              SubscriptionStatus.TRIAL,
+            ],
+          },
+          expiresAt: {
+            gt: now,
+          },
+        },
+        orderBy: {
+          expiresAt: 'desc',
+        },
+      });
+
+      if (active) {
+        const newExpires = new Date(active.expiresAt);
+        newExpires.setDate(
+          newExpires.getDate() + PLAN_DAYS,
+        );
+
+        subscription =
+          await tx.subscription.update({
+            where: {
+              id: active.id,
+            },
+            data: {
+              expiresAt: newExpires,
+              status: SubscriptionStatus.ACTIVE,
+              isTrial: false,
+            },
+          });
+
+        mode = 'EXTENDED';
+      } else {
+        const expired =
+          await tx.subscription.findFirst({
+            where: {
+              userId: payment.userId,
+              plan: payment.plan,
+              OR: [
+                {
+                  status:
+                    SubscriptionStatus.EXPIRED,
+                },
+                {
+                  expiresAt: {
+                    lte: now,
+                  },
+                },
+              ],
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          });
+
+        if (expired) {
+          subscription =
+            await tx.subscription.update({
+              where: {
+                id: expired.id,
+              },
+              data: {
+                status: SubscriptionStatus.ACTIVE,
+                startsAt: now,
+                expiresAt,
+                isTrial: false,
+              },
+            });
+
+          mode = 'RESTORED';
+        } else {
+          subscription =
+            await tx.subscription.create({
+              data: {
+                userId: payment.userId,
+                plan: payment.plan,
+                status: SubscriptionStatus.ACTIVE,
+                uuid: randomUUID(),
+                subToken:
+                  randomBytes(24).toString('hex'),
+                startsAt: now,
+                expiresAt,
+                isTrial: false,
+              },
+            });
+
+          mode = 'CREATED';
+        }
+      }
+
+      const updatedPayment =
+        await tx.payment.update({
+          where: {
+            id: payment.id,
+          },
+          data: {
+            appliedSubscriptionId:
+              subscription.id,
+          },
+        });
+
+      return {
+        payment: updatedPayment,
+        applied: true,
+        subscriptionId: subscription.id,
+        mode,
+      };
+        },
+        {
+          isolationLevel:
+            Prisma.TransactionIsolationLevel
+              .Serializable,
+        },
+      ),
+    );
+
+  if (
+    result.applied &&
+    result.subscriptionId &&
+    result.mode
+  ) {
+    try {
+      await this.subscriptions.syncPaymentSubscription(
+        result.subscriptionId,
+        PLAN_DAYS,
+        result.mode,
+      );
+    } catch (error) {
+      /*
+       * PostgreSQL уже является источником истины.
+       * Ошибка Xray/H1Cloud не должна отменять
+       * подтверждённую оплату.
+       *
+       * Recovery-механизмы синхронизируют ноды позже.
+       */
+      this.logger.error(
+        `Payment ${paymentId} VPN sync failed after DB commit: ${
+          error instanceof Error
+            ? error.message
+            : String(error)
+        }`,
+      );
+    }
+
+    this.logger.log(
+      `Manual payment ${paymentId} approved and applied to subscription ${result.subscriptionId}`,
+    );
+  }
+
+  return result;
 }
 }

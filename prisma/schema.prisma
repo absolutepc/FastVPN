@@ -174,28 +174,31 @@ model Device {
 }
 
 model Payment {
-  id                String        @id @default(cuid())
-  userId            String
-  user              User          @relation(fields: [userId], references: [id])
-  providerPaymentId String?       @unique
-  paymentProvider   String?
-  amount            Int
-  baseAmount        Int?
-  feeAmount         Int?
-  feePercent        Int?
-  currency          String        @default("RUB")
-  plan              PlanType
-  status            PaymentStatus @default(PENDING)
-  description       String?
-  paymentMethod     String?
-  bank              String?
-  proofFileId       String?
-  reviewedAt        DateTime?
-  reviewedBy        String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                    String        @id @default(cuid())
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id])
+  providerPaymentId     String?       @unique
+  paymentProvider       String?
+  amount                Int
+  baseAmount            Int?
+  feeAmount             Int?
+  feePercent            Int?
+  currency              String        @default("RUB")
+  plan                  PlanType
+  status                PaymentStatus @default(PENDING)
+  description           String?
+  paymentMethod         String?
+  bank                  String?
+  proofFileId           String?
+  reviewedAt            DateTime?
+  reviewedBy            String?
+  appliedAt             DateTime?
+  appliedSubscriptionId String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   @@index([userId])
+  @@index([appliedAt])
   @@map("payments")
 }
 

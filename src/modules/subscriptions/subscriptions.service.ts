@@ -281,6 +281,40 @@ export class SubscriptionsService {
     return sub;
   }
 
+  async syncPaymentSubscription(
+    subscriptionId: string,
+    days: number,
+    mode: 'CREATED' | 'RESTORED' | 'EXTENDED',
+  ) {
+    const subscription =
+      await this.prisma.subscription.findUniqueOrThrow({
+        where: { id: subscriptionId },
+      });
+
+    if (mode === 'EXTENDED') {
+      if (subscription.plan === PlanType.STANDARD) {
+        await this.extendH1Cloud(
+          subscription.id,
+          days,
+          subscription.expiresAt,
+        );
+      }
+
+      return subscription;
+    }
+
+    await this.xray.addUserToPlanNodes({
+      uuid: subscription.uuid,
+      plan: subscription.plan,
+    });
+
+    if (subscription.plan === PlanType.STANDARD) {
+      await this.provisionH1Cloud(subscription);
+    }
+
+    return subscription;
+  }
+
   async getActiveSubscription(userId: string) {
     const now = new Date();
     return this.prisma.subscription.findFirst({

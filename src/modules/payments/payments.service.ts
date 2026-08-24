@@ -270,24 +270,24 @@ async approveManualPayment(
 
       if (
         occupying &&
+        occupying.expiresAt <= now
+      ) {
+        throw new Error(
+          'ACTIVE_SUBSCRIPTION_EXPIRY_PENDING',
+        );
+      }
+
+      if (
+        occupying &&
         occupying.plan !== payment.plan
       ) {
-        if (occupying.expiresAt <= now) {
-          throw new Error(
-            'ACTIVE_SUBSCRIPTION_EXPIRY_PENDING',
-          );
-        }
-
         throw new Error(
           'ACTIVE_SUBSCRIPTION_PLAN_CONFLICT',
         );
       }
 
       const active =
-        occupying &&
-        occupying.expiresAt > now
-          ? occupying
-          : null;
+        occupying ?? null;
 
       if (active) {
         const newExpires = new Date(active.expiresAt);

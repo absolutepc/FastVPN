@@ -8451,3 +8451,14 @@ html[data-theme="cyan"] #screen-sub .sub-card {
 }
 
 /* ===== SUBSCRIPTION CURRENT BADGE HIDE END ===== */
+
+/* Bonus center */
+.bonus-center-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bonus-center-list .profile-action-card {
+  width: 100%;
+}

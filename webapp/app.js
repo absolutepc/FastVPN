@@ -4415,6 +4415,16 @@ async function loadBonuses() {
 
 if ($('profile-bonuses-btn')) {
   $('profile-bonuses-btn').onclick =
+    () => showScreen('bonus-center');
+}
+
+if ($('bonus-center-promo-btn')) {
+  $('bonus-center-promo-btn').onclick =
+    () => showScreen('promo');
+}
+
+if ($('bonus-center-bonuses-btn')) {
+  $('bonus-center-bonuses-btn').onclick =
     async () => {
       showScreen('bonuses');
       await loadBonuses();

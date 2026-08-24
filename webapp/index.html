@@ -5,7 +5,7 @@
  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
  <title>4StepsVPN</title>
  <script src="https://telegram.org/js/telegram-web-app.js"></script>
- <link rel="stylesheet" href="/styles.css?v=96" />
+ <link rel="stylesheet" href="/styles.css?v=97" />
 </head>
 <body>
  <div id="app">
@@ -601,20 +601,6 @@
 
  <button type="button"
  class="profile-action-card"
- id="profile-promo-btn">
-
- <span class="profile-action-icon">🎁</span>
-
- <span class="profile-action-text">
- <strong>Промокоды</strong>
- <small>Активируйте коды</small>
- </span>
-
- <span class="profile-action-arrow">›</span>
- </button>
-
- <button type="button"
- class="profile-action-card"
  id="profile-bonuses-btn">
 
  <span class="profile-action-icon">🎁</span>
@@ -1079,6 +1065,74 @@
 
 
 
+<!-- ===== BONUS CENTER ===== -->
+
+<section id="screen-bonus-center"
+ class="screen hidden bonus-screen">
+
+ <header class="page-head">
+
+  <button
+   type="button"
+   class="top-btn"
+   data-back="profile"
+   aria-label="Назад">
+
+   <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2">
+    <path d="M15 18l-6-6 6-6"/>
+   </svg>
+
+  </button>
+
+  <h2>Бонусы</h2>
+
+  <div class="top-btn-ph"></div>
+
+ </header>
+
+ <div class="bonus-center-list">
+
+  <button
+   type="button"
+   class="profile-action-card"
+   id="bonus-center-promo-btn">
+
+   <span class="profile-action-icon">🎟️</span>
+
+   <span class="profile-action-text">
+    <strong>Промокоды</strong>
+    <small>Активируйте промокод</small>
+   </span>
+
+   <span class="profile-action-arrow">›</span>
+  </button>
+
+  <button
+   type="button"
+   class="profile-action-card"
+   id="bonus-center-bonuses-btn">
+
+   <span class="profile-action-icon">🎁</span>
+
+   <span class="profile-action-text">
+    <strong>Бонусы</strong>
+    <small>Получайте дополнительные дни</small>
+   </span>
+
+   <span class="profile-action-arrow">›</span>
+  </button>
+
+ </div>
+
+</section>
+
+
 <!-- ===== BONUSES ===== -->
 
 <section id="screen-bonuses"
@@ -1089,7 +1143,7 @@
   <button
    type="button"
    class="top-btn"
-   data-back="profile"
+   data-back="bonus-center"
    aria-label="Назад">
 
    <svg
@@ -1470,7 +1524,7 @@
  <!-- ========== PROMO ========== -->
  <section id="screen-promo" class="screen hidden">
  <header class="page-head">
- <button type="button" class="top-btn" data-back="profile">
+ <button type="button" class="top-btn" data-back="bonus-center">
  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
  </button>
  <h2>Промокод</h2>

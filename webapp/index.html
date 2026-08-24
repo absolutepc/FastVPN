@@ -5,7 +5,7 @@
  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
  <title>4StepsVPN</title>
  <script src="https://telegram.org/js/telegram-web-app.js"></script>
- <link rel="stylesheet" href="/styles.css?v=97" />
+ <link rel="stylesheet" href="/styles.css?v=99" />
 </head>
 <body>
  <div id="app">
@@ -744,7 +744,7 @@
 
  <section
   id="screen-owner-invites"
-  class="screen hidden admin-subscreen"
+  class="screen hidden"
  >
   <header class="page-head">
    <button
@@ -769,19 +769,25 @@
    <div class="top-btn-ph"></div>
   </header>
 
-  <div class="admin-section-head">
-   <div>
-    <h3>Создать ссылку</h3>
-    <p>
-     Новый пользователь получит указанное
-     количество бесплатных дней
-    </p>
-   </div>
+  <div class="owner-invite-intro">
+   <div class="owner-invite-intro-icon">🎁</div>
+   <h3>Подарочная ссылка</h3>
+   <p>
+    Создайте персональную ссылку.
+    Новый пользователь получит выбранное
+    количество бесплатных дней.
+   </p>
   </div>
 
-  <div class="admin-form-card">
-   <label class="admin-field">
-    <span>Количество дней</span>
+  <div class="owner-invite-create-card">
+   <label
+    class="owner-invite-label"
+    for="owner-invite-days"
+   >
+    Количество бесплатных дней
+   </label>
+
+   <div class="owner-invite-days-wrap">
     <input
      type="number"
      id="owner-invite-days"
@@ -789,53 +795,50 @@
      max="365"
      step="1"
      inputmode="numeric"
-     placeholder="Например, 14"
+     placeholder="14"
     >
-   </label>
+    <span class="owner-invite-days-suffix">
+     дней
+    </span>
+   </div>
 
    <button
     type="button"
     class="btn-gold"
     id="btn-owner-invite-create"
    >
-    Создать ссылку
+    Создать приглашение
    </button>
   </div>
 
   <div
    id="owner-invite-created"
-   class="admin-form-card hidden"
+   class="owner-invite-created-card hidden"
   >
-   <div class="admin-field">
-    <span>Готовая ссылка</span>
-    <div
-     id="owner-invite-created-link"
-     style="word-break:break-all"
-    ></div>
+   <div class="owner-invite-created-head">
+    <span class="owner-invite-created-dot"></span>
+    Ссылка создана
    </div>
+
+   <div id="owner-invite-created-link"></div>
 
    <button
     type="button"
     class="btn-outline-gold"
     id="btn-owner-invite-copy"
    >
-    📋 Скопировать
+    📋 Скопировать ссылку
    </button>
   </div>
 
-  <div class="admin-section-head">
+  <div class="owner-invite-list-head">
    <div>
     <h3>Созданные ссылки</h3>
-    <p>
-     Здесь отображаются ссылки и количество активаций
-    </p>
+    <p>Управление и статистика активаций</p>
    </div>
   </div>
 
-  <div
-   id="owner-invite-list"
-   class="admin-node-list"
-  >
+  <div id="owner-invite-list">
    <div class="admin-loading">
     Получение данных...
    </div>
@@ -2526,6 +2529,6 @@
  </div>
  </div>
 
- <script src="/app.js?v=77"></script>
+ <script src="/app.js?v=78"></script>
 </body>
 </html>

@@ -2311,8 +2311,12 @@ async function loadAdminDashboard() {
 
  if (!Array.isArray(items) || !items.length) {
  list.innerHTML = `
- <div class="admin-loading">
- Ссылок пока нет
+ <div class="owner-invite-empty">
+  <div class="owner-invite-empty-icon">🔗</div>
+  <strong>Ссылок пока нет</strong>
+  <span>
+   Создайте первое специальное приглашение
+  </span>
  </div>
  `;
  return;
@@ -2322,27 +2326,49 @@ async function loadAdminDashboard() {
 
  items.forEach((item) => {
  const card = document.createElement('div');
- card.className = 'admin-form-card';
 
- const title = document.createElement('strong');
- title.textContent =
- `${pluralDays(Number(item.days || 0))}`;
+ card.className =
+ `owner-invite-card ${
+ item.isActive
+ ? 'is-active'
+ : 'is-disabled'
+ }`;
 
- const meta = document.createElement('div');
- meta.className = 'admin-field';
+ const top = document.createElement('div');
+ top.className = 'owner-invite-card-top';
 
- const uses = document.createElement('span');
- uses.textContent =
+ const days = document.createElement('div');
+ days.className = 'owner-invite-days';
+ days.textContent =
+ pluralDays(Number(item.days || 0));
+
+ const status = document.createElement('span');
+ status.className =
+ `owner-invite-status ${
+ item.isActive
+ ? 'active'
+ : 'disabled'
+ }`;
+
+ status.textContent =
+ item.isActive
+ ? 'Активна'
+ : 'Отключена';
+
+ top.appendChild(days);
+ top.appendChild(status);
+
+ const stats = document.createElement('div');
+ stats.className = 'owner-invite-stats';
+ stats.textContent =
  `Активаций: ${Number(item.uses || 0)}`;
 
- const link = document.createElement('div');
- link.style.wordBreak = 'break-all';
- link.textContent = item.link || '';
+ const url = document.createElement('div');
+ url.className = 'owner-invite-url';
+ url.textContent = item.link || '';
 
  const actions = document.createElement('div');
- actions.style.display = 'flex';
- actions.style.gap = '8px';
- actions.style.marginTop = '12px';
+ actions.className = 'owner-invite-actions';
 
  const copy = document.createElement('button');
  copy.type = 'button';
@@ -2356,10 +2382,11 @@ async function loadAdminDashboard() {
  const toggle = document.createElement('button');
  toggle.type = 'button';
  toggle.className = 'btn-outline-gold';
+
  toggle.textContent =
  item.isActive
- ? '⛔ Отключить'
- : '✅ Включить';
+ ? 'Отключить'
+ : 'Включить';
 
  toggle.onclick = async () => {
  try {
@@ -2389,19 +2416,13 @@ async function loadAdminDashboard() {
  }
  };
 
- meta.appendChild(uses);
- meta.appendChild(link);
-
  actions.appendChild(copy);
  actions.appendChild(toggle);
 
- card.appendChild(title);
- card.appendChild(meta);
+ card.appendChild(top);
+ card.appendChild(stats);
+ card.appendChild(url);
  card.appendChild(actions);
-
- if (!item.isActive) {
- card.style.opacity = '0.6';
- }
 
  list.appendChild(card);
  });

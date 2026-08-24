@@ -8462,3 +8462,406 @@ html[data-theme="cyan"] #screen-sub .sub-card {
 .bonus-center-list .profile-action-card {
   width: 100%;
 }
+
+/* ===== OWNER INVITES ===== */
+
+#screen-owner-invites {
+  padding-bottom: 28px;
+}
+
+#screen-owner-invites .page-head {
+  margin-bottom: 22px;
+}
+
+.owner-invite-intro {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  border-radius: 18px;
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(var(--accent-rgb), 0.13),
+      transparent 38%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.07),
+      rgba(10, 10, 10, 0.98)
+    );
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 225, 150, 0.04);
+}
+
+.owner-invite-intro-icon {
+  width: 46px;
+  height: 46px;
+  margin-bottom: 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  font-size: 1.35rem;
+}
+
+.owner-invite-intro h3 {
+  margin-bottom: 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.owner-invite-intro p {
+  max-width: 290px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.owner-invite-create-card {
+  margin-bottom: 22px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(
+    160deg,
+    rgba(var(--accent-rgb), 0.035),
+    rgba(9, 9, 9, 0.98)
+  );
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.28);
+}
+
+.owner-invite-label {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.owner-invite-days-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+#owner-invite-days {
+  width: 100%;
+  height: 52px;
+  padding: 0 74px 0 15px;
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  border-radius: 14px;
+  outline: none;
+  background: #080808;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+#owner-invite-days::placeholder {
+  color: #5f594e;
+  font-weight: 500;
+}
+
+#owner-invite-days:focus {
+  border-color: rgba(var(--accent-rgb), 0.55);
+  background: #0b0b0b;
+  box-shadow:
+    0 0 0 3px rgba(var(--accent-rgb), 0.07);
+}
+
+.owner-invite-days-suffix {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 0.78rem;
+  pointer-events: none;
+}
+
+#btn-owner-invite-create {
+  height: 50px;
+  margin-top: 0;
+  border-radius: 14px;
+}
+
+.owner-invite-created-card {
+  margin-bottom: 22px;
+  padding: 16px;
+  border: 1px solid rgba(var(--accent-rgb), 0.26);
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.075),
+      rgba(10, 10, 10, 0.98)
+    );
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 220, 140, 0.04);
+}
+
+.owner-invite-created-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  color: var(--accent-light);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.owner-invite-created-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.45);
+}
+
+#owner-invite-created-link {
+  margin-bottom: 12px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #d7d1c4;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  word-break: break-all;
+  user-select: text;
+}
+
+#btn-owner-invite-copy {
+  width: 100%;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.owner-invite-list-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+}
+
+.owner-invite-list-head h3 {
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.owner-invite-list-head p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+#owner-invite-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.owner-invite-card {
+  position: relative;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      155deg,
+      rgba(var(--accent-rgb), 0.025),
+      rgba(8, 8, 8, 0.98)
+    );
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.owner-invite-card.is-disabled {
+  opacity: 0.58;
+}
+
+.owner-invite-card.is-active {
+  border-color: rgba(var(--accent-rgb), 0.18);
+}
+
+.owner-invite-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.owner-invite-days {
+  color: var(--accent-light);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.owner-invite-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 25px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.owner-invite-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.owner-invite-status.active {
+  background: rgba(34, 197, 94, 0.09);
+  color: #71d995;
+}
+
+.owner-invite-status.active::before {
+  background: #22c55e;
+}
+
+.owner-invite-status.disabled {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc8b8b;
+}
+
+.owner-invite-status.disabled::before {
+  background: #ef4444;
+}
+
+.owner-invite-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 11px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.owner-invite-url {
+  margin-bottom: 12px;
+  padding: 10px 11px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #827b6e;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.owner-invite-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.owner-invite-actions button {
+  min-height: 40px;
+  justify-content: center;
+  padding: 9px 10px;
+  border-radius: 11px;
+  font-size: 0.76rem;
+}
+
+.owner-invite-empty {
+  padding: 28px 18px;
+  text-align: center;
+  border: 1px dashed rgba(var(--accent-rgb), 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.owner-invite-empty-icon {
+  margin-bottom: 8px;
+  font-size: 1.5rem;
+  opacity: 0.8;
+}
+
+.owner-invite-empty strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.84rem;
+}
+
+.owner-invite-empty span {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+@media (max-width: 360px) {
+  .owner-invite-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-invite-intro,
+  .owner-invite-create-card,
+  .owner-invite-created-card {
+    padding: 14px;
+  }
+}
+
+/* ===== OWNER INVITES END ===== */
+
+/* ===== OWNER INVITES THEME OVERRIDES ===== */
+
+#screen-owner-invites .btn-gold {
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent-light),
+      var(--accent)
+    ) !important;
+
+  color: #080808 !important;
+
+  box-shadow:
+    0 4px 22px
+    rgba(var(--accent-rgb), 0.26) !important;
+}
+
+#screen-owner-invites .btn-outline-gold {
+  border-color:
+    rgba(var(--accent-rgb), 0.38) !important;
+
+  color:
+    var(--accent-light) !important;
+
+  background:
+    rgba(var(--accent-rgb), 0.035) !important;
+}
+
+#screen-owner-invites .btn-outline-gold:active {
+  background:
+    rgba(var(--accent-rgb), 0.10) !important;
+}
+
+#screen-owner-invites .owner-invite-intro-icon {
+  color: var(--accent-light);
+}
+
+#screen-owner-invites .owner-invite-empty {
+  border-color:
+    rgba(var(--accent-rgb), 0.18);
+}
+
+/* ===== OWNER INVITES THEME OVERRIDES END ===== */

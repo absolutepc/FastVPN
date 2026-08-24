@@ -630,6 +630,11 @@ function render(data) {
  $('menu-admin').style.display =
  data.isAdmin ? '' : 'none';
 
+ if ($('profile-support-btn')) {
+ $('profile-support-btn').style.display =
+ data.isAdmin ? 'none' : '';
+ }
+
  if ($('profile-admin-btn')) {
  $('profile-admin-btn').style.display =
  data.isAdmin ? '' : 'none';

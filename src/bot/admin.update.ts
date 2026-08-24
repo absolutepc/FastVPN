@@ -5,7 +5,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { execFile } from 'child_process';
 import { SubscriptionsService } from '../modules/subscriptions/subscriptions.service';
 import { XrayService } from '../modules/xray/xray.service';
-import { PlanType, SubscriptionStatus, NodeType } from '@prisma/client';
+import {
+  PlanType,
+  SubscriptionStatus,
+  NodeType,
+  UserRole,
+} from '@prisma/client';
 
 @Injectable()
 export class AdminUpdate implements OnModuleInit {
@@ -98,9 +103,31 @@ private countryFlag(name: string): string {
     );
   }
 
-  private isAdmin(telegramId: number | undefined): boolean {
+  private async isAdmin(
+    telegramId: number | undefined,
+  ): Promise<boolean> {
     if (!telegramId) return false;
-    return this.adminIds.has(String(telegramId));
+
+    const user =
+      await this.prisma.user.findUnique({
+        where: {
+          telegramId: BigInt(telegramId),
+        },
+        select: {
+          role: true,
+        },
+      });
+
+    if (
+      user?.role === UserRole.OWNER ||
+      user?.role === UserRole.ADMIN
+    ) {
+      return true;
+    }
+
+    return this.adminIds.has(
+      String(telegramId),
+    );
   }
 
   private adminKeyboard() {
@@ -146,7 +173,7 @@ private countryFlag(name: string): string {
     const bot = this.botService.bot;
 
     bot.command('admin', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.reply('Нет доступа.');
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.reply('Нет доступа.');
       this.botService.clearAdminSession(ctx);
       await ctx.reply('🔐 <b>Панель администратора</b>', {
         parse_mode: 'HTML',
@@ -155,7 +182,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery('admin:menu', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       this.botService.clearAdminSession(ctx);
       await ctx.answerCallbackQuery();
       await ctx.editMessageText('🔐 <b>Панель администратора</b>', {
@@ -165,7 +192,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery('admin:dashboard', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
 
       const now = new Date();
@@ -219,7 +246,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery('admin:manage', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       this.botService.clearAdminSession(ctx);
       await ctx.answerCallbackQuery();
       await ctx.editMessageText('🛠 <b>Управление</b>', {
@@ -229,7 +256,7 @@ private countryFlag(name: string): string {
     });
  
     bot.callbackQuery('admin:find_user', async (ctx) => {
-  if (!this.isAdmin(ctx.from?.id)) {
+  if (!(await this.isAdmin(ctx.from?.id))) {
     return ctx.answerCallbackQuery({ text: 'Нет доступа' });
   }
 
@@ -259,7 +286,7 @@ private countryFlag(name: string): string {
 });    
 
     bot.callbackQuery(/^admin:sub_link:(.+)$/, async (ctx) => {
-  if (!this.isAdmin(ctx.from?.id)) {
+  if (!(await this.isAdmin(ctx.from?.id))) {
     return ctx.answerCallbackQuery({ text: 'Нет доступа' });
   }
 
@@ -295,7 +322,7 @@ private countryFlag(name: string): string {
 });
 
  bot.callbackQuery(/^admin:add_days:(.+)$/, async (ctx) => {
-  if (!this.isAdmin(ctx.from?.id)) {
+  if (!(await this.isAdmin(ctx.from?.id))) {
     return ctx.answerCallbackQuery({ text: 'Нет доступа' });
   }
 
@@ -332,7 +359,7 @@ private countryFlag(name: string): string {
 });
 
     bot.callbackQuery('admin:add_days', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
       ctx.session.adminAction = 'add_days';
       ctx.session.adminStep = 1;
@@ -349,7 +376,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery('admin:block', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
       ctx.session.adminAction = 'block';
       ctx.session.adminStep = 1;
@@ -365,7 +392,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery('admin:unblock', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
       ctx.session.adminAction = 'unblock';
       ctx.session.adminStep = 1;
@@ -381,7 +408,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery('admin:promo', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
       ctx.session.adminAction = 'promo';
       ctx.session.adminStep = 1;
@@ -400,7 +427,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery('admin:broadcast', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
       ctx.session.adminAction = 'broadcast';
       ctx.session.adminStep = 1;
@@ -413,7 +440,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery('admin:add_node', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
       ctx.session.adminAction = 'add_node';
       ctx.session.adminStep = 1;
@@ -432,7 +459,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery('admin:del_node', async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       await ctx.answerCallbackQuery();
 
       const nodes = await this.prisma.node.findMany({ orderBy: { createdAt: 'desc' } });
@@ -458,7 +485,7 @@ private countryFlag(name: string): string {
     });
 
     bot.callbackQuery(/^admin:del_node:(.+)$/, async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
+      if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       const nodeId = ctx.match![1];
       await ctx.answerCallbackQuery();
 
@@ -481,7 +508,7 @@ private countryFlag(name: string): string {
     });
     
     bot.callbackQuery('admin:toggle_node', async (ctx) => {
-  if (!this.isAdmin(ctx.from?.id)) {
+  if (!(await this.isAdmin(ctx.from?.id))) {
     return ctx.answerCallbackQuery({ text: 'Нет доступа' });
   }
 
@@ -524,7 +551,7 @@ private countryFlag(name: string): string {
 });
 
     bot.callbackQuery(/^admin:toggle_node:(.+)$/, async (ctx) => {
-  if (!this.isAdmin(ctx.from?.id)) {
+  if (!(await this.isAdmin(ctx.from?.id))) {
     return ctx.answerCallbackQuery({ text: 'Нет доступа' });
   }
 
@@ -581,7 +608,7 @@ private countryFlag(name: string): string {
 });
   
     bot.callbackQuery('admin:monitor', async (ctx) => {
-  if (!this.isAdmin(ctx.from?.id)) {
+  if (!(await this.isAdmin(ctx.from?.id))) {
     return ctx.answerCallbackQuery({ text: 'Нет доступа' });
   }
 
@@ -747,8 +774,8 @@ private countryFlag(name: string): string {
 });
 
     bot.on('message:text', async (ctx, next) => {
-      if (!this.isAdmin(ctx.from?.id)) return next();
       if (!ctx.session.adminAction) return next();
+      if (!(await this.isAdmin(ctx.from?.id))) return next();
 
       const text = ctx.message.text.trim();
       const action = ctx.session.adminAction;

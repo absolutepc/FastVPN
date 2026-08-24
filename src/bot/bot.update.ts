@@ -2,7 +2,11 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { BotService, BotContext } from './bot.service';
 import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from '../modules/payments/payments.service';
-import { PaymentStatus, PlanType } from '@prisma/client';
+import {
+  PaymentStatus,
+  PlanType,
+  UserRole,
+} from '@prisma/client';
 import QRCode from 'qrcode';
 import { InputFile } from 'grammy';
 
@@ -16,10 +20,31 @@ export class BotUpdate implements OnModuleInit {
     private readonly payments: PaymentsService,
   ) {}
 
-  private isAdmin(telegramId: number | undefined): boolean {
+  private async isAdmin(
+    telegramId: number | undefined,
+  ): Promise<boolean> {
     if (!telegramId) return false;
 
-    const raw = this.config.get<string>('ADMIN_IDS') || '';
+    const user =
+      await this.botService.prismaService.user.findUnique({
+        where: {
+          telegramId: BigInt(telegramId),
+        },
+        select: {
+          role: true,
+        },
+      });
+
+    if (
+      user?.role === UserRole.OWNER ||
+      user?.role === UserRole.ADMIN
+    ) {
+      return true;
+    }
+
+    const raw =
+      this.config.get<string>('ADMIN_IDS') || '';
+
     return raw
       .split(',')
       .map((id) => id.trim())
@@ -553,7 +578,7 @@ export class BotUpdate implements OnModuleInit {
     });
 
     bot.callbackQuery(/^manualapprove:(.+)$/, async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) {
+      if (!(await this.isAdmin(ctx.from?.id))) {
         return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       }
 
@@ -617,7 +642,7 @@ export class BotUpdate implements OnModuleInit {
     });
 
     bot.callbackQuery(/^manualreject:(.+)$/, async (ctx) => {
-      if (!this.isAdmin(ctx.from?.id)) {
+      if (!(await this.isAdmin(ctx.from?.id))) {
         return ctx.answerCallbackQuery({ text: 'Нет доступа' });
       }
 

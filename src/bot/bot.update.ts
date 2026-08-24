@@ -100,7 +100,13 @@ export class BotUpdate implements OnModuleInit {
     bot.command('start', async (ctx) => {
       const payload = ctx.match?.trim() || undefined;
 
-      const { user, isNew, referralProcessed } = await this.botService.findOrCreateUser(
+      const {
+        user,
+        isNew,
+        referralProcessed,
+        ownerInviteProcessed,
+        ownerInviteDays,
+      } = await this.botService.findOrCreateUser(
         ctx,
         payload,
       );
@@ -116,6 +122,12 @@ export class BotUpdate implements OnModuleInit {
       if (isNew && referralProcessed) {
         welcome +=
           `\n\n🎁 Вам активирован <b>пробный период 7 дней</b> (Стандарт)!\n` +
+          `Нажмите «📱 Мои устройства», чтобы получить ссылку.`;
+      }
+
+      if (ownerInviteProcessed) {
+        welcome +=
+          `\n\n🎁 Вам активирован <b>подарочный период ${ownerInviteDays} дн.</b> (Стандарт)!\n` +
           `Нажмите «📱 Мои устройства», чтобы получить ссылку.`;
       }
 

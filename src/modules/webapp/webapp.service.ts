@@ -178,6 +178,44 @@ export class WebappService {
     return tg;
   }
 
+  private async requireOwner(
+    initData: string,
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    const user =
+      await this.prisma.user.findUnique({
+        where: {
+          telegramId: BigInt(tg.id),
+        },
+        select: {
+          id: true,
+          role: true,
+          isBlocked: true,
+        },
+      });
+
+    if (
+      !user ||
+      user.isBlocked ||
+      user.role !== UserRole.OWNER
+    ) {
+      this.logger.warn(
+        `WebApp owner access denied: telegram=${tg.id}`,
+      );
+
+      throw new ForbiddenException(
+        'Owner access required',
+      );
+    }
+
+    return {
+      tg,
+      user,
+    };
+  }
+
   async findOrCreateFromTelegram(tg: { id: number; username?: string; first_name?: string; last_name?: string }) {
     const telegramId = BigInt(tg.id);
     let user = await this.prisma.user.findUnique({ where: { telegramId } });
@@ -3836,6 +3874,145 @@ export class WebappService {
 
     this.logger.log(`Device activated: user=${user.id} subscription=${sub.id} device=${device.id}`);
     return { device, created: true };
+  }
+
+
+  async createOwnerInvite(
+    initData: string,
+    daysRaw: number,
+  ) {
+    const { user } =
+      await this.requireOwner(initData);
+
+    const days =
+      Number(daysRaw);
+
+    if (
+      !Number.isInteger(days) ||
+      days < 1 ||
+      days > 365
+    ) {
+      throw new BadRequestException(
+        'Days must be between 1 and 365',
+      );
+    }
+
+    const token =
+      randomBytes(18)
+        .toString('base64url');
+
+    const invite =
+      await this.prisma.ownerInvite.create({
+        data: {
+          token,
+          days,
+          createdById: user.id,
+        },
+        select: {
+          id: true,
+          token: true,
+          days: true,
+          isActive: true,
+          createdAt: true,
+        },
+      });
+
+    const botUsername =
+      this.config.get<string>('BOT_USERNAME') ||
+      'FourStepsVPNbot';
+
+    return {
+      ...invite,
+      payload: `gift_${invite.token}`,
+      link:
+        `https://t.me/${botUsername}?start=gift_${invite.token}`,
+    };
+  }
+
+  async getOwnerInvites(
+    initData: string,
+  ) {
+    const { user } =
+      await this.requireOwner(initData);
+
+    const invites =
+      await this.prisma.ownerInvite.findMany({
+        where: {
+          createdById: user.id,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 100,
+        select: {
+          id: true,
+          token: true,
+          days: true,
+          isActive: true,
+          createdAt: true,
+          _count: {
+            select: {
+              redemptions: true,
+            },
+          },
+        },
+      });
+
+    const botUsername =
+      this.config.get<string>('BOT_USERNAME') ||
+      'FourStepsVPNbot';
+
+    return invites.map((invite) => ({
+      id: invite.id,
+      token: invite.token,
+      payload: `gift_${invite.token}`,
+      link:
+        `https://t.me/${botUsername}?start=gift_${invite.token}`,
+      days: invite.days,
+      isActive: invite.isActive,
+      createdAt: invite.createdAt,
+      uses: invite._count.redemptions,
+    }));
+  }
+
+  async setOwnerInviteActive(
+    initData: string,
+    inviteId: string,
+    isActive: boolean,
+  ) {
+    const { user } =
+      await this.requireOwner(initData);
+
+    const invite =
+      await this.prisma.ownerInvite.findFirst({
+        where: {
+          id: inviteId,
+          createdById: user.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (!invite) {
+      throw new NotFoundException(
+        'Owner invite not found',
+      );
+    }
+
+    return this.prisma.ownerInvite.update({
+      where: {
+        id: invite.id,
+      },
+      data: {
+        isActive,
+      },
+      select: {
+        id: true,
+        days: true,
+        isActive: true,
+      },
+    });
   }
 
 }

@@ -91,6 +91,49 @@ export class WebappController {
     return this.webapp.getAdminDashboard(body.initData || '');
   }
 
+
+  @Post('owner/invites')
+  async ownerInvites(
+    @Body()
+    body: {
+      initData?: string;
+    },
+  ) {
+    return this.webapp.getOwnerInvites(
+      body.initData || '',
+    );
+  }
+
+  @Post('owner/invites/create')
+  async createOwnerInvite(
+    @Body()
+    body: {
+      initData?: string;
+      days?: number;
+    },
+  ) {
+    return this.webapp.createOwnerInvite(
+      body.initData || '',
+      Number(body.days),
+    );
+  }
+
+  @Post('owner/invites/:id/active')
+  async setOwnerInviteActive(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      initData?: string;
+      isActive?: boolean;
+    },
+  ) {
+    return this.webapp.setOwnerInviteActive(
+      body.initData || '',
+      id,
+      body.isActive === true,
+    );
+  }
+
   @Post('admin/notifications')
   async createAdminNotification(
     @Body()

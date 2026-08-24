@@ -674,6 +674,21 @@
  </button>
 
  <button type="button"
+ class="profile-action-card"
+ id="profile-owner-invites-btn"
+ style="display:none">
+
+ <span class="profile-action-icon">🎁</span>
+
+ <span class="profile-action-text">
+ <strong>Спец. приглашения</strong>
+ <small>Бесплатные дни по ссылке</small>
+ </span>
+
+ <span class="profile-action-arrow">›</span>
+ </button>
+
+ <button type="button"
  class="profile-action-card profile-admin-action"
  id="profile-generate-promo-btn"
  style="display:none">
@@ -723,6 +738,112 @@
 
  </section>
 
+
+
+ <!-- ===== OWNER INVITES SCREEN START ===== -->
+
+ <section
+  id="screen-owner-invites"
+  class="screen hidden admin-subscreen"
+ >
+  <header class="page-head">
+   <button
+    type="button"
+    class="top-btn"
+    data-back="profile"
+    aria-label="Назад"
+   >
+    <svg
+     width="20"
+     height="20"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="2"
+    >
+     <path d="M15 18l-6-6 6-6"/>
+    </svg>
+   </button>
+
+   <h2>Спец. приглашения</h2>
+   <div class="top-btn-ph"></div>
+  </header>
+
+  <div class="admin-section-head">
+   <div>
+    <h3>Создать ссылку</h3>
+    <p>
+     Новый пользователь получит указанное
+     количество бесплатных дней
+    </p>
+   </div>
+  </div>
+
+  <div class="admin-form-card">
+   <label class="admin-field">
+    <span>Количество дней</span>
+    <input
+     type="number"
+     id="owner-invite-days"
+     min="1"
+     max="365"
+     step="1"
+     inputmode="numeric"
+     placeholder="Например, 14"
+    >
+   </label>
+
+   <button
+    type="button"
+    class="btn-gold"
+    id="btn-owner-invite-create"
+   >
+    Создать ссылку
+   </button>
+  </div>
+
+  <div
+   id="owner-invite-created"
+   class="admin-form-card hidden"
+  >
+   <div class="admin-field">
+    <span>Готовая ссылка</span>
+    <div
+     id="owner-invite-created-link"
+     style="word-break:break-all"
+    ></div>
+   </div>
+
+   <button
+    type="button"
+    class="btn-outline-gold"
+    id="btn-owner-invite-copy"
+   >
+    📋 Скопировать
+   </button>
+  </div>
+
+  <div class="admin-section-head">
+   <div>
+    <h3>Созданные ссылки</h3>
+    <p>
+     Здесь отображаются ссылки и количество активаций
+    </p>
+   </div>
+  </div>
+
+  <div
+   id="owner-invite-list"
+   class="admin-node-list"
+  >
+   <div class="admin-loading">
+    Получение данных...
+   </div>
+  </div>
+
+ </section>
+
+ <!-- ===== OWNER INVITES SCREEN END ===== -->
 
 
  <!-- ===== SUPPORT SCREEN START ===== -->
@@ -2405,6 +2526,6 @@
  </div>
  </div>
 
- <script src="/app.js?v=75"></script>
+ <script src="/app.js?v=77"></script>
 </body>
 </html>

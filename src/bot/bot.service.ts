@@ -4,6 +4,7 @@ import { Bot, Context, session, SessionFlavor } from 'grammy';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionsService } from '../modules/subscriptions/subscriptions.service';
 import { randomBytes } from 'crypto';
+import { PlanType } from '@prisma/client';
 
 export type AdminAction =
   | 'find_user'
@@ -138,6 +139,19 @@ export class BotService implements OnModuleInit {
      * безопасно проверяем через идемпотентный ledger.
      */
     if (user) {
+      const ownerInviteResult =
+        referralCode
+          ? await this.processOwnerInvite(
+              user.id,
+              referralCode,
+              false,
+            )
+          : {
+              matched: false,
+              processed: false,
+              days: 0,
+            };
+
       let referralProcessed =
         false;
 
@@ -183,6 +197,10 @@ export class BotService implements OnModuleInit {
         isNew:
           false,
         referralProcessed,
+        ownerInviteProcessed:
+          ownerInviteResult.processed,
+        ownerInviteDays:
+          ownerInviteResult.days,
       };
     }
 
@@ -192,7 +210,10 @@ export class BotService implements OnModuleInit {
     let referrerTelegramId:
       bigint | undefined;
 
-    if (referralCode) {
+    if (
+      referralCode &&
+      !referralCode.startsWith('gift_')
+    ) {
       const referrer =
         await this.prisma.user
           .findUnique({
@@ -256,6 +277,19 @@ export class BotService implements OnModuleInit {
       `New user: ${tgId} (ref: ${referralCode ?? 'none'})`,
     );
 
+    const ownerInviteResult =
+      referralCode
+        ? await this.processOwnerInvite(
+            user.id,
+            referralCode,
+            true,
+          )
+        : {
+            matched: false,
+            processed: false,
+            days: 0,
+          };
+
     let referralProcessed =
       false;
 
@@ -286,6 +320,174 @@ export class BotService implements OnModuleInit {
       isNew:
         true,
       referralProcessed,
+      ownerInviteProcessed:
+        ownerInviteResult.processed,
+      ownerInviteDays:
+        ownerInviteResult.days,
+    };
+  }
+
+  async processOwnerInvite(
+    userId: string,
+    payload: string,
+    allowNewRedemption: boolean,
+  ) {
+    if (!payload.startsWith('gift_')) {
+      return {
+        matched: false,
+        processed: false,
+        days: 0,
+      };
+    }
+
+    const token =
+      payload.slice('gift_'.length).trim();
+
+    if (!token) {
+      return {
+        matched: true,
+        processed: false,
+        days: 0,
+      };
+    }
+
+    let redemption =
+      await this.prisma.ownerInviteRedemption
+        .findUnique({
+          where: {
+            userId,
+          },
+          include: {
+            invite: true,
+          },
+        });
+
+    if (!redemption) {
+      if (!allowNewRedemption) {
+        return {
+          matched: true,
+          processed: false,
+          days: 0,
+        };
+      }
+
+      const invite =
+        await this.prisma.ownerInvite.findUnique({
+          where: {
+            token,
+          },
+        });
+
+      if (
+        !invite ||
+        !invite.isActive
+      ) {
+        return {
+          matched: true,
+          processed: false,
+          days: 0,
+        };
+      }
+
+      try {
+        redemption =
+          await this.prisma.ownerInviteRedemption
+            .create({
+              data: {
+                inviteId: invite.id,
+                userId,
+                daysGranted: invite.days,
+              },
+              include: {
+                invite: true,
+              },
+            });
+      } catch (error) {
+        /*
+         * Возможен race двух одновременных /start.
+         * userId UNIQUE гарантирует только одно
+         * фактическое погашение.
+         */
+        redemption =
+          await this.prisma.ownerInviteRedemption
+            .findUnique({
+              where: {
+                userId,
+              },
+              include: {
+                invite: true,
+              },
+            });
+
+        if (!redemption) {
+          throw error;
+        }
+      }
+    }
+
+    /*
+     * Redemption принадлежит конкретной gift-ссылке.
+     * Другая owner-ссылка не может использовать
+     * уже существующую запись пользователя.
+     */
+    if (redemption.invite.token !== token) {
+      return {
+        matched: true,
+        processed: false,
+        days: 0,
+      };
+    }
+
+    /*
+     * appliedAt означает, что подарок уже был
+     * окончательно выдан. Повторная выдача запрещена
+     * даже после окончания подарочной подписки.
+     */
+    if (redemption.appliedAt) {
+      return {
+        matched: true,
+        processed: false,
+        days: redemption.daysGranted,
+      };
+    }
+
+    /*
+     * Используем сохранённое daysGranted,
+     * поэтому параметры созданной ссылки неизменны.
+     */
+    const days =
+      redemption.daysGranted;
+
+    await this.subscriptions.createSubscription({
+      userId,
+      plan: PlanType.STANDARD,
+      days,
+      isTrial: true,
+    });
+
+    /*
+     * Ставим appliedAt только после успешной
+     * выдачи подписки.
+     *
+     * Если процесс упадёт до этой строки,
+     * повторный /start безопасно вызовет
+     * createSubscription ещё раз. При уже активной
+     * подписке дополнительные дни не начислятся.
+     */
+    await this.prisma.ownerInviteRedemption.updateMany({
+      where: {
+        id: redemption.id,
+        appliedAt: null,
+      },
+      data: {
+        appliedAt: new Date(),
+      },
+    });
+
+    return {
+      matched: true,
+      processed: true,
+      days,
     };
   }
 

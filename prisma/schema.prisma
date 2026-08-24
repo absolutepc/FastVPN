@@ -60,32 +60,34 @@ enum BonusClaimStatus {
 }
 
 model User {
-  id                  String             @id @default(cuid())
-  telegramId          BigInt             @unique
-  username            String?
-  firstName           String?
-  lastName            String?
-  avatarUrl           String?
-  referralCode        String             @unique
-  referredById        String?
-  referredBy          User?              @relation("Referrals", fields: [referredById], references: [id])
-  referrals           User[]             @relation("Referrals")
-  referralReward      ReferralReward?    @relation("ReferralRewardInvitee")
-  referralRewards     ReferralReward[]   @relation("ReferralRewardReferrer")
-  role                UserRole           @default(USER)
-  isBlocked           Boolean            @default(false)
-  legalAcceptedAt     DateTime?
-  legalVersion        String?
-  subscriptions       Subscription[]
-  payments            Payment[]
-  devices             Device[]
-  notificationReads   UserNotification[]
-  directNotifications Notification[]     @relation("DirectNotifications")
-  supportTickets      SupportTicket[]
-  bonusClaims         BonusClaim[]
-  promoRedemptions    PromoRedemption[]
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  id                    String                 @id @default(cuid())
+  telegramId            BigInt                 @unique
+  username              String?
+  firstName             String?
+  lastName              String?
+  avatarUrl             String?
+  referralCode          String                 @unique
+  referredById          String?
+  referredBy            User?                  @relation("Referrals", fields: [referredById], references: [id])
+  referrals             User[]                 @relation("Referrals")
+  referralReward        ReferralReward?        @relation("ReferralRewardInvitee")
+  referralRewards       ReferralReward[]       @relation("ReferralRewardReferrer")
+  role                  UserRole               @default(USER)
+  isBlocked             Boolean                @default(false)
+  legalAcceptedAt       DateTime?
+  legalVersion          String?
+  subscriptions         Subscription[]
+  payments              Payment[]
+  devices               Device[]
+  notificationReads     UserNotification[]
+  directNotifications   Notification[]         @relation("DirectNotifications")
+  supportTickets        SupportTicket[]
+  bonusClaims           BonusClaim[]
+  promoRedemptions      PromoRedemption[]
+  ownerInvitesCreated   OwnerInvite[]          @relation("OwnerInviteCreator")
+  ownerInviteRedemption OwnerInviteRedemption?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
   @@map("users")
 }
@@ -373,4 +375,34 @@ model ReferralReward {
   @@index([inviteeSyncPending])
   @@index([referrerSyncPending])
   @@map("referral_rewards")
+}
+
+model OwnerInvite {
+  id          String                  @id @default(cuid())
+  token       String                  @unique
+  days        Int
+  isActive    Boolean                 @default(true)
+  createdById String
+  createdBy   User                    @relation("OwnerInviteCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  redemptions OwnerInviteRedemption[]
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([createdById, createdAt])
+  @@index([isActive])
+  @@map("owner_invites")
+}
+
+model OwnerInviteRedemption {
+  id          String      @id @default(cuid())
+  inviteId    String
+  invite      OwnerInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  userId      String      @unique
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  daysGranted Int
+  redeemedAt  DateTime    @default(now())
+  appliedAt   DateTime?
+
+  @@index([inviteId])
+  @@map("owner_invite_redemptions")
 }

@@ -635,6 +635,11 @@ function render(data) {
  data.isAdmin ? 'none' : '';
  }
 
+ if ($('profile-owner-invites-btn')) {
+ $('profile-owner-invites-btn').style.display =
+ data.isOwner ? '' : 'none';
+ }
+
  if ($('profile-admin-btn')) {
  $('profile-admin-btn').style.display =
  data.isAdmin ? '' : 'none';
@@ -2267,6 +2272,269 @@ async function loadAdminDashboard() {
  showScreen('admin');
  loadAdminDashboard();
  };
+
+
+ async function ownerInviteRequest(
+ path,
+ body = {},
+ ) {
+ const response = await fetch(
+ `${API_BASE}/api/webapp/${path}`,
+ {
+ method: 'POST',
+ headers: {
+ 'Content-Type': 'application/json',
+ },
+ body: JSON.stringify({
+ initData: getInitData(),
+ ...body,
+ }),
+ },
+ );
+
+ const data = await response.json().catch(() => null);
+
+ if (!response.ok) {
+ throw new Error(
+ data?.message ||
+ 'Ошибка запроса',
+ );
+ }
+
+ return data;
+ }
+
+ function renderOwnerInvites(items) {
+ const list = $('owner-invite-list');
+
+ if (!list) return;
+
+ if (!Array.isArray(items) || !items.length) {
+ list.innerHTML = `
+ <div class="admin-loading">
+ Ссылок пока нет
+ </div>
+ `;
+ return;
+ }
+
+ list.innerHTML = '';
+
+ items.forEach((item) => {
+ const card = document.createElement('div');
+ card.className = 'admin-form-card';
+
+ const title = document.createElement('strong');
+ title.textContent =
+ `${pluralDays(Number(item.days || 0))}`;
+
+ const meta = document.createElement('div');
+ meta.className = 'admin-field';
+
+ const uses = document.createElement('span');
+ uses.textContent =
+ `Активаций: ${Number(item.uses || 0)}`;
+
+ const link = document.createElement('div');
+ link.style.wordBreak = 'break-all';
+ link.textContent = item.link || '';
+
+ const actions = document.createElement('div');
+ actions.style.display = 'flex';
+ actions.style.gap = '8px';
+ actions.style.marginTop = '12px';
+
+ const copy = document.createElement('button');
+ copy.type = 'button';
+ copy.className = 'btn-outline-gold';
+ copy.textContent = '📋 Копировать';
+
+ copy.onclick = () => {
+ copyText(item.link || '');
+ };
+
+ const toggle = document.createElement('button');
+ toggle.type = 'button';
+ toggle.className = 'btn-outline-gold';
+ toggle.textContent =
+ item.isActive
+ ? '⛔ Отключить'
+ : '✅ Включить';
+
+ toggle.onclick = async () => {
+ try {
+ toggle.disabled = true;
+
+ await ownerInviteRequest(
+ `owner/invites/${encodeURIComponent(item.id)}/active`,
+ {
+ isActive: !item.isActive,
+ },
+ );
+
+ await loadOwnerInvites();
+
+ toast(
+ item.isActive
+ ? 'Ссылка отключена'
+ : 'Ссылка включена',
+ );
+ } catch (error) {
+ toast(
+ error?.message ||
+ 'Не удалось изменить ссылку',
+ );
+ } finally {
+ toggle.disabled = false;
+ }
+ };
+
+ meta.appendChild(uses);
+ meta.appendChild(link);
+
+ actions.appendChild(copy);
+ actions.appendChild(toggle);
+
+ card.appendChild(title);
+ card.appendChild(meta);
+ card.appendChild(actions);
+
+ if (!item.isActive) {
+ card.style.opacity = '0.6';
+ }
+
+ list.appendChild(card);
+ });
+ }
+
+ async function loadOwnerInvites() {
+ const list = $('owner-invite-list');
+
+ if (list) {
+ list.innerHTML = `
+ <div class="admin-loading">
+ Получение данных...
+ </div>
+ `;
+ }
+
+ try {
+ const items =
+ await ownerInviteRequest(
+ 'owner/invites',
+ );
+
+ renderOwnerInvites(items);
+ } catch (error) {
+ if (list) {
+ list.innerHTML = `
+ <div class="admin-loading">
+ Не удалось загрузить ссылки
+ </div>
+ `;
+ }
+
+ toast(
+ error?.message ||
+ 'Ошибка загрузки',
+ );
+ }
+ }
+
+ if ($('profile-owner-invites-btn')) {
+ $('profile-owner-invites-btn').onclick =
+ async () => {
+ showScreen('owner-invites');
+ await loadOwnerInvites();
+ };
+ }
+
+ if ($('btn-owner-invite-create')) {
+ $('btn-owner-invite-create').onclick =
+ async () => {
+ const input =
+ $('owner-invite-days');
+
+ const days =
+ Number(input?.value);
+
+ if (
+ !Number.isInteger(days) ||
+ days < 1 ||
+ days > 365
+ ) {
+ toast('Укажите от 1 до 365 дней');
+ return;
+ }
+
+ const button =
+ $('btn-owner-invite-create');
+
+ try {
+ button.disabled = true;
+
+ const invite =
+ await ownerInviteRequest(
+ 'owner/invites/create',
+ {
+ days,
+ },
+ );
+
+ const created =
+ $('owner-invite-created');
+
+ const link =
+ $('owner-invite-created-link');
+
+ if (link) {
+ link.textContent =
+ invite.link || '';
+ link.dataset.link =
+ invite.link || '';
+ }
+
+ if (created) {
+ created.classList.remove('hidden');
+ }
+
+ if (input) {
+ input.value = '';
+ }
+
+ tg?.HapticFeedback
+ ?.notificationOccurred
+ ?.('success');
+
+ toast('Ссылка создана');
+
+ await loadOwnerInvites();
+ } catch (error) {
+ toast(
+ error?.message ||
+ 'Не удалось создать ссылку',
+ );
+ } finally {
+ button.disabled = false;
+ }
+ };
+ }
+
+ if ($('btn-owner-invite-copy')) {
+ $('btn-owner-invite-copy').onclick =
+ () => {
+ const link =
+ $('owner-invite-created-link')
+ ?.dataset.link || '';
+
+ if (!link) {
+ toast('Сначала создайте ссылку');
+ return;
+ }
+
+ copyText(link);
+ };
+ }
 
  if ($('profile-admin-btn')) {
  $('profile-admin-btn').onclick = () => {

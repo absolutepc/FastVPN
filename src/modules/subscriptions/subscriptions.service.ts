@@ -2353,7 +2353,7 @@ const inbound =
       };
 
       const h1LinkGroups = await Promise.all(
-        this.h1Nodes.map(async (node) => {
+        this.getConfiguredH1Nodes().map(async (node) => {
           const h1Client =
             linksByNode.get(node.key);
 

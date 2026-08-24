@@ -605,6 +605,22 @@ function render(data) {
  $('user-meta').textContent = data.user?.username
  ? `@${data.user.username}`
  : `ID: ${data.user?.id?.slice?.(-6) || '—'}`;
+
+ const roleEl = $('user-role');
+
+ if (roleEl) {
+   const roleLabels = {
+     OWNER: 'Владелец',
+     ADMIN: 'Администратор',
+   };
+
+   const roleLabel =
+     roleLabels[String(data.role || '').toUpperCase()] || '';
+
+   roleEl.textContent = roleLabel;
+   roleEl.hidden = !roleLabel;
+ }
+
  $('ref-link').textContent = data.referralLink || '—';
 
  if ($('ref-count')) {

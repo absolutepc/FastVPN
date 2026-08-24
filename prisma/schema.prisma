@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  OWNER
+}
+
 enum PlanType {
   STANDARD
   PREMIUM
@@ -66,6 +72,7 @@ model User {
   referrals           User[]             @relation("Referrals")
   referralReward      ReferralReward?    @relation("ReferralRewardInvitee")
   referralRewards     ReferralReward[]   @relation("ReferralRewardReferrer")
+  role                UserRole           @default(USER)
   isBlocked           Boolean            @default(false)
   legalAcceptedAt     DateTime?
   legalVersion        String?

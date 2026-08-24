@@ -29,6 +29,7 @@ import {
   PlanType,
   Prisma,
   SubscriptionStatus,
+  UserRole,
 } from '@prisma/client';
 import { XrayService } from '../xray/xray.service';
 
@@ -108,21 +109,70 @@ export class WebappService {
     return JSON.parse(userRaw);
   }
 
-  private isAdminTelegramId(telegramId: number): boolean {
-    const adminIds = (this.config.get<string>('ADMIN_IDS') || '')
-      .split(',')
-      .map((id) => id.trim())
-      .filter(Boolean);
+  private isAdminFallbackTelegramId(
+    telegramId: number,
+  ): boolean {
+    const adminIds =
+      (this.config.get<string>('ADMIN_IDS') || '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
 
-    return adminIds.includes(String(telegramId));
+    return adminIds.includes(
+      String(telegramId),
+    );
   }
 
-  private requireAdmin(initData: string) {
-    const tg = this.validateInitData(initData);
+  private isPrivilegedRole(
+    role: UserRole,
+  ): boolean {
+    return (
+      role === UserRole.ADMIN ||
+      role === UserRole.OWNER
+    );
+  }
 
-    if (!this.isAdminTelegramId(tg.id)) {
-      this.logger.warn(`WebApp admin access denied: telegram=${tg.id}`);
-      throw new ForbiddenException('Admin access required');
+  private async hasAdminAccess(
+    telegramId: number,
+  ): Promise<boolean> {
+    const user =
+      await this.prisma.user.findUnique({
+        where: {
+          telegramId: BigInt(telegramId),
+        },
+        select: {
+          role: true,
+        },
+      });
+
+    if (
+      user &&
+      this.isPrivilegedRole(user.role)
+    ) {
+      return true;
+    }
+
+    return this.isAdminFallbackTelegramId(
+      telegramId,
+    );
+  }
+
+  private async requireAdmin(
+    initData: string,
+  ) {
+    const tg =
+      this.validateInitData(initData);
+
+    if (
+      !(await this.hasAdminAccess(tg.id))
+    ) {
+      this.logger.warn(
+        `WebApp admin access denied: telegram=${tg.id}`,
+      );
+
+      throw new ForbiddenException(
+        'Admin access required',
+      );
     }
 
     return tg;
@@ -333,7 +383,12 @@ export class WebappService {
         referralCode: user.referralCode,
         avatarUrl: user.avatarUrl,
       },
-      isAdmin: this.isAdminTelegramId(tg.id),
+      role: user.role,
+      isAdmin:
+        this.isPrivilegedRole(user.role) ||
+        this.isAdminFallbackTelegramId(tg.id),
+      isOwner:
+        user.role === UserRole.OWNER,
       subscriptionState,
       daysLeft,
       deviceLimit: 1,
@@ -2310,9 +2365,10 @@ export class WebappService {
       await this.findOrCreateFromTelegram(tg);
 
     if (
-      this.isAdminTelegramId(
+      !this.isPrivilegedRole(user.role) &&
+      !this.isAdminFallbackTelegramId(
         Number(user.telegramId),
-      ) === false
+      )
     ) {
       throw new ForbiddenException(
         'Admin access required',
@@ -2396,9 +2452,10 @@ export class WebappService {
       await this.findOrCreateFromTelegram(tg);
 
     if (
-      this.isAdminTelegramId(
+      !this.isPrivilegedRole(user.role) &&
+      !this.isAdminFallbackTelegramId(
         Number(user.telegramId),
-      ) === false
+      )
     ) {
       throw new ForbiddenException(
         'Admin access required',
@@ -2461,9 +2518,10 @@ export class WebappService {
       await this.findOrCreateFromTelegram(tg);
 
     if (
-      this.isAdminTelegramId(
+      !this.isPrivilegedRole(user.role) &&
+      !this.isAdminFallbackTelegramId(
         Number(user.telegramId),
-      ) === false
+      )
     ) {
       throw new ForbiddenException(
         'Admin access required',
@@ -2516,9 +2574,10 @@ export class WebappService {
       await this.findOrCreateFromTelegram(tg);
 
     if (
-      this.isAdminTelegramId(
+      !this.isPrivilegedRole(user.role) &&
+      !this.isAdminFallbackTelegramId(
         Number(user.telegramId),
-      ) === false
+      )
     ) {
       throw new ForbiddenException(
         'Admin access required',
@@ -2586,9 +2645,10 @@ export class WebappService {
       await this.findOrCreateFromTelegram(tg);
 
     if (
-      this.isAdminTelegramId(
+      !this.isPrivilegedRole(user.role) &&
+      !this.isAdminFallbackTelegramId(
         Number(user.telegramId),
-      ) === false
+      )
     ) {
       throw new ForbiddenException(
         'Admin access required',
@@ -2768,7 +2828,12 @@ export class WebappService {
     const tg = this.validateInitData(initData);
     const user = await this.findOrCreateFromTelegram(tg);
 
-    if (!this.isAdminTelegramId(Number(user.telegramId))) {
+    if (
+      !this.isPrivilegedRole(user.role) &&
+      !this.isAdminFallbackTelegramId(
+        Number(user.telegramId),
+      )
+    ) {
       throw new ForbiddenException(
         'Admin access required',
       );
@@ -2849,9 +2914,10 @@ export class WebappService {
       await this.findOrCreateFromTelegram(tg);
 
     if (
-      this.isAdminTelegramId(
+      !this.isPrivilegedRole(user.role) &&
+      !this.isAdminFallbackTelegramId(
         Number(user.telegramId),
-      ) === false
+      )
     ) {
       throw new ForbiddenException(
         'Admin access required',
@@ -2927,7 +2993,12 @@ export class WebappService {
     const tg = this.validateInitData(initData);
     const user = await this.findOrCreateFromTelegram(tg);
 
-    if (!this.isAdminTelegramId(Number(user.telegramId))) {
+    if (
+      !this.isPrivilegedRole(user.role) &&
+      !this.isAdminFallbackTelegramId(
+        Number(user.telegramId),
+      )
+    ) {
       throw new ForbiddenException(
         'Admin access required',
       );
@@ -3141,7 +3212,7 @@ export class WebappService {
     titleRaw: string,
     bodyRaw: string,
   ) {
-    this.requireAdmin(initData);
+    await this.requireAdmin(initData);
 
     const title = titleRaw.trim();
     const body = bodyRaw.trim();
@@ -3192,7 +3263,9 @@ export class WebappService {
 
 
   async getAdminDashboard(initData: string) {
-    const admin = this.requireAdmin(initData);
+    const admin =
+      await this.requireAdmin(initData);
+
     const now = new Date();
     const startOfDay = new Date(now);
     startOfDay.setHours(0, 0, 0, 0);

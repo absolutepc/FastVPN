@@ -674,7 +674,12 @@ function render(data) {
  if (subDays) subDays.style.display = '';
  $('greet-status').textContent = 'Ваш доступ активен';
  $('greet-status').className = 'hello-sub on';
- $('status-dot').className = 'status-dot on';
+
+ $('status-dot').className =
+ data.vpnConnected
+ ? 'status-dot connected'
+ : 'status-dot disconnected';
+
  $('hero-title').textContent = 'Подписка активна';
  $('hero-sub').textContent = sub.isTrial ? 'Пробный период · вы в безопасности' : 'Вы в безопасности';
  $('btn-renew').textContent = 'Продлить подписку ›';
@@ -1789,6 +1794,100 @@ async function loadAdminDashboard() {
  }
  }
 
+ let vpnStatusTimer = null;
+
+ function applyVpnStatus(data) {
+ const dot = $('status-dot');
+
+ if (!dot) {
+ return;
+ }
+
+ const active =
+ data?.subscriptionState === 'ACTIVE' &&
+ Boolean(data?.subscription);
+
+ if (!active) {
+ dot.className = 'status-dot';
+ return;
+ }
+
+ dot.className =
+ data.vpnConnected
+ ? 'status-dot connected'
+ : 'status-dot disconnected';
+ }
+
+ async function refreshVpnStatus() {
+ if (document.hidden) {
+ return;
+ }
+
+ const initData = getInitData();
+
+ if (!initData) {
+ return;
+ }
+
+ try {
+ const res = await fetch(
+ `${API_BASE}/api/webapp/me`,
+ {
+ method: 'POST',
+ headers: {
+ 'Content-Type': 'application/json',
+ },
+ body: JSON.stringify({
+ initData,
+ }),
+ },
+ );
+
+ if (!res.ok) {
+ return;
+ }
+
+ const data = await res.json();
+
+ if (cabinet) {
+ cabinet.vpnConnected =
+ Boolean(data.vpnConnected);
+
+ cabinet.subscriptionState =
+ data.subscriptionState;
+
+ cabinet.subscription =
+ data.subscription;
+ }
+
+ applyVpnStatus(data);
+ } catch (_) {
+ // Не меняем текущий статус при временной ошибке сети.
+ }
+ }
+
+ function startVpnStatusPolling() {
+ if (vpnStatusTimer !== null) {
+ return;
+ }
+
+ vpnStatusTimer = setInterval(
+ () => {
+ void refreshVpnStatus();
+ },
+ 20_000,
+ );
+ }
+
+ document.addEventListener(
+ 'visibilitychange',
+ () => {
+ if (!document.hidden) {
+ void refreshVpnStatus();
+ }
+ },
+ );
+
  async function load() {
  $('error-screen').classList.add('hidden');
  const initData = getInitData();
@@ -1807,8 +1906,13 @@ async function loadAdminDashboard() {
  const err = await res.json().catch(() => ({}));
  throw new Error(err.message || 'Ошибка ' + res.status);
  }
- render(await res.json());
+ const data = await res.json();
+
+ render(data);
+ applyVpnStatus(data);
  showScreen('home');
+
+ startVpnStatusPolling();
 
  void loadNetworkStatus();
  void loadNotifications();

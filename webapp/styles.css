@@ -115,12 +115,29 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #3a3a3a;
-  box-shadow: 0 0 0 3px rgba(58, 58, 58, 0.25);
+  background: #ef4444;
+  box-shadow: none;
 }
-.status-dot.on {
+
+.status-dot.disconnected {
+  background: #eab308;
+  box-shadow: none;
+}
+
+.status-dot.connected {
   background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25), 0 0 12px rgba(34, 197, 94, 0.5);
+  box-shadow: none;
+  animation: statusDotBlink 1.2s ease-in-out infinite;
+}
+
+@keyframes statusDotBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.28;
+  }
 }
 
 .shield-wrap {
@@ -128,6 +145,8 @@ body {
   width: 130px;
   height: 130px;
   margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
 }
 
 .ring {
@@ -154,13 +173,16 @@ body {
 }
 
 .shield-core {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  position: relative;
   z-index: 2;
+  display: grid;
+  place-items: center;
   filter: drop-shadow(0 0 16px rgba(212, 175, 55, 0.5));
   animation: shieldGlow 4s ease-in-out infinite;
+}
+
+.shield-core svg {
+  display: block;
 }
 
 @keyframes shieldGlow {
@@ -262,12 +284,12 @@ body {
 .banner {
   position: relative;
   width: 100%;
-  min-height: 120px;
+  min-height: 96px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   text-align: left;
-  padding: 28px 18px;
+  padding: 18px 16px;
   border-radius: 18px;
   border: 1px solid rgba(212, 175, 55, 0.3);
   background: linear-gradient(105deg, #1a160c 0%, #0d0d0d 55%, #0a0907 100%);
@@ -1847,16 +1869,21 @@ body.notification-modal-open {
   right: 18px;
   width: 13px;
   height: 13px;
-  background: #464646;
-  box-shadow:
-    0 0 0 7px rgba(65, 65, 65, 0.25);
+  background: #ef4444;
+  box-shadow: none;
+  animation: none;
 }
 
-#screen-home .status-dot.on {
-  background: #00dc68;
-  box-shadow:
-    0 0 0 7px rgba(0, 199, 89, 0.24),
-    0 0 14px rgba(0, 235, 105, 0.65);
+#screen-home .status-dot.disconnected {
+  background: #eab308;
+  box-shadow: none;
+  animation: none;
+}
+
+#screen-home .status-dot.connected {
+  background: #22c55e;
+  box-shadow: none;
+  animation: statusDotBlink 1.2s ease-in-out infinite;
 }
 
 /* Щит */

@@ -185,6 +185,26 @@ export class DeviceLimitService {
         }
 
         /*
+         * Этот UUID реально появился в свежих Xray-логах,
+         * значит устройство недавно использовало VPN.
+         *
+         * DeviceLimitService уже выполняет SSH-проверку нод,
+         * поэтому отдельный опрос для WebApp не нужен.
+         */
+        await this.prisma.device.updateMany({
+          where: {
+            subscriptionId:
+              subscription.id,
+            isActive:
+              true,
+          },
+          data: {
+            lastSeenAt:
+              new Date(),
+          },
+        });
+
+        /*
          * Для MVP несколько IP являются только сигналом.
          *
          * Мы НЕ блокируем подписку автоматически.

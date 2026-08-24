@@ -298,6 +298,23 @@ export class WebappService {
       ? Math.max(0, Math.ceil((sub.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
       : 0;
 
+    /*
+     * DeviceLimitService сканирует свежие Xray-логи
+     * каждые 2 минуты и обновляет lastSeenAt.
+     *
+     * Окно 10 минут учитывает, что активный VPN-туннель
+     * может некоторое время не создавать новых Xray-соединений.
+     */
+    const vpnConnected =
+      Boolean(
+        sub &&
+        device?.isActive &&
+        device.lastSeenAt &&
+        Date.now() -
+          device.lastSeenAt.getTime() <=
+          10 * 60 * 1000,
+      );
+
     const appUrl = (this.config.get<string>('APP_URL') || 'http://localhost:3000').replace(/\/$/, '');
     const botUsername = this.config.get<string>('BOT_USERNAME') || 'FourStepsVPNbot';
 
@@ -321,6 +338,7 @@ export class WebappService {
       daysLeft,
       deviceLimit: 1,
       deviceUsed: device?.isActive ? 1 : 0,
+      vpnConnected,
       device: device
         ? {
             id: device.id,

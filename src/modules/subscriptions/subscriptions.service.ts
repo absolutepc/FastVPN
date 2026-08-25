@@ -2287,6 +2287,7 @@ const inbound =
         const mainName = encodeURIComponent("🇬🇧 London MAIN");
         const xhttpName = encodeURIComponent("🇬🇧 London XHTTP");
         const wsName = encodeURIComponent("🇬🇧 London WS");
+        const fastName = encodeURIComponent("🇬🇧 London FAST");
 
         const main =
           `vless://${sub.uuid}@${node.host}:443` +
@@ -2322,7 +2323,12 @@ const inbound =
           `&path=${encodeURIComponent("/ws-test")}` +
           `#${wsName}`;
 
-        return [main, xhttp, ws];
+        const fast =
+          `hy2://${sub.uuid}@hy-uk1.4stepsvpn.ru:443/` +
+          `?sni=hy-uk1.4stepsvpn.ru` +
+          `#${fastName}`;
+
+        return [main, xhttp, ws, fast];
       }
 
       return [

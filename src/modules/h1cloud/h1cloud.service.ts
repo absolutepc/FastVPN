@@ -156,7 +156,7 @@ export class H1CloudService {
     const node = this.getNode(nodeKey);
 
     const controller = new AbortController();
-    const timeoutMs = 5000;
+    const timeoutMs = 10000;
 
     const timer = setTimeout(
       () => controller.abort(),

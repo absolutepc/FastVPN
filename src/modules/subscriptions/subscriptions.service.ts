@@ -699,13 +699,10 @@ export class SubscriptionsService {
         subscription.status === SubscriptionStatus.TRIAL
       );
 
-    const maintenance =
-      this.getMaintenanceH1Nodes();
-
-    const removed =
-      await this.removeH1Cloud(subscription.id);
-
     if (!active) {
+      const removed =
+        await this.removeH1Cloud(subscription.id);
+
       if (removed.fail > 0) {
         throw new Error(
           `H1CLOUD_REMOVE_INCOMPLETE:${removed.failedNodeKeys.join(',')}`,
@@ -715,30 +712,16 @@ export class SubscriptionsService {
       return subscription;
     }
 
-    const blockingRemoveFailures =
-      removed.failedNodeKeys.filter(
-        nodeKey =>
-          !maintenance.has(nodeKey.toUpperCase()),
-      );
-
     const provisioned =
       await this.provisionH1Cloud({
         id: subscription.id,
         expiresAt: subscription.expiresAt,
       });
 
-    if (
-      blockingRemoveFailures.length > 0 ||
-      provisioned.fail > 0
-    ) {
-      const failed = [
-        ...blockingRemoveFailures,
-        ...provisioned.failedNodeKeys,
-      ];
-
+    if (provisioned.fail > 0) {
       throw new Error(
         `H1CLOUD_SYNC_INCOMPLETE:${[
-          ...new Set(failed),
+          ...new Set(provisioned.failedNodeKeys),
         ].join(',')}`,
       );
     }

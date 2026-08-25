@@ -205,7 +205,7 @@ export class NodeRegisterController {
     }
 
     const port = body.port ?? 443;
-    const maxUsers = body.maxUsers ?? 50;
+    const maxUsers = body.maxUsers ?? 1000;
     const inboundTag =
       body.inboundTag ?? 'vless-reality';
     const fingerprint =

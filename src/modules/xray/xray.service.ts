@@ -104,7 +104,10 @@ export class XrayService {
     if (!api) return false;
 
     const inbounds: Array<{ tag: string; flow: VlessFlow }> =
-      node.name.toLowerCase().includes('germany')
+      (
+        node.name.toLowerCase().includes('germany') ||
+        node.name.toLowerCase().includes('london')
+      )
         ? [
             {
               tag: node.inboundTag || 'vless-reality',
@@ -182,8 +185,10 @@ export class XrayService {
     const api = await this.getClient(node);
     if (!api) return false;
 
-    const inboundTags = node.name.toLowerCase().includes('germany')
-      ? [node.inboundTag || 'vless-reality', 'vless-ws', 'vless-xhttp']
+    const inboundTags =
+      node.name.toLowerCase().includes('germany') ||
+      node.name.toLowerCase().includes('london')
+        ? [node.inboundTag || 'vless-reality', 'vless-ws', 'vless-xhttp']
       : [node.inboundTag || 'vless-reality'];
 
     let success = true;

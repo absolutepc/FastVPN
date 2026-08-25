@@ -2219,6 +2219,8 @@ const inbound =
     const links = nodes.flatMap((node) => {
       const countryFlag = node.name.toLowerCase().includes("germany")
         ? "🇩🇪"
+        : node.name.toLowerCase().includes("london")
+          ? "🇬🇧"
         : node.name.toLowerCase().includes("netherlands")
           ? "🇳🇱"
           : node.name.toLowerCase().includes("france")
@@ -2279,6 +2281,48 @@ const inbound =
           `#${fastName}`;
 
         return [main, xhttp, ws, fast];
+      }
+
+      if (node.name.toLowerCase().includes("london")) {
+        const mainName = encodeURIComponent("🇬🇧 London MAIN");
+        const xhttpName = encodeURIComponent("🇬🇧 London XHTTP");
+        const wsName = encodeURIComponent("🇬🇧 London WS");
+
+        const main =
+          `vless://${sub.uuid}@${node.host}:443` +
+          `?encryption=none` +
+          `&flow=xtls-rprx-vision` +
+          `&security=reality` +
+          `&sni=${node.sni}` +
+          `&fp=${node.fingerprint}` +
+          `&pbk=${node.publicKey}` +
+          `&sid=${node.shortId}` +
+          `&type=tcp` +
+          `&headerType=none` +
+          `#${mainName}`;
+
+        const xhttp =
+          `vless://${sub.uuid}@${node.host}:445` +
+          `?encryption=none` +
+          `&security=reality` +
+          `&sni=${node.sni}` +
+          `&fp=${node.fingerprint}` +
+          `&pbk=${node.publicKey}` +
+          `&sid=${node.shortId}` +
+          `&type=xhttp` +
+          `&path=${encodeURIComponent("/4steps-xhttp")}` +
+          `#${xhttpName}`;
+
+        const ws =
+          `vless://${sub.uuid}@${node.host}:444` +
+          `?encryption=none` +
+          `&security=none` +
+          `&type=ws` +
+          `&host=ws-uk1.4stepsvpn.ru` +
+          `&path=${encodeURIComponent("/ws-test")}` +
+          `#${wsName}`;
+
+        return [main, xhttp, ws];
       }
 
       return [

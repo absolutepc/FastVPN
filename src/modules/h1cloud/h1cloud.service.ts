@@ -4,9 +4,7 @@ import { ConfigService } from '@nestjs/config';
 export const H1_CLOUD_NODE_KEYS = [
   'FI1',
   'ES1',
-  'PL1',
   'CH1',
-  'SE1',
   'NL1',
 ] as const;
 

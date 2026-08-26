@@ -272,9 +272,7 @@ export class WebappService {
     const locationNames: Record<string, string> = {
       FI1: 'Финляндия',
       ES1: 'Испания',
-      PL1: 'Польша',
       CH1: 'Швейцария',
-      SE1: 'Швеция',
       NL1: 'Нидерланды',
     };
 

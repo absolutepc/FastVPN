@@ -67,9 +67,7 @@ export class SubscriptionsService {
     name: string;
   }> = [
     { key: "FI1", name: "🇫🇮 Finland" },
-    { key: "PL1", name: "🇵🇱 Poland" },
     { key: "CH1", name: "🇨🇭 Switzerland" },
-    { key: "SE1", name: "🇸🇪 Sweden" },
     { key: "NL1", name: "🇳🇱 Netherlands" },
   ];
 
@@ -2210,9 +2208,7 @@ const inbound =
             ? "🇫🇷"
             : node.name.toLowerCase().includes("finland")
               ? "🇫🇮"
-              : node.name.toLowerCase().includes("sweden")
-                ? "🇸🇪"
-                : node.name.toLowerCase().includes("usa")
+              : node.name.toLowerCase().includes("usa")
                   ? "🇺🇸"
                   : "🌐";
 
@@ -2359,23 +2355,11 @@ const inbound =
           xhttp: "ib_f1b9465174",
           label: "Spain",
         },
-        PL1: {
-          main: "ib_a1e9039f1e",
-          ws: "ib_770a3708ee",
-          xhttp: "ib_cb423d6ea6",
-          label: "Poland",
-        },
         CH1: {
           main: "ib_0f67f5820b",
           ws: "ib_16f6636dbf",
           xhttp: "ib_d0aac15723",
           label: "Switzerland",
-        },
-        SE1: {
-          main: "ib_45aacac02b",
-          ws: "ib_5dd073a54a",
-          xhttp: "ib_61c070c275",
-          label: "Sweden",
         },
         NL1: {
           main: "ib_cfbd2a1e52",
@@ -2512,26 +2496,12 @@ const inbound =
                   xhttpHost: "xhttp-es1.4stepsvpn.ru",
                   xhttpPort: 25489,
                 },
-                PL1: {
-                  host: "pl1.h1cloud.net",
-                  wsHost: "ws-pl1.4stepsvpn.ru",
-                  wsPort: 26548,
-                  xhttpHost: "xhttp-pl1.4stepsvpn.ru",
-                  xhttpPort: 26549,
-                },
                 CH1: {
                   host: "ch1.h1cloud.net",
                   wsHost: "ws-ch1.4stepsvpn.ru",
                   wsPort: 25054,
                   xhttpHost: "xhttp-ch1.4stepsvpn.ru",
                   xhttpPort: 25059,
-                },
-                SE1: {
-                  host: "se1.h1cloud.net",
-                  wsHost: "ws-se1.4stepsvpn.ru",
-                  wsPort: 25235,
-                  xhttpHost: "xhttp-se1.4stepsvpn.ru",
-                  xhttpPort: 25236,
                 },
                 NL1: {
                   host: "nl4.h1cloud.net",

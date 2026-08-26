@@ -109,7 +109,6 @@ private readonly recoveryCounters = new Map<
     if (n.includes('netherlands')) return '🇳🇱';
     if (n.includes('finland')) return '🇫🇮';
     if (n.includes('france')) return '🇫🇷';
-    if (n.includes('sweden')) return '🇸🇪';
     if (n.includes('usa') || n.includes('united states')) return '🇺🇸';
 
     return '🌐';

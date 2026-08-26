@@ -705,7 +705,7 @@ function render(data) {
 
  const sub = data.subscription;
  const state = data.subscriptionState || (sub ? 'ACTIVE' : 'NONE');
- const deviceLimit = data.deviceLimit ?? 1;
+ const deviceLimit = data.deviceLimit ?? 2;
  const deviceUsed = data.deviceUsed ?? 0;
  const left = data.daysLeft ?? (sub ? daysLeft(sub.expiresAt) : 0);
  const subDays = $('days-num')?.closest('.sub-days');

@@ -210,7 +210,7 @@ export class DeviceLimitService {
          * Мы НЕ блокируем подписку автоматически.
          * IP не является надёжным идентификатором устройства.
          */
-        const violation = activeIps.length > 1;
+        const violation = activeIps.length > 2;
 
         if (violation) {
           state.violations += 1;

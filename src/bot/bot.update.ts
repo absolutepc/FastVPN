@@ -254,7 +254,7 @@ export class BotUpdate implements OnModuleInit {
       await ctx.reply(
         `🛡 <b>4StepsVPN — Стандарт</b>\n\n` +
           `💰 <b>300 ₽ / 30 дней</b>\n` +
-          `📱 1 устройство\n` +
+          `📱 2 устройства\n` +
           `🖥 Серверы тарифа Стандарт\n\n` +
           `Премиум временно недоступен.`,
         {
@@ -419,7 +419,7 @@ export class BotUpdate implements OnModuleInit {
       await ctx.editMessageText(
         '🛡 <b>4StepsVPN — Стандарт</b>\n\n' +
           '💰 Стоимость: <b>300 ₽ / 30 дней</b>\n' +
-          '📱 1 устройство\n\n' +
+          '📱 2 устройства\n\n' +
           'Выберите банк для оплаты:',
         {
           parse_mode: 'HTML',

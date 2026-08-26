@@ -444,7 +444,7 @@ export class WebappService {
         user.role === UserRole.OWNER,
       subscriptionState,
       daysLeft,
-      deviceLimit: 1,
+      deviceLimit: 2,
       deviceUsed: device?.isActive ? 1 : 0,
       vpnConnected,
       device: device

@@ -321,7 +321,7 @@ export class H1CloudService {
         body: JSON.stringify({
           name: params.name,
           days: params.days,
-          device_limit: params.deviceLimit ?? 1,
+          device_limit: params.deviceLimit ?? 2,
           channels: this.getChannels(nodeKey),
           inbound_ids: this.getInboundIds(nodeKey, node),
           wg: false,
@@ -353,7 +353,7 @@ export class H1CloudService {
         method: 'PATCH',
         body: JSON.stringify({
           traffic_limit_gb: 0,
-          device_limit: 1,
+          device_limit: 2,
           channels: this.getChannels(nodeKey),
           inbound_ids: this.getInboundIds(nodeKey, node),
           wg: false,
@@ -412,7 +412,7 @@ export class H1CloudService {
       {
         name,
         days,
-        deviceLimit: 1,
+        deviceLimit: 2,
       },
       nodeKey,
     );
@@ -433,7 +433,7 @@ export class H1CloudService {
         {
           name,
           days: createDays,
-          deviceLimit: 1,
+          deviceLimit: 2,
         },
         nodeKey,
       );

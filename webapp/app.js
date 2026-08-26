@@ -623,6 +623,22 @@ function render(data) {
 
  $('ref-link').textContent = data.referralLink || '—';
 
+ if ($('ref-qr')) {
+   const qr = $('ref-qr');
+   const qrDataUrl =
+     typeof data.referralQrDataUrl === 'string'
+       ? data.referralQrDataUrl
+       : '';
+
+   if (qrDataUrl) {
+     qr.src = qrDataUrl;
+     qr.hidden = false;
+   } else {
+     qr.removeAttribute('src');
+     qr.hidden = true;
+   }
+ }
+
  if ($('ref-count')) {
    $('ref-count').textContent =
      String(Number(data.referralCount || 0));

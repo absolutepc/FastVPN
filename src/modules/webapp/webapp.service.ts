@@ -19,6 +19,7 @@ import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { Response } from 'express';
 import { execFile } from 'child_process';
+import QRCode from 'qrcode';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { PaymentsService } from '../payments/payments.service';
@@ -413,6 +414,20 @@ export class WebappService {
         },
       });
 
+    const referralLink =
+      `https://t.me/${botUsername}?start=${user.referralCode}`;
+
+    const referralQrDataUrl =
+      await QRCode.toDataURL(referralLink, {
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 640,
+        color: {
+          dark: '#000000',
+          light: '#ffffff',
+        },
+      });
+
     return {
       user: {
         id: user.id,
@@ -451,7 +466,8 @@ export class WebappService {
             subUrl: `${appUrl}/sub/${sub.subToken}.txt`,
           }
         : null,
-      referralLink: `https://t.me/${botUsername}?start=${user.referralCode}`,
+      referralLink,
+      referralQrDataUrl,
       referralCount,
       plans: [
         { id: 'STANDARD', name: 'Стандарт', price: 300, description: 'Обычные серверы' },

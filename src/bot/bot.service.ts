@@ -65,7 +65,7 @@ export class BotService implements OnModuleInit {
     process.once('SIGTERM', () => this.bot.stop());
   }
 
-  getMainKeyboard() {
+  getMainKeyboard(isAdmin = false) {
     const appUrl = (this.config.get<string>('APP_URL') || '').replace(/\/$/, '');
     const webAppUrl = appUrl ? `${appUrl}/` : '';
 
@@ -75,6 +75,10 @@ export class BotService implements OnModuleInit {
       [{ text: '🎁 Промокод' }, { text: '👥 Пригласить друга' }],
       [{ text: '💬 Поддержка' }],
     ];
+
+    if (isAdmin) {
+      rows.push([{ text: '🔐 Админ' }]);
+    }
 
     // WebApp button only works over HTTPS in Telegram
     if (webAppUrl.startsWith('https://')) {

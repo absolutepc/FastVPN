@@ -8865,3 +8865,62 @@ html[data-theme="cyan"] #screen-sub .sub-card {
 }
 
 /* ===== OWNER INVITES THEME OVERRIDES END ===== */
+
+
+/* ===== REFERRAL QR ===== */
+
+#screen-ref .ref-qr-card {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 18px 0 14px;
+  padding: 20px 16px;
+  border: 1px solid rgba(var(--accent-rgb), 0.55);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(var(--accent-rgb), 0.055),
+      rgba(12, 12, 12, 0.98) 45%,
+      rgba(7, 7, 7, 0.98)
+    );
+  text-align: center;
+}
+
+#screen-ref .ref-qr-wrap {
+  width: min(230px, 74vw);
+  aspect-ratio: 1;
+  margin: 0 auto 15px;
+  padding: 10px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+#screen-ref .ref-qr {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+#screen-ref .ref-qr[hidden] {
+  display: none !important;
+}
+
+#screen-ref .ref-qr-title {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+#screen-ref .ref-qr-hint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+/* ===== REFERRAL QR END ===== */

@@ -150,9 +150,13 @@ export class BotUpdate implements OnModuleInit {
 
       welcome += `\n\nВыберите действие:`;
 
+      const adminAccess =
+        await this.isAdmin(ctx.from?.id);
+
       await ctx.reply(welcome, {
         parse_mode: 'HTML',
-        reply_markup: this.botService.getMainKeyboard(),
+        reply_markup:
+          this.botService.getMainKeyboard(adminAccess),
       });
     });
 
@@ -213,10 +217,14 @@ export class BotUpdate implements OnModuleInit {
         // Сообщение могло быть изменено или устареть.
       }
 
+      const adminAccess =
+        await this.isAdmin(ctx.from?.id);
+
       await ctx.reply(
         '✅ Условия приняты. Теперь вам доступны все функции 4StepsVPN.',
         {
-          reply_markup: this.botService.getMainKeyboard(),
+          reply_markup:
+            this.botService.getMainKeyboard(adminAccess),
         },
       );
     });
@@ -352,14 +360,29 @@ export class BotUpdate implements OnModuleInit {
       const botInfo = await bot.api.getMe();
       const link = `https://t.me/${botInfo.username}?start=${user.referralCode}`;
 
-      await ctx.reply(
-        `👥 <b>Пригласи друга</b>\n\n` +
-          `Отправь эту ссылку другу:\n` +
-          `<code>${link}</code>\n\n` +
-          `Что получите:\n` +
-          `• Друг — 7 дней <b>Стандарт</b> бесплатно\n` +
-          `• Ты — +7 дней к своей подписке (только Стандарт)`,
-        { parse_mode: 'HTML' },
+      const qrBuffer = await QRCode.toBuffer(link, {
+        type: 'png',
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 640,
+        color: {
+          dark: '#000000',
+          light: '#ffffff',
+        },
+      });
+
+      await ctx.replyWithPhoto(
+        new InputFile(qrBuffer, '4stepsvpn-referral.png'),
+        {
+          caption:
+            `👥 <b>Пригласи друга</b>\n\n` +
+            `Покажи другу этот QR-код или отправь ссылку:\n` +
+            `<code>${link}</code>\n\n` +
+            `Что получите:\n` +
+            `• Друг — 7 дней <b>Стандарт</b> бесплатно\n` +
+            `• Ты — +7 дней к своей подписке (только Стандарт)`,
+          parse_mode: 'HTML',
+        },
       );
     });
 

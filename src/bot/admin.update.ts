@@ -172,14 +172,22 @@ private countryFlag(name: string): string {
   onModuleInit() {
     const bot = this.botService.bot;
 
-    bot.command('admin', async (ctx) => {
-      if (!(await this.isAdmin(ctx.from?.id))) return ctx.reply('Нет доступа.');
+    const openAdminPanel = async (ctx: BotContext) => {
+      if (!(await this.isAdmin(ctx.from?.id))) {
+        return ctx.reply('Нет доступа.');
+      }
+
       this.botService.clearAdminSession(ctx);
+
       await ctx.reply('🔐 <b>Панель администратора</b>', {
         parse_mode: 'HTML',
         reply_markup: this.adminKeyboard(),
       });
-    });
+    };
+
+    bot.command('admin', openAdminPanel);
+
+    bot.hears('🔐 Админ', openAdminPanel);
 
     bot.callbackQuery('admin:menu', async (ctx) => {
       if (!(await this.isAdmin(ctx.from?.id))) return ctx.answerCallbackQuery({ text: 'Нет доступа' });

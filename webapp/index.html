@@ -5,7 +5,7 @@
  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
  <title>4StepsVPN</title>
  <script src="https://telegram.org/js/telegram-web-app.js"></script>
- <link rel="stylesheet" href="/styles.css?v=99" />
+ <link rel="stylesheet" href="/styles.css?v=100" />
 </head>
 <body>
  <div id="app">
@@ -1680,6 +1680,27 @@
   </div>
  </div>
 
+ <div class="ref-qr-card">
+  <div class="ref-qr-wrap">
+   <img
+    id="ref-qr"
+    class="ref-qr"
+    alt="QR-код приглашения"
+    hidden
+   />
+  </div>
+
+  <strong class="ref-qr-title">
+   Пригласить по QR-коду
+  </strong>
+
+  <p class="ref-qr-hint">
+   Друг может отсканировать этот QR-код камерой телефона.
+   После перехода в Telegram бонус начислится так же,
+   как при использовании вашей реферальной ссылки.
+  </p>
+ </div>
+
  <div class="link-box"><code id="ref-link">—</code></div>
  <button type="button" class="btn-gold" id="btn-copy-ref">Скопировать ссылку</button>
  </section>
@@ -2529,6 +2550,6 @@
  </div>
  </div>
 
- <script src="/app.js?v=78"></script>
+ <script src="/app.js?v=79"></script>
 </body>
 </html>

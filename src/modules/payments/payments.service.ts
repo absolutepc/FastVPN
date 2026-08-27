@@ -8,6 +8,7 @@ import {
   SubscriptionStatus,
 } from '@prisma/client';
 import { randomBytes, randomUUID } from 'crypto';
+import { Cron } from '@nestjs/schedule';
 
 const PLAN_PRICES: Record<PlanType, number> = {
   STANDARD: 30000,
@@ -81,6 +82,44 @@ export class PaymentsService {
     }
 
     return months as SubscriptionMonths;
+  }
+
+  @Cron('0 * * * *')
+  async cleanupExpiredPendingPayments(): Promise<void> {
+    const cutoff = new Date(
+      Date.now() - 72 * 60 * 60 * 1000,
+    );
+
+    try {
+      const result =
+        await this.prisma.payment.updateMany({
+          where: {
+            status: PaymentStatus.PENDING,
+            createdAt: {
+              lt: cutoff,
+            },
+            proofFileId: null,
+            reviewedAt: null,
+            appliedAt: null,
+          },
+          data: {
+            status: PaymentStatus.CANCELLED,
+          },
+        });
+
+      if (result.count > 0) {
+        this.logger.log(
+          `Auto-cancelled ${result.count} expired pending payment(s)`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        'Failed to auto-cancel expired pending payments',
+        error instanceof Error
+          ? error.stack
+          : String(error),
+      );
+    }
   }
 
   getDiscountPercent(months: number): number {

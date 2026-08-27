@@ -422,8 +422,7 @@ export class BotUpdate implements OnModuleInit {
           '1 месяц — <b>300 ₽</b>\n' +
           '3 месяца — <b>810 ₽</b> <i>−10%</i>\n' +
           '6 месяцев — <b>1 440 ₽</b> <i>−20%</i>\n' +
-          '9 месяцев — <b>1 755 ₽</b> <i>−35%</i>\n' +
-          '12 месяцев — <b>1 800 ₽</b> <i>−50%</i>',
+          '6 месяцев — <b>1 440 ₽</b> <i>−20%</i>',
         {
           parse_mode: 'HTML',
           reply_markup: {
@@ -434,10 +433,6 @@ export class BotUpdate implements OnModuleInit {
               ],
               [
                 { text: '6 мес. · 1 440 ₽', callback_data: 'buyduration:6' },
-                { text: '9 мес. · 1 755 ₽', callback_data: 'buyduration:9' },
-              ],
-              [
-                { text: '12 мес. · 1 800 ₽ · −50%', callback_data: 'buyduration:12' },
               ],
               [{ text: '« Назад', callback_data: 'back:main' }],
             ],

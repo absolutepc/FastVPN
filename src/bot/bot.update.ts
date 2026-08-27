@@ -421,7 +421,6 @@ export class BotUpdate implements OnModuleInit {
           'Выберите срок подписки:\n\n' +
           '1 месяц — <b>300 ₽</b>\n' +
           '3 месяца — <b>810 ₽</b> <i>−10%</i>\n' +
-          '6 месяцев — <b>1 440 ₽</b> <i>−20%</i>\n' +
           '6 месяцев — <b>1 440 ₽</b> <i>−20%</i>',
         {
           parse_mode: 'HTML',

@@ -6,6 +6,7 @@ export const H1_CLOUD_NODE_KEYS = [
   'ES1',
   'CH1',
   'NL1',
+  'NLBS1',
 ] as const;
 
 export type H1CloudNodeKey = (typeof H1_CLOUD_NODE_KEYS)[number];
@@ -127,6 +128,7 @@ export class H1CloudService {
 
   private getChannels(nodeKey: H1CloudNodeKey): string[] {
     if (nodeKey === 'FI1') return ['bs'];
+    if (nodeKey === 'NLBS1') return ['bs'];
     if (nodeKey === 'NL1') return ['wscdn'];
 
     return [];
@@ -384,10 +386,14 @@ export class H1CloudService {
   }
 
   getPrimaryLink(client: H1Client): string {
-    const link = client.inbound_links?.[0]?.link;
+    const link =
+      client.inbound_links?.[0]?.link ||
+      client.links?.xhttp_cdn ||
+      client.links?.xhttp ||
+      client.links?.main;
 
     if (!link) {
-      throw new Error(`H1Cloud client ${client.name} has no inbound link`);
+      throw new Error(`H1Cloud client ${client.name} has no usable link`);
     }
 
     return link;

@@ -69,6 +69,7 @@ export class SubscriptionsService {
     { key: "FI1", name: "🇫🇮 Finland" },
     { key: "CH1", name: "🇨🇭 Switzerland" },
     { key: "NL1", name: "🇳🇱 Netherlands" },
+    { key: "NLBS1", name: "🇳🇱 Netherlands Обход" },
   ];
 
   private getMaintenanceH1Nodes(): Set<string> {

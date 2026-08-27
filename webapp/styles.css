@@ -8924,3 +8924,63 @@ html[data-theme="cyan"] #screen-sub .sub-card {
 }
 
 /* ===== REFERRAL QR END ===== */
+
+/* Subscription duration selector */
+.purchase-duration-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.purchase-duration {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.purchase-duration span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.purchase-duration strong {
+  font-size: 0.92rem;
+}
+
+.purchase-duration small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.purchase-duration b {
+  flex-shrink: 0;
+  color: var(--gold-l);
+  font-size: 1rem;
+}
+
+.purchase-duration:active {
+  border-color: rgba(212, 175, 55, 0.45);
+  transform: scale(0.99);
+}
+
+.purchase-duration-best {
+  border-color: rgba(212, 175, 55, 0.42);
+  background:
+    linear-gradient(
+      120deg,
+      rgba(212, 175, 55, 0.11),
+      var(--card)
+    );
+}

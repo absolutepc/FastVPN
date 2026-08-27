@@ -2268,10 +2268,68 @@
  <strong>Стандарт</strong>
  <span>Все доступные серверы · 2 устройства</span>
  </div>
- <b>300 ₽</b>
+ <b id="purchase-summary-price">от 300 ₽</b>
  </div>
 
- <div id="purchase-step-bank">
+ <div id="purchase-step-duration">
+ <p class="purchase-step-title">Выберите срок подписки</p>
+
+ <div class="purchase-duration-list">
+
+  <button type="button"
+   class="purchase-duration"
+   data-purchase-duration="1">
+   <span>
+    <strong>1 месяц</strong>
+    <small>Без скидки</small>
+   </span>
+   <b>300 ₽</b>
+  </button>
+
+  <button type="button"
+   class="purchase-duration"
+   data-purchase-duration="3">
+   <span>
+    <strong>3 месяца</strong>
+    <small>Скидка 10%</small>
+   </span>
+   <b>810 ₽</b>
+  </button>
+
+  <button type="button"
+   class="purchase-duration"
+   data-purchase-duration="6">
+   <span>
+    <strong>6 месяцев</strong>
+    <small>Скидка 20%</small>
+   </span>
+   <b>1 440 ₽</b>
+  </button>
+
+  <button type="button"
+   class="purchase-duration"
+   data-purchase-duration="9">
+   <span>
+    <strong>9 месяцев</strong>
+    <small>Скидка 35%</small>
+   </span>
+   <b>1 755 ₽</b>
+  </button>
+
+  <button type="button"
+   class="purchase-duration purchase-duration-best"
+   data-purchase-duration="12">
+   <span>
+    <strong>12 месяцев</strong>
+    <small>Скидка 50% · Максимальная выгода</small>
+   </span>
+   <b>1 800 ₽</b>
+  </button>
+
+ </div>
+</div>
+
+<div id="purchase-step-bank" class="hidden">
  <p class="purchase-step-title">Выберите банк для перевода</p>
 
  <div class="purchase-bank-list">
@@ -2298,6 +2356,11 @@
  <div class="admin-modal-row">
  <span>Банк</span>
  <strong id="purchase-bank-name">—</strong>
+ </div>
+
+ <div class="admin-modal-row">
+ <span>Срок</span>
+ <strong id="purchase-duration">—</strong>
  </div>
 
  <div class="admin-modal-row">

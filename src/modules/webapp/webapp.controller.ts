@@ -424,12 +424,14 @@ export class WebappController {
       initData?: string;
       plan?: string;
       bank?: string;
+      months?: number;
     },
   ) {
     return this.webapp.createManualWebappPayment(
       body.initData || '',
       body.plan || 'STANDARD',
       body.bank || '',
+      Number(body.months ?? 1),
     );
   }
 

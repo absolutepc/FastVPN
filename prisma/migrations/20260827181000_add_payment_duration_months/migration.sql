@@ -1,0 +1,2 @@
+ALTER TABLE "payments"
+ADD COLUMN "durationMonths" INTEGER NOT NULL DEFAULT 1;

@@ -253,15 +253,15 @@ export class BotUpdate implements OnModuleInit {
     bot.hears('🛡 Купить', async (ctx) => {
       await ctx.reply(
         `🛡 <b>4StepsVPN — Стандарт</b>\n\n` +
-          `💰 <b>300 ₽ / 30 дней</b>\n` +
+          `💰 от <b>300 ₽</b>\n` +
           `📱 2 устройства\n` +
           `🖥 Серверы тарифа Стандарт\n\n` +
-          `Премиум временно недоступен.`,
+          `Чем больше срок — тем выше скидка.`,
         {
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
-              [{ text: 'Купить Стандарт — 300 ₽', callback_data: 'buy:standard' }],
+              [{ text: 'Выбрать срок подписки', callback_data: 'buy:standard' }],
               [{ text: '« Назад', callback_data: 'back:main' }],
             ],
           },
@@ -338,12 +338,12 @@ export class BotUpdate implements OnModuleInit {
       await ctx.reply(
         `Продление: <b>Стандарт</b>\n` +
           `Действует до: ${sub.expiresAt.toLocaleDateString('ru-RU')}\n\n` +
-          `Стоимость: <b>300 ₽</b> / 30 дней`,
+          `Выберите срок продления.`,
         {
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
-              [{ text: 'Оплатить 300 ₽', callback_data: 'buy:standard' }],
+              [{ text: 'Выбрать срок', callback_data: 'buy:standard' }],
               [{ text: '« Назад', callback_data: 'back:main' }],
             ],
           },
@@ -418,15 +418,27 @@ export class BotUpdate implements OnModuleInit {
 
       await ctx.editMessageText(
         '🛡 <b>4StepsVPN — Стандарт</b>\n\n' +
-          '💰 Стоимость: <b>300 ₽ / 30 дней</b>\n' +
-          '📱 2 устройства\n\n' +
-          'Выберите банк для оплаты:',
+          'Выберите срок подписки:\n\n' +
+          '1 месяц — <b>300 ₽</b>\n' +
+          '3 месяца — <b>810 ₽</b> <i>−10%</i>\n' +
+          '6 месяцев — <b>1 440 ₽</b> <i>−20%</i>\n' +
+          '9 месяцев — <b>1 755 ₽</b> <i>−35%</i>\n' +
+          '12 месяцев — <b>1 800 ₽</b> <i>−50%</i>',
         {
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
-              [{ text: '🟡 Т-Банк', callback_data: 'manualpay:tbank' }],
-              [{ text: '🟢 Сбербанк', callback_data: 'manualpay:sber' }],
+              [
+                { text: '1 мес. · 300 ₽', callback_data: 'buyduration:1' },
+                { text: '3 мес. · 810 ₽', callback_data: 'buyduration:3' },
+              ],
+              [
+                { text: '6 мес. · 1 440 ₽', callback_data: 'buyduration:6' },
+                { text: '9 мес. · 1 755 ₽', callback_data: 'buyduration:9' },
+              ],
+              [
+                { text: '12 мес. · 1 800 ₽ · −50%', callback_data: 'buyduration:12' },
+              ],
               [{ text: '« Назад', callback_data: 'back:main' }],
             ],
           },
@@ -434,10 +446,67 @@ export class BotUpdate implements OnModuleInit {
       );
     });
 
-    bot.callbackQuery(/^manualpay:(tbank|sber)$/, async (ctx) => {
+    bot.callbackQuery(
+      /^buyduration:(1|3|6|9|12)$/,
+      async (ctx) => {
+        await ctx.answerCallbackQuery();
+
+        const durationMonths = Number(ctx.match![1]);
+        const amount =
+          this.payments.getPrice(
+            PlanType.STANDARD,
+            durationMonths,
+          );
+
+        const discount =
+          this.payments.getDiscountPercent(
+            durationMonths,
+          );
+
+        const amountRub = Math.round(amount / 100);
+
+        await ctx.editMessageText(
+          `🛡 <b>4StepsVPN — Стандарт</b>\n\n` +
+            `Срок: <b>${durationMonths} мес.</b>\n` +
+            `Скидка: <b>${discount}%</b>\n` +
+            `К оплате: <b>${amountRub.toLocaleString('ru-RU')} ₽</b>\n\n` +
+            `Выберите банк для оплаты:`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🟡 Т-Банк',
+                    callback_data:
+                      `manualpay:tbank:${durationMonths}`,
+                  },
+                ],
+                [
+                  {
+                    text: '🟢 Сбербанк',
+                    callback_data:
+                      `manualpay:sber:${durationMonths}`,
+                  },
+                ],
+                [
+                  {
+                    text: '« Назад',
+                    callback_data: 'buy:standard',
+                  },
+                ],
+              ],
+            },
+          },
+        );
+      },
+    );
+
+    bot.callbackQuery(/^manualpay:(tbank|sber):(1|3|6|9|12)$/, async (ctx) => {
       await ctx.answerCallbackQuery();
 
       const bankKey = ctx.match![1] as 'tbank' | 'sber';
+      const durationMonths = Number(ctx.match![2]);
       const bank = bankKey === 'tbank' ? 'TBANK' : 'SBER';
       const bankName = bankKey === 'tbank' ? 'Т-Банк' : 'Сбербанк';
 
@@ -452,18 +521,28 @@ export class BotUpdate implements OnModuleInit {
           userId: user.id,
           plan: PlanType.STANDARD,
           bank,
+          durationMonths,
         });
 
         const phone = this.config.get<string>('PAYMENT_PHONE') || '+79626542959';
         const recipient = this.config.get<string>('PAYMENT_RECIPIENT') || 'Тамерлан Д.';
 
+        const amountRub =
+          Math.round(payment.amount / 100);
+
+        const discount =
+          this.payments.getDiscountPercent(
+            payment.durationMonths,
+          );
+
         await ctx.editMessageText(
           `💳 <b>Оплата 4StepsVPN</b>\n\n` +
             `Тариф: <b>Стандарт</b>\n` +
-            `Срок: <b>30 дней</b>\n` +
-            `Сумма: <b>300 ₽</b>\n` +
+            `Срок: <b>${payment.durationMonths} мес.</b>\n` +
+            `Скидка: <b>${discount}%</b>\n` +
+            `Сумма: <b>${amountRub.toLocaleString('ru-RU')} ₽</b>\n` +
             `Банк: <b>${bankName}</b>\n\n` +
-            `Переведите <b>300 ₽</b> по номеру телефона:\n` +
+            `Переведите <b>${amountRub.toLocaleString('ru-RU')} ₽</b> по номеру телефона:\n` +
             `<code>${phone}</code>\n` +
             `Получатель: <b>${recipient}</b>\n\n` +
             `⚠️ Перед переводом убедитесь, что выбран <b>${bankName}</b> и получатель совпадает.\n\n` +
@@ -473,7 +552,11 @@ export class BotUpdate implements OnModuleInit {
             reply_markup: {
               inline_keyboard: [
                 [{ text: '✅ Я оплатил', callback_data: `manualpaid:${payment.id}` }],
-                [{ text: '« Назад', callback_data: 'buy:standard' }],
+                [{
+                  text: '« Назад',
+                  callback_data:
+                    `buyduration:${payment.durationMonths}`,
+                }],
               ],
             },
           },
@@ -558,6 +641,7 @@ export class BotUpdate implements OnModuleInit {
               `Username: ${username}\n` +
               `Telegram ID: <code>${payment.user.telegramId.toString()}</code>\n` +
               `Тариф: <b>Стандарт</b>\n` +
+              `Срок: <b>${payment.durationMonths} мес.</b>\n` +
               `Сумма: <b>${(payment.amount / 100).toFixed(0)} ₽</b>\n` +
               `Банк: <b>${bankName}</b>\n` +
               `Payment ID: <code>${payment.id}</code>`,

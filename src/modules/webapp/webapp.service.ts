@@ -3464,6 +3464,7 @@ export class WebappService {
     initData: string,
     planKey: string,
     bankKey: string,
+    durationMonths: number,
   ) {
     const tg = this.validateInitData(initData);
     const user = await this.findOrCreateFromTelegram(tg);
@@ -3515,6 +3516,7 @@ export class WebappService {
       userId: user.id,
       plan,
       bank: bank as 'TBANK' | 'SBER',
+      durationMonths,
     });
 
     const phone =
@@ -3527,7 +3529,17 @@ export class WebappService {
       paymentId: payment.id,
       plan: payment.plan,
       amountRub: Math.round(payment.amount / 100),
-      days: 30,
+      baseAmountRub: Math.round(
+        (payment.baseAmount ?? payment.amount) / 100,
+      ),
+      months: payment.durationMonths,
+      days: this.payments.getDurationDays(
+        payment.durationMonths,
+      ),
+      discountPercent:
+        this.payments.getDiscountPercent(
+          payment.durationMonths,
+        ),
       bank,
       bankName: bank === 'TBANK' ? 'Т-Банк' : 'Сбербанк',
       phone,

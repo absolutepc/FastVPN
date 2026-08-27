@@ -194,6 +194,7 @@ model Payment {
   paymentProvider       String?
   amount                Int
   baseAmount            Int?
+  durationMonths        Int           @default(1)
   feeAmount             Int?
   feePercent            Int?
   currency              String        @default("RUB")

@@ -1966,12 +1966,27 @@ async function loadAdminDashboard() {
 
  let manualPayment = null;
  let selectedProof = null;
+ let selectedDurationMonths = 1;
+ let purchaseStep = 'duration';
+
+ const PURCHASE_PERIODS = {
+  1: { amountRub: 300, discount: 0 },
+  3: { amountRub: 810, discount: 10 },
+  6: { amountRub: 1440, discount: 20 },
+  9: { amountRub: 1755, discount: 35 },
+  12: { amountRub: 1800, discount: 50 },
+ };
 
  function setPurchaseStep(step) {
- ['bank', 'details', 'success'].forEach((name) => {
- $('purchase-step-' + name).classList.toggle('hidden', name !== step);
+ purchaseStep = step;
+
+ ['duration', 'bank', 'details', 'success'].forEach((name) => {
+  $('purchase-step-' + name).classList.toggle(
+   'hidden',
+   name !== step,
+  );
  });
- }
+}
 
  function closePurchaseModal() {
  selectedProof = null;
@@ -2000,20 +2015,50 @@ async function loadAdminDashboard() {
  : 'Купить подписку';
 
  $('purchase-modal-description').textContent = active
- ? 'После подтверждения оплаты к текущему сроку добавится 30 дней.'
+ ? 'Выберите срок продления подписки.'
  : expired
- ? 'После подтверждения оплаты доступ восстановится с прежней ссылкой.'
- : 'После подтверждения оплаты подписка будет активирована.';
+ ? 'Выберите срок. После оплаты доступ восстановится с прежней ссылкой.'
+ : 'Выберите срок подписки и способ оплаты.';
 
  manualPayment = null;
  selectedProof = null;
+ selectedDurationMonths = 1;
+
+ const summaryPrice =
+  $('purchase-summary-price');
+
+ if (summaryPrice) {
+  summaryPrice.textContent = 'от 300 ₽';
+ }
+
  $('purchase-proof').value = '';
- setPurchaseStep('bank');
+ setPurchaseStep('duration');
  showScreen('payment');
  tg?.HapticFeedback?.selectionChanged?.();
  }
 
- async function startManualPayment(bank) {
+ function selectPurchaseDuration(months) {
+const duration = Number(months);
+
+const period =
+PURCHASE_PERIODS[duration];
+
+if (!period) {
+return toast('Некорректный срок подписки');
+}
+
+selectedDurationMonths = duration;
+
+$('purchase-summary-price').textContent =
+period.amountRub.toLocaleString('ru-RU') +
+' ₽';
+
+setPurchaseStep('bank');
+
+tg?.HapticFeedback?.selectionChanged?.();
+}
+
+async function startManualPayment(bank) {
  const initData = getInitData();
 
  if (!initData) {
@@ -2031,6 +2076,7 @@ async function loadAdminDashboard() {
  initData,
  plan: 'STANDARD',
  bank,
+ months: selectedDurationMonths,
  }),
  });
 
@@ -2042,7 +2088,12 @@ async function loadAdminDashboard() {
 
  manualPayment = data;
  $('purchase-bank-name').textContent = data.bankName || '—';
- $('purchase-amount').textContent = String(data.amountRub ?? 300) + ' ₽';
+ $('purchase-duration').textContent =
+  data.months
+   ? String(data.months) + ' мес.'
+   : '—';
+ $('purchase-amount').textContent =
+  String(data.amountRub ?? 300) + ' ₽';
  $('purchase-phone').textContent = data.phone || '—';
  $('purchase-recipient').textContent = data.recipient || '—';
  $('purchase-proof-name').textContent = 'JPEG, PNG, WebP или PDF · до 10 МБ';
@@ -3532,15 +3583,30 @@ async function loadAdminDashboard() {
  };
 
  $('payment-back').onclick = () => {
+ if (purchaseStep === 'bank') {
+  setPurchaseStep('duration');
+  return;
+ }
+
  closePurchaseModal();
- };
+};
  $('purchase-copy-phone').onclick = () => {
  const phone = manualPayment?.phone;
  if (phone) copyText(phone);
  };
- document.querySelectorAll('[data-purchase-bank]').forEach((button) => {
- button.onclick = () => startManualPayment(button.dataset.purchaseBank);
- });
+ document.querySelectorAll('[data-purchase-duration]').forEach((button) => {
+ button.onclick = () =>
+  selectPurchaseDuration(
+   button.dataset.purchaseDuration,
+  );
+});
+
+document.querySelectorAll('[data-purchase-bank]').forEach((button) => {
+ button.onclick = () =>
+  startManualPayment(
+   button.dataset.purchaseBank,
+  );
+});
  $('purchase-proof').onchange = (event) => {
  selectedProof = event.target.files?.[0] || null;
  $('purchase-proof-name').textContent = selectedProof

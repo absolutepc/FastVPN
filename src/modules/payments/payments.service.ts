@@ -14,7 +14,18 @@ const PLAN_PRICES: Record<PlanType, number> = {
   PREMIUM: 60000,
 };
 
-const PLAN_DAYS = 30;
+const SUBSCRIPTION_PERIODS = {
+  1: 0,
+  3: 10,
+  6: 20,
+  9: 35,
+  12: 50,
+} as const;
+
+type SubscriptionMonths =
+  keyof typeof SUBSCRIPTION_PERIODS;
+
+const DAYS_PER_MONTH = 30;
 
 @Injectable()
 export class PaymentsService {
@@ -57,22 +68,85 @@ export class PaymentsService {
     );
   }
 
-  getPrice(plan: PlanType): number {
-    return PLAN_PRICES[plan];
+  private normalizeDurationMonths(
+    months: number,
+  ): SubscriptionMonths {
+    if (
+      !Number.isInteger(months) ||
+      !(months in SUBSCRIPTION_PERIODS)
+    ) {
+      throw new Error(
+        'INVALID_SUBSCRIPTION_DURATION',
+      );
+    }
+
+    return months as SubscriptionMonths;
+  }
+
+  getDiscountPercent(months: number): number {
+    const duration =
+      this.normalizeDurationMonths(months);
+
+    return SUBSCRIPTION_PERIODS[duration];
+  }
+
+  getDurationDays(months: number): number {
+    const duration =
+      this.normalizeDurationMonths(months);
+
+    return duration * DAYS_PER_MONTH;
+  }
+
+  getPrice(
+    plan: PlanType,
+    months = 1,
+  ): number {
+    const duration =
+      this.normalizeDurationMonths(months);
+
+    const base =
+      PLAN_PRICES[plan] * duration;
+
+    const discount =
+      SUBSCRIPTION_PERIODS[duration];
+
+    return Math.round(
+      base * (100 - discount) / 100,
+    );
   }
 
  async createManualPayment(params: {
   userId: string;
   plan: PlanType;
   bank: 'TBANK' | 'SBER';
+  durationMonths?: number;
 }) {
-  const amount = this.getPrice(params.plan);
+  const durationMonths =
+    this.normalizeDurationMonths(
+      params.durationMonths ?? 1,
+    );
+
+  const baseAmount =
+    PLAN_PRICES[params.plan] *
+    durationMonths;
+
+  const amount =
+    this.getPrice(
+      params.plan,
+      durationMonths,
+    );
+
+  const durationDays =
+    this.getDurationDays(
+      durationMonths,
+    );
 
   return this.prisma.payment.create({
     data: {
       userId: params.userId,
       amount,
-      baseAmount: amount,
+      baseAmount,
+      durationMonths,
       feeAmount: 0,
       feePercent: 0,
       currency: 'RUB',
@@ -81,7 +155,8 @@ export class PaymentsService {
       paymentMethod: 'MANUAL_SBP',
       paymentProvider: 'MANUAL',
       bank: params.bank,
-      description: `4StepsVPN — Стандарт 30 дн. — ручная оплата`,
+      description:
+        `4StepsVPN — ${durationMonths} мес. (${durationDays} дн.) — ручная оплата`,
     },
   });
 }
@@ -241,9 +316,14 @@ async approveManualPayment(
         throw new Error('PAYMENT_ALREADY_PROCESSING');
       }
 
+      const durationDays =
+        this.getDurationDays(
+          payment.durationMonths,
+        );
+
       const expiresAt = new Date(now);
       expiresAt.setDate(
-        expiresAt.getDate() + PLAN_DAYS,
+        expiresAt.getDate() + durationDays,
       );
 
       let subscription;
@@ -292,7 +372,7 @@ async approveManualPayment(
       if (active) {
         const newExpires = new Date(active.expiresAt);
         newExpires.setDate(
-          newExpires.getDate() + PLAN_DAYS,
+          newExpires.getDate() + durationDays,
         );
 
         subscription =

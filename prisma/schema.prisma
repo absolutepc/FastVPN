@@ -100,6 +100,8 @@ model Notification {
   reads           UserNotification[]
   recipientUserId String?
   recipient       User?              @relation("DirectNotifications", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  dedupeKey       String?            @unique
+  telegramSentAt  DateTime?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 

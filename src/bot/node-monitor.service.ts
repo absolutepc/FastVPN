@@ -106,6 +106,7 @@ private readonly recoveryCounters = new Map<
     const n = name.toLowerCase();
 
     if (n.includes('germany')) return '🇩🇪';
+    if (n.includes('london') || n.includes('united kingdom')) return '🇬🇧';
     if (n.includes('netherlands')) return '🇳🇱';
     if (n.includes('finland')) return '🇫🇮';
     if (n.includes('france')) return '🇫🇷';

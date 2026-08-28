@@ -860,6 +860,7 @@ function render(data) {
  function adminFlag(name) {
  const value = String(name || '').toLowerCase();
  if (value.includes('germany')) return '🇩🇪';
+ if (value.includes('london') || value.includes('united kingdom')) return '🇬🇧';
  if (value.includes('finland')) return '🇫🇮';
  if (value.includes('netherlands')) return '🇳🇱';
  if (value.includes('france')) return '🇫🇷';
@@ -1046,6 +1047,7 @@ function render(data) {
  CH1: { flag: '🇨🇭', name: 'Switzerland' },
  SE1: { flag: '🇸🇪', name: 'Sweden' },
  NL1: { flag: '🇳🇱', name: 'Netherlands' },
+ NLBS1: { flag: '🇳🇱', name: 'Netherlands Обход' },
  };
 
  for (const h1 of h1Nodes) {

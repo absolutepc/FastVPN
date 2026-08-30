@@ -288,7 +288,24 @@ export class BotUpdate implements OnModuleInit {
         /\/$/,
         '',
       );
-      const subUrl = `${appUrl}/sub/${sub.subToken}.txt`;
+      const devices = await this.botService.prismaService.device.findMany({
+        where: {
+          subscriptionId: sub.id,
+          isActive: true,
+        },
+        orderBy: { slot: 'asc' },
+      });
+      const deviceLinks = devices
+        .map(
+          (device) =>
+            `📱 <b>${device.name}</b>${
+              device.vpnSyncPending ? ' · синхронизация' : ''
+            }\n<code>${appUrl}/sub/${device.subToken}.txt</code>`,
+        )
+        .join('\n\n');
+      const linksText =
+        deviceLinks ||
+        `📱 <b>Основное устройство</b>\n<code>${appUrl}/sub/${sub.subToken}.txt</code>`;
       const expires = sub.expiresAt.toLocaleDateString('ru-RU');
       const planName = sub.plan === 'PREMIUM' ? 'Премиум' : 'Стандарт';
       const trialMark = sub.isTrial ? ' (пробный)' : '';
@@ -297,7 +314,7 @@ export class BotUpdate implements OnModuleInit {
         `📱 <b>Ваша подписка</b>\n\n` +
           `Тариф: <b>${planName}</b>${trialMark}\n` +
           `Действует до: <b>${expires}</b>\n\n` +
-          `🔗 Subscription-ссылка:\n<code>${subUrl}</code>\n\n` +
+          `${linksText}\n\n` +
           `👇 Выберите приложение`,
         {
           parse_mode: 'HTML',
@@ -314,6 +331,12 @@ export class BotUpdate implements OnModuleInit {
               [
                 { text: '📷 QR', callback_data: 'app:qr' },
                 { text: '📋 Скопировать ссылку', callback_data: 'app:copy' },
+              ],
+              [
+                {
+                  text: '⚙️ Управлять устройствами',
+                  web_app: { url: `${appUrl}/` },
+                },
               ],
             ],
           },

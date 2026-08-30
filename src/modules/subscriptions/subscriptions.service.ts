@@ -7,6 +7,7 @@ import {
   H1CloudService,
 } from "../h1cloud/h1cloud.service";
 import {
+  Device,
   PlanType,
   Prisma,
   SubscriptionStatus,
@@ -112,14 +113,15 @@ export class SubscriptionsService {
   private async saveH1CloudClient(
     nodeKey: H1CloudNodeKey,
     subscriptionId: string,
+    deviceId: string,
     client: H1Client,
   ) {
     const remoteLink = this.h1cloud.getPrimaryLink(client);
 
     return this.prisma.h1CloudClient.upsert({
       where: {
-        subscriptionId_nodeKey: {
-          subscriptionId,
+        deviceId_nodeKey: {
+          deviceId,
           nodeKey,
         },
       },
@@ -131,6 +133,7 @@ export class SubscriptionsService {
       },
       create: {
         subscriptionId,
+        deviceId,
         nodeKey,
         remoteName: client.name,
         remoteUuid: client.uuid,
@@ -140,137 +143,158 @@ export class SubscriptionsService {
     });
   }
 
-  private async provisionH1CloudNode(
-    nodeKey: H1CloudNodeKey,
-    subscription: {
-      id: string;
-      expiresAt: Date;
-    },
-  ) {
-    const client = await this.h1cloud.createForSubscription(
-      subscription.id,
-      this.getRemainingDays(subscription.expiresAt),
-      nodeKey,
-    );
-
-    return this.saveH1CloudClient(nodeKey, subscription.id, client);
-  }
-
-  private async provisionH1Cloud(subscription: {
-  id: string;
-  expiresAt: Date;
-}) {
-  const nodes = this.getConfiguredH1Nodes();
-  let ok = 0;
-  let fail = 0;
-  const failedNodeKeys: string[] = [];
-
-  for (const node of nodes) {
-    try {
-      await this.provisionH1CloudNode(node.key, subscription);
-      ok++;
-    } catch (error) {
-      fail++;
-      failedNodeKeys.push(node.key);
-
-      const message =
-        error instanceof Error ? error.message : String(error);
-
-      this.logger.error(
-        `H1Cloud provision failed for ${node.key} subscription ${subscription.id}: ${message}`,
-      );
-    }
-  }
-
-  return {
-    total: nodes.length,
-    ok,
-    fail,
-    failedNodeKeys,
-  };
-}
-
-  private async extendH1Cloud(
-  subscriptionId: string,
-  extensionDays: number,
-  expiresAt: Date,
-) {
-  const createDays = this.getRemainingDays(expiresAt);
-
-  for (const node of this.getConfiguredH1Nodes()) {
-    try {
-      const client = await this.h1cloud.extendForSubscription(
-        subscriptionId,
-        extensionDays,
-        node.key,
-        createDays,
-      );
-
-      await this.saveH1CloudClient(
-        node.key,
-        subscriptionId,
-        client,
-      );
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
-
-      this.logger.error(
-        `H1Cloud extend failed for ${node.key} subscription ${subscriptionId}: ${message}`,
-      );
-    }
-  }
-}
-
-  private async removeH1Cloud(subscriptionId: string) {
-  const clients = await this.prisma.h1CloudClient.findMany({
-    where: {
-      subscriptionId,
-    },
-    select: {
-      nodeKey: true,
-    },
-  });
-
-  let ok = 0;
-  let fail = 0;
-  const failedNodeKeys: string[] = [];
-
-  for (const client of clients) {
-    try {
-      await this.h1cloud.deleteForSubscription(
-        subscriptionId,
-        client.nodeKey as H1CloudNodeKey
-      );
-
-      await this.prisma.h1CloudClient.deleteMany({
-        where: {
-          subscriptionId,
-          nodeKey: client.nodeKey,
-        },
+  private async ensurePrimaryDevice(subscriptionId: string) {
+    const subscription =
+      await this.prisma.subscription.findUniqueOrThrow({
+        where: { id: subscriptionId },
       });
 
-      ok++;
-    } catch (error) {
-      fail++;
-      failedNodeKeys.push(client.nodeKey);
+    return this.prisma.device.upsert({
+      where: {
+        subscriptionId_slot: {
+          subscriptionId,
+          slot: 1,
+        },
+      },
+      update: {},
+      create: {
+        userId: subscription.userId,
+        subscriptionId,
+        uuid: subscription.uuid,
+        subToken: subscription.subToken,
+        slot: 1,
+        name: 'Основное устройство',
+        isActive: true,
+        vpnSyncPending: false,
+      },
+    });
+  }
 
-      const message =
-        error instanceof Error ? error.message : String(error);
+  private async provisionH1CloudDeviceNode(
+    nodeKey: H1CloudNodeKey,
+    device: Device,
+    expiresAt: Date,
+  ) {
+    const client =
+      device.slot === 1
+        ? await this.h1cloud.createForSubscription(
+            device.subscriptionId,
+            this.getRemainingDays(expiresAt),
+            nodeKey,
+          )
+        : await this.h1cloud.createForDevice(
+            device.id,
+            this.getRemainingDays(expiresAt),
+            nodeKey,
+          );
 
-      this.logger.error(
-        `H1Cloud remove failed for ${client.nodeKey} subscription ${subscriptionId}: ${message}`,
-      );
+    return this.saveH1CloudClient(
+      nodeKey,
+      device.subscriptionId,
+      device.id,
+      client,
+    );
+  }
+
+  private async extendH1Cloud(
+    subscriptionId: string,
+    extensionDays: number,
+    expiresAt: Date,
+  ) {
+    await this.ensurePrimaryDevice(subscriptionId);
+
+    const createDays = this.getRemainingDays(expiresAt);
+    const devices = await this.prisma.device.findMany({
+      where: {
+        subscriptionId,
+        isActive: true,
+      },
+    });
+
+    for (const device of devices) {
+      for (const node of this.getConfiguredH1Nodes()) {
+        try {
+          const client =
+            device.slot === 1
+              ? await this.h1cloud.extendForSubscription(
+                  subscriptionId,
+                  extensionDays,
+                  node.key,
+                  createDays,
+                )
+              : await this.h1cloud.extendForDevice(
+                  device.id,
+                  extensionDays,
+                  node.key,
+                  createDays,
+                );
+
+          await this.saveH1CloudClient(
+            node.key,
+            subscriptionId,
+            device.id,
+            client,
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+
+          this.logger.error(
+            `H1Cloud extend failed for ${node.key} device ${device.id}: ${message}`,
+          );
+        }
+      }
     }
   }
 
-  return {
-    total: clients.length,
-    ok,
-    fail,
-    failedNodeKeys,
-  };
-}
+  private async removeH1Cloud(subscriptionId: string) {
+    const clients = await this.prisma.h1CloudClient.findMany({
+      where: {
+        subscriptionId,
+      },
+      select: {
+        id: true,
+        nodeKey: true,
+        remoteName: true,
+      },
+    });
+
+    let ok = 0;
+    let fail = 0;
+    const failedNodeKeys: string[] = [];
+
+    for (const client of clients) {
+      try {
+        await this.h1cloud.deleteClient(
+          client.remoteName,
+          client.nodeKey as H1CloudNodeKey,
+        );
+
+        await this.prisma.h1CloudClient.delete({
+          where: { id: client.id },
+        });
+
+        ok++;
+      } catch (error) {
+        fail++;
+        failedNodeKeys.push(client.nodeKey);
+
+        const message =
+          error instanceof Error ? error.message : String(error);
+
+        this.logger.error(
+          `H1Cloud remove failed for ${client.nodeKey} subscription ${subscriptionId}: ${message}`,
+        );
+      }
+    }
+
+    return {
+      total: clients.length,
+      ok,
+      fail,
+      failedNodeKeys,
+    };
+  }
 
   private async finalizeSubscriptionVpnSync(
     subscriptionId: string,
@@ -478,14 +502,7 @@ export class SubscriptionsService {
       return subscription;
     }
 
-    await this.xray.addUserToPlanNodes({
-      uuid: subscription.uuid,
-      plan: subscription.plan,
-    });
-
-    if (subscription.plan === PlanType.STANDARD) {
-      await this.provisionH1Cloud(subscription);
-    }
+    await this.syncSubscriptionState(subscription.id);
 
     return subscription;
   }
@@ -527,8 +544,55 @@ export class SubscriptionsService {
     });
   }
 
+  async getValidDeviceByToken(subToken: string) {
+    const now = new Date();
+
+    return this.prisma.device.findFirst({
+      where: {
+        subToken,
+        isActive: true,
+        vpnSyncPending: false,
+        subscription: {
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+          },
+          expiresAt: { gt: now },
+          user: { isBlocked: false },
+        },
+      },
+      include: {
+        subscription: {
+          include: { user: true },
+        },
+      },
+    });
+  }
+
   async getValidSubscriptionByUuid(uuid: string) {
     const now = new Date();
+
+    const device = await this.prisma.device.findFirst({
+      where: {
+        uuid,
+        isActive: true,
+        vpnSyncPending: false,
+        subscription: {
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+          },
+          expiresAt: { gt: now },
+          user: { isBlocked: false },
+        },
+      },
+      select: {
+        id: true,
+        uuid: true,
+      },
+    });
+
+    if (device) {
+      return device;
+    }
 
     return this.prisma.subscription.findFirst({
       where: {
@@ -711,11 +775,41 @@ export class SubscriptionsService {
       return subscription;
     }
 
-    const provisioned =
-      await this.provisionH1Cloud({
-        id: subscription.id,
-        expiresAt: subscription.expiresAt,
-      });
+    await this.ensurePrimaryDevice(subscription.id);
+
+    const devices = await this.prisma.device.findMany({
+      where: {
+        subscriptionId: subscription.id,
+        isActive: true,
+      },
+    });
+
+    let ok = 0;
+    let fail = 0;
+    const failedNodeKeys: string[] = [];
+
+    for (const device of devices) {
+      for (const node of this.getConfiguredH1Nodes()) {
+        try {
+          await this.provisionH1CloudDeviceNode(
+            node.key,
+            device,
+            subscription.expiresAt,
+          );
+          ok++;
+        } catch (error) {
+          fail++;
+          failedNodeKeys.push(node.key);
+          this.logger.error(
+            `H1Cloud sync failed for ${node.key} device ${device.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+    }
+
+    const provisioned = { ok, fail, failedNodeKeys };
 
     if (provisioned.fail > 0) {
       throw new Error(
@@ -740,6 +834,12 @@ export class SubscriptionsService {
           },
         });
 
+    await this.ensurePrimaryDevice(subscription.id);
+
+    const devices = await this.prisma.device.findMany({
+      where: { subscriptionId: subscription.id },
+    });
+
     const active =
       subscription.expiresAt >
         new Date() &&
@@ -757,41 +857,30 @@ export class SubscriptionsService {
      * Поэтому повтор после crash не выдаст
      * пользователю дополнительные дни.
      */
-    const removed =
-      await this.xray
-        .removeUserFromPlanNodes({
-          uuid:
-            subscription.uuid,
-          plan:
-            subscription.plan,
+    let removeFailures = 0;
+    let addFailures = 0;
+
+    for (const device of devices) {
+      const removed = await this.xray.removeUserFromPlanNodes({
+        uuid: device.uuid,
+        plan: subscription.plan,
+      });
+      removeFailures += removed.fail;
+
+      if (active && device.isActive) {
+        const added = await this.xray.addUserToPlanNodes({
+          uuid: device.uuid,
+          plan: subscription.plan,
+          skipCapacityCheck: true,
         });
-
-    if (!active) {
-      if (removed.fail > 0) {
-        throw new Error(
-          `XRAY_REMOVE_INCOMPLETE:${removed.fail}`,
-        );
+        addFailures += added.fail;
       }
-    } else {
-      const added =
-        await this.xray
-          .addUserToPlanNodes({
-            uuid:
-              subscription.uuid,
-            plan:
-              subscription.plan,
-            skipCapacityCheck:
-              true,
-          });
+    }
 
-      if (
-        removed.fail > 0 ||
-        added.fail > 0
-      ) {
-        throw new Error(
-          `XRAY_SYNC_INCOMPLETE:remove=${removed.fail},add=${added.fail}`,
-        );
-      }
+    if (removeFailures > 0 || addFailures > 0) {
+      throw new Error(
+        `XRAY_SYNC_INCOMPLETE:remove=${removeFailures},add=${addFailures}`,
+      );
     }
 
     /*
@@ -811,6 +900,75 @@ export class SubscriptionsService {
     }
 
     return subscription;
+  }
+
+  async syncDeviceState(deviceId: string) {
+    const device = await this.prisma.device.findUniqueOrThrow({
+      where: { id: deviceId },
+      include: { subscription: true },
+    });
+
+    const subscription = device.subscription;
+    const active =
+      device.isActive &&
+      subscription.expiresAt > new Date() &&
+      (subscription.status === SubscriptionStatus.ACTIVE ||
+        subscription.status === SubscriptionStatus.TRIAL);
+
+    const removed = await this.xray.removeUserFromPlanNodes({
+      uuid: device.uuid,
+      plan: subscription.plan,
+    });
+
+    let addFailures = 0;
+    if (active) {
+      const added = await this.xray.addUserToPlanNodes({
+        uuid: device.uuid,
+        plan: subscription.plan,
+        skipCapacityCheck: true,
+      });
+      addFailures = added.fail;
+    }
+
+    if (removed.fail > 0 || addFailures > 0) {
+      throw new Error(
+        `DEVICE_XRAY_SYNC_INCOMPLETE:remove=${removed.fail},add=${addFailures}`,
+      );
+    }
+
+    if (subscription.plan === PlanType.STANDARD && active) {
+      const failedNodeKeys: string[] = [];
+
+      for (const node of this.getConfiguredH1Nodes()) {
+        try {
+          await this.provisionH1CloudDeviceNode(
+            node.key,
+            device,
+            subscription.expiresAt,
+          );
+        } catch (error) {
+          failedNodeKeys.push(node.key);
+          this.logger.error(
+            `Device H1Cloud sync failed for ${node.key} device ${device.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
+      if (failedNodeKeys.length > 0) {
+        throw new Error(
+          `DEVICE_H1CLOUD_SYNC_INCOMPLETE:${failedNodeKeys.join(',')}`,
+        );
+      }
+    }
+
+    await this.prisma.device.update({
+      where: { id: device.id },
+      data: { vpnSyncPending: false },
+    });
+
+    return device;
   }
 
 
@@ -875,9 +1033,41 @@ export class SubscriptionsService {
       }
     }
 
+    const pendingDevices = await this.prisma.device.findMany({
+      where: {
+        vpnSyncPending: true,
+        isActive: true,
+        subscription: {
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+          },
+          expiresAt: { gt: new Date() },
+          user: { isBlocked: false },
+        },
+      },
+      orderBy: { updatedAt: 'asc' },
+      take: Math.max(0, limit - subscriptions.length),
+      select: { id: true },
+    });
+
+    for (const device of pendingDevices) {
+      try {
+        await this.syncDeviceState(device.id);
+        ok++;
+      } catch (error) {
+        fail++;
+
+        this.logger.warn(
+          `Device state sync retry failed ${device.id}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
     return {
       total:
-        subscriptions.length,
+        subscriptions.length + pendingDevices.length,
 
       ok,
       fail,
@@ -1671,20 +1861,31 @@ export class SubscriptionsService {
   for (const sub of overdue) {
     let cleanupFailed = false;
 
-    try {
-      await this.xray.removeUserFromPlanNodes({
-        uuid: sub.uuid,
-        plan: sub.plan,
-      });
-    } catch (error) {
-      cleanupFailed = true;
+    const devices = await this.prisma.device.findMany({
+      where: { subscriptionId: sub.id },
+      select: { id: true, uuid: true },
+    });
 
-      const message =
-        error instanceof Error ? error.message : String(error);
+    for (const device of devices) {
+      try {
+        const result = await this.xray.removeUserFromPlanNodes({
+          uuid: device.uuid,
+          plan: sub.plan,
+        });
 
-      this.logger.error(
-        `Xray remove failed for subscription ${sub.id}: ${message}`,
-      );
+        if (result.fail > 0) {
+          cleanupFailed = true;
+        }
+      } catch (error) {
+        cleanupFailed = true;
+
+        const message =
+          error instanceof Error ? error.message : String(error);
+
+        this.logger.error(
+          `Xray remove failed for device ${device.id} subscription ${sub.id}: ${message}`,
+        );
+      }
     }
 
     if (sub.plan === PlanType.STANDARD) {
@@ -1738,14 +1939,18 @@ export class SubscriptionsService {
 }
 
   private async countExpectedH1CloudClients() {
-    return this.prisma.subscription.count({
+    return this.prisma.device.count({
       where: {
-        plan: PlanType.STANDARD,
-        status: {
-          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+        isActive: true,
+        vpnSyncPending: false,
+        subscription: {
+          plan: PlanType.STANDARD,
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+          },
+          expiresAt: { gt: new Date() },
+          user: { isBlocked: false },
         },
-        expiresAt: { gt: new Date() },
-        user: { isBlocked: false },
       },
     });
   }
@@ -2003,27 +2208,40 @@ const inbound =
     let fail = 0;
 
     for (const node of this.getConfiguredH1Nodes()) {
-      const missing = await this.prisma.subscription.findMany({
+      const missing = await this.prisma.device.findMany({
         where: {
-          plan: PlanType.STANDARD,
-          status: {
-            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+          isActive: true,
+          vpnSyncPending: false,
+          subscription: {
+            plan: PlanType.STANDARD,
+            status: {
+              in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
+            },
+            expiresAt: { gt: new Date() },
+            user: { isBlocked: false },
           },
-          expiresAt: { gt: new Date() },
-          user: { isBlocked: false },
           h1CloudClients: {
             none: {
               nodeKey: node.key,
             },
           },
         },
+        include: {
+          subscription: {
+            select: { expiresAt: true },
+          },
+        },
       });
 
       total += missing.length;
 
-      for (const sub of missing) {
+      for (const device of missing) {
         try {
-          await this.provisionH1CloudNode(node.key, sub);
+          await this.provisionH1CloudDeviceNode(
+            node.key,
+            device,
+            device.subscription.expiresAt,
+          );
           ok++;
         } catch (error) {
           fail++;
@@ -2032,7 +2250,7 @@ const inbound =
             error instanceof Error ? error.message : String(error);
 
           this.logger.error(
-            `H1Cloud recovery failed for ${node.key} subscription ${sub.id}: ${message}`,
+            `H1Cloud recovery failed for ${node.key} device ${device.id}: ${message}`,
           );
         }
       }
@@ -2049,40 +2267,36 @@ const inbound =
     let ok = 0;
     let fail = 0;
 
-    const subscriptions =
-      await this.prisma.subscription.findMany({
-        where: {
+    const devices = await this.prisma.device.findMany({
+      where: {
+        isActive: true,
+        vpnSyncPending: false,
+        subscription: {
           plan: PlanType.STANDARD,
           status: {
-            in: [
-              SubscriptionStatus.ACTIVE,
-              SubscriptionStatus.TRIAL,
-            ],
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL],
           },
-          expiresAt: {
-            gt: new Date(),
-          },
-          user: {
-            isBlocked: false,
+          expiresAt: { gt: new Date() },
+          user: { isBlocked: false },
+        },
+      },
+      include: {
+        subscription: {
+          select: {
+            expiresAt: true,
           },
         },
-        select: {
-          id: true,
-          expiresAt: true,
-        },
-      });
+      },
+    });
 
     for (const node of this.getConfiguredH1Nodes()) {
       let remoteClients: H1Client[];
 
       try {
-        remoteClients =
-          await this.h1cloud.getClients(node.key);
+        remoteClients = await this.h1cloud.getClients(node.key);
       } catch (error) {
         const message =
-          error instanceof Error
-            ? error.message
-            : String(error);
+          error instanceof Error ? error.message : String(error);
 
         this.logger.warn(
           `H1Cloud expiry reconcile skipped for ${node.key}: ${message}`,
@@ -2092,86 +2306,72 @@ const inbound =
       }
 
       const byName = new Map(
-        remoteClients.map((client) => [
-          client.name,
-          client,
-        ]),
+        remoteClients.map((client) => [client.name, client]),
       );
 
-      for (const sub of subscriptions) {
+      for (const device of devices) {
         total++;
 
-        const name = `sub_${sub.id}`;
-        const remote = byName.get(name);
+        const remoteName =
+          device.slot === 1
+            ? this.h1cloud.nameForSubscription(device.subscriptionId)
+            : this.h1cloud.nameForDevice(device.id);
+        const remote = byName.get(remoteName);
 
         if (!remote) {
           missing++;
-
-          /*
-           * Отсутствующих клиентов создаёт отдельный
-           * recoverMissingH1CloudClients().
-           */
           continue;
         }
 
-        const localExpires =
-          Math.floor(sub.expiresAt.getTime() / 1000);
-
-        const remoteExpires =
-          Number(remote.expires_at || 0);
-
-        /*
-         * H1Cloud работает целыми днями и может
-         * иметь небольшой запас из-за Math.ceil().
-         *
-         * Поэтому синхронизируем только если
-         * удалённый срок реально отстаёт более чем
-         * на один час.
-         */
-        const driftSeconds =
-          localExpires - remoteExpires;
+        const localExpires = Math.floor(
+          device.subscription.expiresAt.getTime() / 1000,
+        );
+        const remoteExpires = Number(remote.expires_at || 0);
+        const driftSeconds = localExpires - remoteExpires;
 
         if (driftSeconds <= 3600) {
           ok++;
           continue;
         }
 
-        const days =
-          Math.max(
-            1,
-            Math.ceil(driftSeconds / 86400),
-          );
+        const days = Math.max(1, Math.ceil(driftSeconds / 86400));
 
         try {
           const client =
-            await this.h1cloud.extendForSubscription(
-              sub.id,
-              days,
-              node.key,
-              this.getRemainingDays(sub.expiresAt),
-            );
+            device.slot === 1
+              ? await this.h1cloud.extendForSubscription(
+                  device.subscriptionId,
+                  days,
+                  node.key,
+                  this.getRemainingDays(device.subscription.expiresAt),
+                )
+              : await this.h1cloud.extendForDevice(
+                  device.id,
+                  days,
+                  node.key,
+                  this.getRemainingDays(device.subscription.expiresAt),
+                );
 
           await this.saveH1CloudClient(
             node.key,
-            sub.id,
+            device.subscriptionId,
+            device.id,
             client,
           );
 
           synced++;
 
           this.logger.log(
-            `H1Cloud expiry reconciled for ${node.key} subscription ${sub.id}: +${days} day(s)`,
+            `H1Cloud expiry reconciled for ${node.key} device ${device.id}: +${days} day(s)`,
           );
         } catch (error) {
           fail++;
 
           const message =
-            error instanceof Error
-              ? error.message
-              : String(error);
+            error instanceof Error ? error.message : String(error);
 
           this.logger.error(
-            `H1Cloud expiry reconcile failed for ${node.key} subscription ${sub.id}: ${message}`,
+            `H1Cloud expiry reconcile failed for ${node.key} device ${device.id}: ${message}`,
           );
         }
       }
@@ -2188,6 +2388,7 @@ const inbound =
 
   async buildSubscriptionLinks(sub: {
     id?: string;
+    deviceId?: string;
     uuid: string;
     plan: PlanType;
   }): Promise<string[]> {
@@ -2323,9 +2524,11 @@ const inbound =
       const h1Links = await this.prisma.h1CloudClient.findMany({
         where: {
           subscriptionId: sub.id,
+          ...(sub.deviceId ? { deviceId: sub.deviceId } : {}),
         },
         select: {
           nodeKey: true,
+          remoteName: true,
           remoteUuid: true,
           remoteLink: true,
         },
@@ -2392,7 +2595,7 @@ const inbound =
             try {
               const remoteClient =
                 await this.h1cloud.getClientByName(
-                  `sub_${sub.id}`,
+                  h1Client.remoteName,
                   node.key,
                   2000,
                 );

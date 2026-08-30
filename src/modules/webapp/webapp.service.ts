@@ -379,7 +379,12 @@ export class WebappService {
     const user = await this.findOrCreateFromTelegram(tg);
     const sub = await this.subscriptions.getActiveSubscription(user.id);
     const latestSub = sub ? sub : await this.subscriptions.getLatestSubscription(user.id);
-    const device = sub ? await this.prisma.device.findUnique({ where: { subscriptionId: sub.id } }) : null;
+    const devices = sub
+      ? await this.prisma.device.findMany({
+          where: { subscriptionId: sub.id, isActive: true },
+          orderBy: { slot: 'asc' },
+        })
+      : [];
 
     const subscriptionState = sub ? 'ACTIVE' : latestSub ? 'EXPIRED' : 'NONE';
     const daysLeft = sub
@@ -396,11 +401,12 @@ export class WebappService {
     const vpnConnected =
       Boolean(
         sub &&
-        device?.isActive &&
-        device.lastSeenAt &&
-        Date.now() -
-          device.lastSeenAt.getTime() <=
-          10 * 60 * 1000,
+        devices.some(
+          (device) =>
+            !device.vpnSyncPending &&
+            device.lastSeenAt &&
+            Date.now() - device.lastSeenAt.getTime() <= 10 * 60 * 1000,
+        ),
       );
 
     const appUrl = (this.config.get<string>('APP_URL') || 'http://localhost:3000').replace(/\/$/, '');
@@ -444,16 +450,28 @@ export class WebappService {
       subscriptionState,
       daysLeft,
       deviceLimit: 2,
-      deviceUsed: device?.isActive ? 1 : 0,
+      deviceUsed: devices.length,
       vpnConnected,
-      device: device
+      devices: devices.map((device) => ({
+        id: device.id,
+        slot: device.slot,
+        name: device.name,
+        platform: device.platform,
+        isActive: device.isActive,
+        vpnSyncPending: device.vpnSyncPending,
+        subUrl: `${appUrl}/sub/${device.subToken}.txt`,
+        createdAt: device.createdAt.toISOString(),
+        lastSeenAt: device.lastSeenAt?.toISOString() ?? null,
+      })),
+      // Старое поле оставляем на один релиз для совместимости WebApp-кэша.
+      device: devices[0]
         ? {
-            id: device.id,
-            name: device.name,
-            platform: device.platform,
-            isActive: device.isActive,
-            createdAt: device.createdAt.toISOString(),
-            lastSeenAt: device.lastSeenAt?.toISOString() ?? null,
+            id: devices[0].id,
+            name: devices[0].name,
+            platform: devices[0].platform,
+            isActive: devices[0].isActive,
+            createdAt: devices[0].createdAt.toISOString(),
+            lastSeenAt: devices[0].lastSeenAt?.toISOString() ?? null,
           }
         : null,
       subscription: sub
@@ -462,7 +480,9 @@ export class WebappService {
             status: sub.status,
             isTrial: sub.isTrial,
             expiresAt: sub.expiresAt.toISOString(),
-            subUrl: `${appUrl}/sub/${sub.subToken}.txt`,
+            subUrl: devices[0]
+              ? `${appUrl}/sub/${devices[0].subToken}.txt`
+              : `${appUrl}/sub/${sub.subToken}.txt`,
           }
         : null,
       referralLink,
@@ -3849,58 +3869,113 @@ export class WebappService {
     const sub = await this.subscriptions.getActiveSubscription(user.id);
     if (!sub) throw new BadRequestException('Active subscription required');
 
-    const existing = await this.prisma.device.findUnique({
-      where: { subscriptionId: sub.id },
+    const pending = await this.prisma.device.findFirst({
+      where: {
+        subscriptionId: sub.id,
+        isActive: true,
+        vpnSyncPending: true,
+      },
+      orderBy: { slot: 'asc' },
     });
 
-    if (existing?.isActive) {
-      return {
-        device: existing,
-        created: false,
-        reactivated: false,
-        message: 'Device already activated for this subscription',
-      };
+    let device = pending;
+    let created = false;
+
+    if (!device) {
+      try {
+        device = await this.prisma.$transaction(
+          async (tx) => {
+            const activeDevices = await tx.device.findMany({
+              where: {
+                subscriptionId: sub.id,
+                isActive: true,
+              },
+              orderBy: { slot: 'asc' },
+            });
+
+            if (activeDevices.length >= 2) {
+              throw new BadRequestException(
+                'К подписке уже привязано два устройства',
+              );
+            }
+
+            const usedSlots = new Set(activeDevices.map((item) => item.slot));
+            const slot = [1, 2].find((value) => !usedSlots.has(value));
+
+            if (!slot) {
+              throw new BadRequestException(
+                'Нет свободного слота устройства',
+              );
+            }
+
+            return tx.device.create({
+              data: {
+                userId: user.id,
+                subscriptionId: sub.id,
+                uuid: slot === 1 ? sub.uuid : randomUUID(),
+                subToken:
+                  slot === 1
+                    ? sub.subToken
+                    : randomBytes(24).toString('hex'),
+                slot,
+                name: (
+                  name ||
+                  (slot === 1 ? 'Основное устройство' : 'Второе устройство')
+                )
+                  .trim()
+                  .slice(0, 80),
+                platform: platform?.trim().slice(0, 40) || null,
+                isActive: true,
+                vpnSyncPending: true,
+              },
+            });
+          },
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          },
+        );
+        created = true;
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          throw new BadRequestException(
+            'Устройство уже добавляется. Обновите страницу.',
+          );
+        }
+
+        throw error;
+      }
     }
 
-    if (existing) {
-      const device = await this.prisma.device.update({
-        where: { id: existing.id },
-        data: {
-          isActive: true,
-          name: (name || existing.name || 'Моё устройство')
-            .trim()
-            .slice(0, 80),
-          platform:
-            platform?.trim().slice(0, 40) ||
-            existing.platform ||
-            null,
-        },
-      });
-
-      this.logger.log(
-        `Device reactivated: user=${user.id} subscription=${sub.id} device=${device.id}`,
+    try {
+      await this.subscriptions.syncDeviceState(device.id);
+    } catch (error) {
+      this.logger.error(
+        `Device VPN sync failed: user=${user.id} subscription=${sub.id} device=${device.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
 
-      return {
-        device,
-        created: false,
-        reactivated: true,
-      };
+      throw new ServiceUnavailableException(
+        'Устройство создано, но синхронизация ещё не завершена. Нажмите кнопку повторно.',
+      );
     }
 
-    const device = await this.prisma.device.create({
-      data: {
-        userId: user.id,
-        subscriptionId: sub.id,
-        uuid: randomUUID(),
-        name: (name || 'Моё устройство').trim().slice(0, 80),
-        platform: platform?.trim().slice(0, 40) || null,
-        isActive: true,
-      },
+    const syncedDevice = await this.prisma.device.findUniqueOrThrow({
+      where: { id: device.id },
     });
 
-    this.logger.log(`Device activated: user=${user.id} subscription=${sub.id} device=${device.id}`);
-    return { device, created: true };
+    this.logger.log(
+      `Device activated: user=${user.id} subscription=${sub.id} device=${device.id} slot=${device.slot}`,
+    );
+
+    return {
+      device: syncedDevice,
+      created,
+      retried: !created,
+    };
   }
 
 

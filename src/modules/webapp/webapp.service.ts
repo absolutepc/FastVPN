@@ -3979,6 +3979,64 @@ export class WebappService {
   }
 
 
+
+  async deleteSecondDevice(initData: string, deviceId: string) {
+    const tg = this.validateInitData(initData);
+    const user = await this.findOrCreateFromTelegram(tg);
+    const sub = await this.subscriptions.getActiveSubscription(user.id);
+
+    if (!sub) {
+      throw new BadRequestException('Active subscription required');
+    }
+
+    const device = await this.prisma.device.findFirst({
+      where: {
+        id: deviceId,
+        userId: user.id,
+        subscriptionId: sub.id,
+        isActive: true,
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException('Устройство не найдено');
+    }
+
+    if (device.slot !== 2) {
+      throw new BadRequestException(
+        'Основное устройство удалить нельзя',
+      );
+    }
+
+    try {
+      await this.subscriptions.removeSecondDeviceAccess(device.id);
+    } catch (error) {
+      this.logger.error(
+        `Second device removal failed: user=${user.id} subscription=${sub.id} device=${device.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      throw new ServiceUnavailableException(
+        'Не удалось отключить устройство на всех серверах. Попробуйте ещё раз.',
+      );
+    }
+
+    await this.prisma.device.delete({
+      where: { id: device.id },
+    });
+
+    this.logger.log(
+      `Second device deleted: user=${user.id} subscription=${sub.id} device=${device.id}`,
+    );
+
+    return {
+      deleted: true,
+      deviceId: device.id,
+      slot: device.slot,
+    };
+  }
+
   async createOwnerInvite(
     initData: string,
     daysRaw: number,

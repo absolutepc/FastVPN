@@ -625,6 +625,18 @@ body {
   border-color: rgba(244, 63, 94, 0.35);
   background: rgba(244, 63, 94, 0.1);
 }
+.dev-device-action.icon-only {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dev-device-action.icon-only svg {
+  width: 16px;
+  height: 16px;
+}
 .dev-device-action.pending {
   color: #f59e0b;
   border-color: rgba(245, 158, 11, 0.35);

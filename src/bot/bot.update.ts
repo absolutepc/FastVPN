@@ -242,7 +242,7 @@ export class BotUpdate implements OnModuleInit {
             [
               {
                 text: '🏠 Открыть кабинет',
-                web_app: { url: `${appUrl}/?v=84` },
+                web_app: { url: `${appUrl}/?v=85` },
               },
             ],
           ],
@@ -335,7 +335,7 @@ export class BotUpdate implements OnModuleInit {
               [
                 {
                   text: '⚙️ Управлять устройствами',
-                  web_app: { url: `${appUrl}/?v=84` },
+                  web_app: { url: `${appUrl}/?v=85` },
                 },
               ],
             ],

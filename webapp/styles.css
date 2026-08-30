@@ -591,7 +591,39 @@ body {
   background: var(--card);
   margin-bottom: 8px;
 }
-.dev-item-ico { font-size: 1.3rem; }
+.dev-item-ico {
+  position: relative;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--accent-light);
+  border: 1px solid rgba(var(--accent-rgb), 0.24);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+.dev-item-ico svg {
+  width: 22px;
+  height: 22px;
+}
+.dev-item-ico span {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--bg);
+  background: var(--accent-light);
+  box-shadow: 0 0 0 3px var(--card);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+}
 .dev-item-body {
   min-width: 0;
   flex: 1;
@@ -602,7 +634,7 @@ body {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 .dev-device-action {
   flex: 0 0 auto;
@@ -626,16 +658,30 @@ body {
   background: rgba(244, 63, 94, 0.1);
 }
 .dev-device-action.icon-only {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 .dev-device-action.icon-only svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
+}
+.dev-device-action.loading {
+  pointer-events: none;
+}
+.dev-action-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: dev-action-spin 0.7s linear infinite;
+}
+@keyframes dev-action-spin {
+  to { transform: rotate(360deg); }
 }
 .dev-device-action.pending {
   color: #f59e0b;

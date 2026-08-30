@@ -791,7 +791,12 @@ function render(data) {
 
  const icon = document.createElement('div');
  icon.className = 'dev-item-ico';
- icon.textContent = device.slot === 2 ? '📲' : '📱';
+ icon.innerHTML =
+ '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+ '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5" stroke="currentColor" stroke-width="1.7"/>' +
+ '<path d="M10 5h4M10.5 18.5h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>' +
+ '</svg>' +
+ '<span>' + String(device.slot || 1) + '</span>';
 
  const body = document.createElement('div');
  body.className = 'dev-item-body';
@@ -819,8 +824,18 @@ function render(data) {
  action.type = 'button';
  action.className = device.vpnSyncPending
  ? 'dev-device-action pending'
- : 'dev-device-action';
- action.textContent = device.vpnSyncPending ? 'Повторить' : 'Копировать';
+ : 'dev-device-action icon-only';
+ if (device.vpnSyncPending) {
+ action.textContent = 'Повторить';
+ } else {
+ action.setAttribute('aria-label', 'Скопировать ссылку устройства');
+ action.title = 'Скопировать ссылку';
+ action.innerHTML =
+ '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+ '<rect x="8" y="8" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>' +
+ '<path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' +
+ '</svg>';
+ }
  action.onclick = () => {
  if (device.vpnSyncPending) {
  $('btn-add-device').click();
@@ -861,7 +876,8 @@ function render(data) {
 
  action.disabled = true;
  deleteAction.disabled = true;
- deleteAction.textContent = 'Удаляем...';
+ deleteAction.classList.add('loading');
+ deleteAction.innerHTML = '<span class="dev-action-spinner" aria-hidden="true"></span>';
 
  try {
  const response = await fetch(
@@ -885,6 +901,7 @@ function render(data) {
  } catch (error) {
  action.disabled = false;
  deleteAction.disabled = false;
+ deleteAction.classList.remove('loading');
  deleteAction.innerHTML = deleteIcon;
  toast(error.message || 'Ошибка удаления устройства');
  }

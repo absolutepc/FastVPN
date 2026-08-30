@@ -409,8 +409,8 @@ body {
   padding: 18px;
   margin-top: 12px;
   border-radius: 14px;
-  border: 1px dashed rgba(212, 175, 55, 0.4);
-  background: transparent;
+  border: 1px dashed rgba(var(--accent-rgb), 0.46);
+  background: rgba(var(--accent-rgb), 0.035);
   color: var(--gold-l);
   font-size: 0.95rem;
   font-weight: 600;
@@ -600,10 +600,10 @@ body {
 .dev-item-meta { font-size: 0.75rem; color: var(--muted); }
 .dev-device-action {
   flex: 0 0 auto;
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
   border-radius: 999px;
-  background: rgba(212, 175, 55, 0.1);
-  color: var(--gold-l);
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent-light);
   padding: 7px 10px;
   font: inherit;
   font-size: 0.7rem;

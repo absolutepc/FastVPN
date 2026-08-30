@@ -67,7 +67,7 @@ export class BotService implements OnModuleInit {
 
   getMainKeyboard(isAdmin = false) {
     const appUrl = (this.config.get<string>('APP_URL') || '').replace(/\/$/, '');
-    const webAppUrl = appUrl ? `${appUrl}/?v=84` : '';
+    const webAppUrl = appUrl ? `${appUrl}/?v=85` : '';
 
     const rows: Array<Array<{ text: string; web_app?: { url: string } }>> = [
       [{ text: '🛡 Купить' }],

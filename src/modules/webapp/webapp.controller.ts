@@ -417,6 +417,18 @@ export class WebappController {
     );
   }
 
+
+  @Post('device/:id/delete')
+  async deleteSecondDevice(
+    @Param('id') id: string,
+    @Body() body: { initData?: string },
+  ) {
+    return this.webapp.deleteSecondDevice(
+      body.initData || '',
+      id,
+    );
+  }
+
   @Post('manual-payment')
   async createManualPayment(
     @Body()

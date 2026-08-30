@@ -835,8 +835,15 @@ function render(data) {
  if (device.slot === 2) {
  const deleteAction = document.createElement('button');
  deleteAction.type = 'button';
- deleteAction.className = 'dev-device-action danger';
- deleteAction.textContent = 'Удалить';
+ deleteAction.className = 'dev-device-action danger icon-only';
+ deleteAction.setAttribute('aria-label', 'Удалить второе устройство');
+ deleteAction.title = 'Удалить второе устройство';
+ const deleteIcon =
+ '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+ '<path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5" ' +
+ 'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+ '</svg>';
+ deleteAction.innerHTML = deleteIcon;
  deleteAction.onclick = async () => {
  const message =
  'Удалить второе устройство? Старая ссылка перестанет работать. После удаления можно добавить новое устройство.';
@@ -878,7 +885,7 @@ function render(data) {
  } catch (error) {
  action.disabled = false;
  deleteAction.disabled = false;
- deleteAction.textContent = 'Удалить';
+ deleteAction.innerHTML = deleteIcon;
  toast(error.message || 'Ошибка удаления устройства');
  }
  };

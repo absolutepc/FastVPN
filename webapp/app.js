@@ -812,6 +812,9 @@ function render(data) {
 
  body.append(title, meta);
 
+ const actions = document.createElement('div');
+ actions.className = 'dev-device-actions';
+
  const action = document.createElement('button');
  action.type = 'button';
  action.className = device.vpnSyncPending
@@ -827,7 +830,63 @@ function render(data) {
  if (device.subUrl) copyText(device.subUrl);
  };
 
- item.append(icon, body, action);
+ actions.append(action);
+
+ if (device.slot === 2) {
+ const deleteAction = document.createElement('button');
+ deleteAction.type = 'button';
+ deleteAction.className = 'dev-device-action danger';
+ deleteAction.textContent = 'Удалить';
+ deleteAction.onclick = async () => {
+ const message =
+ 'Удалить второе устройство? Старая ссылка перестанет работать. После удаления можно добавить новое устройство.';
+
+ const confirmed = await new Promise((resolve) => {
+ if (typeof tg?.showConfirm === 'function') {
+ tg.showConfirm(message, resolve);
+ return;
+ }
+
+ resolve(window.confirm(message));
+ });
+
+ if (!confirmed) return;
+
+ action.disabled = true;
+ deleteAction.disabled = true;
+ deleteAction.textContent = 'Удаляем...';
+
+ try {
+ const response = await fetch(
+ API_BASE + '/api/webapp/device/' + encodeURIComponent(device.id) + '/delete',
+ {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ initData: getInitData() }),
+ },
+ );
+
+ const result = await response.json().catch(() => ({}));
+
+ if (!response.ok) {
+ throw new Error(result.message || 'Не удалось удалить устройство');
+ }
+
+ tg?.HapticFeedback?.notificationOccurred?.('success');
+ toast('Второе устройство удалено');
+ await load();
+ } catch (error) {
+ action.disabled = false;
+ deleteAction.disabled = false;
+ deleteAction.textContent = 'Удалить';
+ toast(error.message || 'Ошибка удаления устройства');
+ }
+ };
+
+ actions.append(deleteAction);
+ }
+
+ item.append(icon, body, actions);
  deviceList.append(item);
  }
 

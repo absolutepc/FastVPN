@@ -442,7 +442,7 @@ export class H1CloudService {
         {
           name,
           days: createDays,
-          deviceLimit: 2,
+          deviceLimit: 1,
         },
         nodeKey,
       );

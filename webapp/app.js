@@ -13,6 +13,18 @@
  const API_BASE = window.location.origin;
  let cabinet = null;
 
+ const SCREEN_STORAGE_KEY = '4steps-current-screen';
+
+ let currentScreen = 'home';
+
+ try {
+   currentScreen =
+     localStorage.getItem(SCREEN_STORAGE_KEY) ||
+     'home';
+ } catch (_) {
+   currentScreen = 'home';
+ }
+
  /* ===== THEME SYSTEM START ===== */
 
  const THEME_STORAGE_KEY = '4steps-theme';
@@ -129,6 +141,15 @@
  }
 
  function showScreen(name) {
+ currentScreen = name;
+
+ try {
+   localStorage.setItem(
+     SCREEN_STORAGE_KEY,
+     name,
+   );
+ } catch (_) {}
+
  const main = [
  'home',
  'servers',
@@ -861,7 +882,8 @@ function render(data) {
 
  action.disabled = true;
  deleteAction.disabled = true;
- deleteAction.textContent = 'Удаляем...';
+ deleteAction.classList.add('is-loading');
+ deleteAction.innerHTML = '<span class="dev-action-spinner"></span>';
 
  try {
  const response = await fetch(
@@ -882,8 +904,15 @@ function render(data) {
  tg?.HapticFeedback?.notificationOccurred?.('success');
  toast('Второе устройство удалено');
  await load();
+ showScreen('devices');
  } catch (error) {
  action.disabled = false;
+ deleteAction.classList.remove('is-loading');
+ deleteAction.innerHTML = `
+ <svg viewBox="0 0 24 24" aria-hidden="true">
+ <path d="M9 3h6l1 2h4v2h-1l-1 14H6L5 7H4V5h4l1-2Zm-1.9 4 .86 12h8.08l.86-12H7.1ZM10 9h2v8h-2V9Zm4 0h2v8h-2V9Z"/>
+ </svg>
+ `;
  deleteAction.disabled = false;
  deleteAction.innerHTML = deleteIcon;
  toast(error.message || 'Ошибка удаления устройства');
@@ -2060,13 +2089,40 @@ async function loadAdminDashboard() {
 
  render(data);
  applyVpnStatus(data);
- showScreen('home');
+
+ const availableScreens = new Set([
+   'home',
+   'servers',
+   'devices',
+   'sub',
+   'profile',
+   'promo',
+   'ref',
+   'support',
+   'notifications',
+   'settings',
+   'admin',
+   'admin-active',
+   'admin-servers',
+   'admin-notification',
+   'admin-tickets',
+ ]);
+
+ const screenToRestore =
+   availableScreens.has(currentScreen)
+     ? currentScreen
+     : 'home';
+
+ showScreen(screenToRestore);
+
+ document.body.classList.remove('app-booting');
 
  startVpnStatusPolling();
 
  void loadNetworkStatus();
  void loadNotifications();
  } catch (e) {
+ document.body.classList.remove('app-booting');
  $('error-text').textContent = e.message || 'Ошибка загрузки';
  $('error-screen').classList.remove('hidden');
  }
@@ -2394,6 +2450,7 @@ async function startManualPayment(bank) {
  );
 
  await load();
+ showScreen('devices');
  } catch (error) {
  toast(error.message || 'Ошибка привязки устройства');
  } finally {

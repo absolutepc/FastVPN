@@ -20,6 +20,7 @@ export interface SessionData {
   adminAction?: AdminAction;
   adminStep?: number;
   adminData?: Record<string, string>;
+  pendingSubGiftToken?: string;
 }
 
 export type BotContext = Context & SessionFlavor<SessionData>;
@@ -216,7 +217,8 @@ export class BotService implements OnModuleInit {
 
     if (
       referralCode &&
-      !referralCode.startsWith('gift_')
+      !referralCode.startsWith('gift_') &&
+      !referralCode.startsWith('subgift_')
     ) {
       const referrer =
         await this.prisma.user

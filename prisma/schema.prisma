@@ -32,6 +32,14 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum GiftStatus {
+  PENDING_PAYMENT
+  PAID
+  CLAIMED
+  CANCELLED
+  EXPIRED
+}
+
 enum NodeType {
   STANDARD
   PREMIUM
@@ -78,6 +86,8 @@ model User {
   legalVersion          String?
   subscriptions         Subscription[]
   payments              Payment[]
+  giftsPurchased        GiftSubscription[]     @relation("GiftBuyer")
+  giftsReceived         GiftSubscription[]     @relation("GiftRecipient")
   devices               Device[]
   notificationReads     UserNotification[]
   directNotifications   Notification[]         @relation("DirectNotifications")
@@ -198,19 +208,19 @@ model Device {
 }
 
 model Payment {
-  id                    String        @id @default(cuid())
+  id                    String            @id @default(cuid())
   userId                String
-  user                  User          @relation(fields: [userId], references: [id])
-  providerPaymentId     String?       @unique
+  user                  User              @relation(fields: [userId], references: [id])
+  providerPaymentId     String?           @unique
   paymentProvider       String?
   amount                Int
   baseAmount            Int?
-  durationMonths        Int           @default(1)
+  durationMonths        Int               @default(1)
   feeAmount             Int?
   feePercent            Int?
-  currency              String        @default("RUB")
+  currency              String            @default("RUB")
   plan                  PlanType
-  status                PaymentStatus @default(PENDING)
+  status                PaymentStatus     @default(PENDING)
   description           String?
   paymentMethod         String?
   bank                  String?
@@ -219,12 +229,47 @@ model Payment {
   reviewedBy            String?
   appliedAt             DateTime?
   appliedSubscriptionId String?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  gift                  GiftSubscription?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
   @@index([userId])
   @@index([appliedAt])
   @@map("payments")
+}
+
+model GiftSubscription {
+  id String @id @default(cuid())
+
+  token String @unique
+
+  buyerId String
+  buyer   User   @relation("GiftBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  recipientId String?
+  recipient   User?   @relation("GiftRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+
+  paymentId String?  @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  plan           PlanType
+  durationMonths Int
+  days           Int
+  amount         Int
+  currency       String   @default("RUB")
+
+  status GiftStatus @default(PENDING_PAYMENT)
+
+  paidAt    DateTime?
+  claimedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([buyerId, createdAt])
+  @@index([recipientId, createdAt])
+  @@index([status, createdAt])
+  @@map("gift_subscriptions")
 }
 
 model Node {

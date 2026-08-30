@@ -94,11 +94,62 @@ export class BotUpdate implements OnModuleInit {
     };
   }
 
+  private async claimSubGift(
+    token: string,
+    userId: string,
+  ) {
+    const result =
+      await this.payments.claimPaidGift(
+        token,
+        userId,
+      );
+
+    const planName =
+      result.plan === PlanType.PREMIUM
+        ? 'Премиум'
+        : 'Стандарт';
+
+    const months =
+      Math.max(
+        1,
+        Math.round(result.days / 30),
+      );
+
+    const periodText =
+      months === 1
+        ? '1 месяц'
+        : months >= 2 && months <= 4
+          ? `${months} месяца`
+          : `${months} месяцев`;
+
+    return {
+      result,
+      message:
+        result.alreadyClaimed
+          ? `🎁 <b>Этот подарок уже был активирован.</b>`
+          : `🎁 <b>Вам подарили 4StepsVPN!</b>\n\n` +
+            `Тариф: <b>${planName}</b>\n` +
+            `Срок: <b>${periodText}</b>\n\n` +
+            `✅ Подарок активирован.\n` +
+            `Нажмите «📱 Мои устройства», чтобы получить ссылку подключения.`,
+    };
+  }
+
   onModuleInit() {
     const bot = this.botService.bot;
 
     bot.command('start', async (ctx) => {
       const payload = ctx.match?.trim() || undefined;
+
+      const subGiftToken =
+        payload?.startsWith('subgift_')
+          ? payload.slice('subgift_'.length).trim()
+          : null;
+
+      if (subGiftToken) {
+        ctx.session.pendingSubGiftToken =
+          subGiftToken;
+      }
 
       const {
         user,
@@ -146,6 +197,50 @@ export class BotUpdate implements OnModuleInit {
         });
 
         return;
+      }
+
+      if (subGiftToken) {
+        try {
+          const claimed =
+            await this.claimSubGift(
+              subGiftToken,
+              user.id,
+            );
+
+          delete ctx.session.pendingSubGiftToken;
+
+          await ctx.reply(
+            claimed.message,
+            {
+              parse_mode: 'HTML',
+            },
+          );
+        } catch (error) {
+          delete ctx.session.pendingSubGiftToken;
+
+          const code =
+            error instanceof Error
+              ? error.message
+              : String(error);
+
+          const message =
+            code === 'GIFT_SELF_CLAIM_FORBIDDEN'
+              ? 'Этот подарок предназначен для другого пользователя.'
+              : code === 'GIFT_NOT_PAID'
+                ? 'Подарок ещё не оплачен.'
+                : code === 'GIFT_NOT_FOUND'
+                  ? 'Подарочная ссылка недействительна.'
+                  : code === 'ACTIVE_SUBSCRIPTION_PLAN_CONFLICT'
+                    ? 'У вас уже активна подписка другого тарифа. Обратитесь в поддержку.'
+                    : 'Не удалось активировать подарок. Обратитесь в поддержку.';
+
+          await ctx.reply(
+            `🎁 <b>${message}</b>`,
+            {
+              parse_mode: 'HTML',
+            },
+          );
+        }
       }
 
       welcome += `\n\nВыберите действие:`;
@@ -215,6 +310,53 @@ export class BotUpdate implements OnModuleInit {
         });
       } catch {
         // Сообщение могло быть изменено или устареть.
+      }
+
+      const pendingSubGiftToken =
+        ctx.session.pendingSubGiftToken;
+
+      if (pendingSubGiftToken) {
+        try {
+          const claimed =
+            await this.claimSubGift(
+              pendingSubGiftToken,
+              user.id,
+            );
+
+          delete ctx.session.pendingSubGiftToken;
+
+          await ctx.reply(
+            claimed.message,
+            {
+              parse_mode: 'HTML',
+            },
+          );
+        } catch (error) {
+          delete ctx.session.pendingSubGiftToken;
+
+          const code =
+            error instanceof Error
+              ? error.message
+              : String(error);
+
+          const message =
+            code === 'GIFT_SELF_CLAIM_FORBIDDEN'
+              ? 'Этот подарок предназначен для другого пользователя.'
+              : code === 'GIFT_NOT_PAID'
+                ? 'Подарок ещё не оплачен.'
+                : code === 'GIFT_NOT_FOUND'
+                  ? 'Подарочная ссылка недействительна.'
+                  : code === 'ACTIVE_SUBSCRIPTION_PLAN_CONFLICT'
+                    ? 'У вас уже активна подписка другого тарифа. Обратитесь в поддержку.'
+                    : 'Не удалось активировать подарок. Обратитесь в поддержку.';
+
+          await ctx.reply(
+            `🎁 <b>${message}</b>`,
+            {
+              parse_mode: 'HTML',
+            },
+          );
+        }
       }
 
       const adminAccess =

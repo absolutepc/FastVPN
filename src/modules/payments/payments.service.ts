@@ -4,6 +4,7 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import {
   PlanType,
   PaymentStatus,
+  GiftStatus,
   Prisma,
   SubscriptionStatus,
 } from '@prisma/client';
@@ -200,6 +201,400 @@ export class PaymentsService {
   });
 }
 
+async createManualGiftPayment(params: {
+  userId: string;
+  plan: PlanType;
+  bank: 'TBANK' | 'SBER';
+  durationMonths?: number;
+}) {
+  const durationMonths =
+    this.normalizeDurationMonths(
+      params.durationMonths ?? 1,
+    );
+
+  const baseAmount =
+    PLAN_PRICES[params.plan] *
+    durationMonths;
+
+  const amount =
+    this.getPrice(
+      params.plan,
+      durationMonths,
+    );
+
+  const days =
+    this.getDurationDays(
+      durationMonths,
+    );
+
+  const token =
+    randomBytes(24).toString('hex');
+
+  return this.prisma.$transaction(
+    async (tx) => {
+      const payment =
+        await tx.payment.create({
+          data: {
+            userId: params.userId,
+            amount,
+            baseAmount,
+            durationMonths,
+            feeAmount: 0,
+            feePercent: 0,
+            currency: 'RUB',
+            plan: params.plan,
+            status: PaymentStatus.PENDING,
+            paymentMethod: 'MANUAL_SBP',
+            paymentProvider: 'MANUAL',
+            bank: params.bank,
+            description:
+              `4StepsVPN — подарок — ${durationMonths} мес. (${days} дн.) — ручная оплата`,
+          },
+        });
+
+      const gift =
+        await tx.giftSubscription.create({
+          data: {
+            token,
+            buyerId: params.userId,
+            paymentId: payment.id,
+            plan: params.plan,
+            durationMonths,
+            days,
+            amount,
+            currency: 'RUB',
+            status: GiftStatus.PENDING_PAYMENT,
+          },
+        });
+
+      return {
+        payment,
+        gift,
+      };
+    },
+    {
+      isolationLevel:
+        Prisma.TransactionIsolationLevel
+          .Serializable,
+    },
+  );
+}
+
+async claimPaidGift(
+  token: string,
+  recipientUserId: string,
+) {
+  const normalizedToken = token.trim();
+
+  if (!normalizedToken) {
+    throw new Error('GIFT_TOKEN_REQUIRED');
+  }
+
+  const result =
+    await this.withSerializableRetry(() =>
+      this.prisma.$transaction(
+        async (tx) => {
+          const gift =
+            await tx.giftSubscription.findUnique({
+              where: {
+                token: normalizedToken,
+              },
+              include: {
+                payment: true,
+              },
+            });
+
+          if (!gift) {
+            throw new Error('GIFT_NOT_FOUND');
+          }
+
+          if (gift.buyerId === recipientUserId) {
+            throw new Error('GIFT_SELF_CLAIM_FORBIDDEN');
+          }
+
+          /*
+           * Оплата должна быть действительно подтверждена.
+           * Одного GiftStatus.PAID недостаточно:
+           * дополнительно проверяем связанный Payment.
+           */
+          if (
+            !gift.payment ||
+            gift.payment.status !== PaymentStatus.SUCCEEDED ||
+            !gift.payment.appliedAt ||
+            !gift.paidAt
+          ) {
+            throw new Error('GIFT_NOT_PAID');
+          }
+
+          if (
+            gift.status === GiftStatus.CLAIMED ||
+            gift.claimedAt ||
+            gift.recipientId
+          ) {
+            return {
+              claimed: false,
+              alreadyClaimed: true,
+              giftId: gift.id,
+              recipientId: gift.recipientId,
+              subscriptionId: null as string | null,
+              mode: null as
+                | 'CREATED'
+                | 'RESTORED'
+                | 'EXTENDED'
+                | null,
+              plan: gift.plan,
+              days: gift.days,
+            };
+          }
+
+          if (gift.status !== GiftStatus.PAID) {
+            throw new Error('GIFT_NOT_CLAIMABLE');
+          }
+
+          const recipient =
+            await tx.user.findUnique({
+              where: {
+                id: recipientUserId,
+              },
+              select: {
+                id: true,
+                isBlocked: true,
+              },
+            });
+
+          if (!recipient) {
+            throw new Error('GIFT_RECIPIENT_NOT_FOUND');
+          }
+
+          if (recipient.isBlocked) {
+            throw new Error('GIFT_RECIPIENT_BLOCKED');
+          }
+
+          const now = new Date();
+
+          /*
+           * Сначала проверяем реально занимающую активную
+           * подписку получателя.
+           */
+          const occupying =
+            await tx.subscription.findFirst({
+              where: {
+                userId: recipientUserId,
+                status: {
+                  in: [
+                    SubscriptionStatus.ACTIVE,
+                    SubscriptionStatus.TRIAL,
+                  ],
+                },
+              },
+              orderBy: {
+                expiresAt: 'desc',
+              },
+            });
+
+          if (
+            occupying &&
+            occupying.expiresAt > now &&
+            occupying.plan !== gift.plan
+          ) {
+            throw new Error(
+              'ACTIVE_SUBSCRIPTION_PLAN_CONFLICT',
+            );
+          }
+
+          /*
+           * Если ACTIVE/TRIAL уже фактически истёк,
+           * он не должен мешать восстановлению.
+           */
+          const active =
+            occupying &&
+            occupying.expiresAt > now
+              ? occupying
+              : null;
+
+          /*
+           * Захватываем подарок внутри той же SERIALIZABLE
+           * transaction. Два получателя не смогут забрать
+           * один token.
+           */
+          const claimedGift =
+            await tx.giftSubscription.updateMany({
+              where: {
+                id: gift.id,
+                status: GiftStatus.PAID,
+                recipientId: null,
+                claimedAt: null,
+              },
+              data: {
+                status: GiftStatus.CLAIMED,
+                recipientId: recipientUserId,
+                claimedAt: now,
+              },
+            });
+
+          if (claimedGift.count !== 1) {
+            throw new Error('GIFT_ALREADY_PROCESSING');
+          }
+
+          let subscription;
+          let mode:
+            | 'CREATED'
+            | 'RESTORED'
+            | 'EXTENDED';
+
+          if (active) {
+            const newExpires =
+              new Date(active.expiresAt);
+
+            newExpires.setDate(
+              newExpires.getDate() + gift.days,
+            );
+
+            subscription =
+              await tx.subscription.update({
+                where: {
+                  id: active.id,
+                },
+                data: {
+                  expiresAt: newExpires,
+                  status: SubscriptionStatus.ACTIVE,
+                  isTrial: false,
+                  vpnSyncPending: true,
+                },
+              });
+
+            mode = 'EXTENDED';
+          } else {
+            const expired =
+              await tx.subscription.findFirst({
+                where: {
+                  userId: recipientUserId,
+                  plan: gift.plan,
+                  OR: [
+                    {
+                      status:
+                        SubscriptionStatus.EXPIRED,
+                    },
+                    {
+                      expiresAt: {
+                        lte: now,
+                      },
+                    },
+                  ],
+                },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              });
+
+            const expiresAt =
+              new Date(now);
+
+            expiresAt.setDate(
+              expiresAt.getDate() + gift.days,
+            );
+
+            if (expired) {
+              subscription =
+                await tx.subscription.update({
+                  where: {
+                    id: expired.id,
+                  },
+                  data: {
+                    startsAt: now,
+                    expiresAt,
+                    status:
+                      SubscriptionStatus.ACTIVE,
+                    isTrial: false,
+                    vpnSyncPending: true,
+                  },
+                });
+
+              mode = 'RESTORED';
+            } else {
+              subscription =
+                await tx.subscription.create({
+                  data: {
+                    userId: recipientUserId,
+                    plan: gift.plan,
+                    status:
+                      SubscriptionStatus.ACTIVE,
+                    uuid: randomUUID(),
+                    subToken:
+                      randomBytes(24)
+                        .toString('hex'),
+                    startsAt: now,
+                    expiresAt,
+                    isTrial: false,
+                    vpnSyncPending: true,
+                  },
+                });
+
+              mode = 'CREATED';
+            }
+          }
+
+          return {
+            claimed: true,
+            alreadyClaimed: false,
+            giftId: gift.id,
+            recipientId: recipientUserId,
+            subscriptionId: subscription.id,
+            mode,
+            plan: gift.plan,
+            days: gift.days,
+          };
+        },
+        {
+          isolationLevel:
+            Prisma.TransactionIsolationLevel
+              .Serializable,
+        },
+      ),
+    );
+
+  /*
+   * VPN/H1Cloud синхронизируем только после DB commit.
+   * При сбое vpnSyncPending останется true и recovery
+   * сможет повторить синхронизацию.
+   */
+  if (
+    result.claimed &&
+    result.subscriptionId
+  ) {
+    try {
+      await this.subscriptions
+        .syncSubscriptionState(
+          result.subscriptionId,
+        );
+
+      await this.prisma.subscription.updateMany({
+        where: {
+          id: result.subscriptionId,
+          vpnSyncPending: true,
+        },
+        data: {
+          vpnSyncPending: false,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Gift ${result.giftId} VPN sync failed after claim: ${
+          error instanceof Error
+            ? error.message
+            : String(error)
+        }`,
+      );
+    }
+
+    this.logger.log(
+      `Gift ${result.giftId} claimed by user ${result.recipientId}; subscription ${result.subscriptionId}; mode=${result.mode}`,
+    );
+  }
+
+  return result;
+}
+
 async rejectManualPayment(
   paymentId: string,
   adminTelegramId: string,
@@ -285,6 +680,117 @@ async approveManualPayment(
         throw new Error('PAYMENT_NOT_MANUAL');
       }
 
+      const gift =
+        await tx.giftSubscription.findUnique({
+          where: {
+            paymentId: payment.id,
+          },
+        });
+
+      /*
+       * Gift payment:
+       * подтверждаем оплату, но НЕ создаём подписку
+       * покупателю. VPN будет выдан только получателю
+       * после активации subgift-ссылки.
+       */
+      if (gift) {
+        if (
+          gift.buyerId !== payment.userId ||
+          gift.plan !== payment.plan ||
+          gift.durationMonths !== payment.durationMonths ||
+          gift.amount !== payment.amount
+        ) {
+          throw new Error('GIFT_PAYMENT_MISMATCH');
+        }
+
+        if (
+          payment.appliedAt ||
+          payment.status === PaymentStatus.SUCCEEDED
+        ) {
+          return {
+            payment,
+            applied: false,
+            subscriptionId: null,
+            mode: null as
+              | 'CREATED'
+              | 'RESTORED'
+              | 'EXTENDED'
+              | null,
+            giftId: gift.id,
+            giftPaid:
+              gift.status === GiftStatus.PAID ||
+              gift.status === GiftStatus.CLAIMED,
+          };
+        }
+
+        if (payment.status !== PaymentStatus.PENDING) {
+          throw new Error('PAYMENT_NOT_PENDING');
+        }
+
+        if (gift.status !== GiftStatus.PENDING_PAYMENT) {
+          throw new Error('GIFT_NOT_PENDING_PAYMENT');
+        }
+
+        const now = new Date();
+
+        const paymentClaimed =
+          await tx.payment.updateMany({
+            where: {
+              id: payment.id,
+              status: PaymentStatus.PENDING,
+              appliedAt: null,
+            },
+            data: {
+              status: PaymentStatus.SUCCEEDED,
+              appliedAt: now,
+              reviewedAt: now,
+              reviewedBy: adminTelegramId,
+            },
+          });
+
+        if (paymentClaimed.count !== 1) {
+          throw new Error('PAYMENT_ALREADY_PROCESSING');
+        }
+
+        const giftClaimed =
+          await tx.giftSubscription.updateMany({
+            where: {
+              id: gift.id,
+              status: GiftStatus.PENDING_PAYMENT,
+              paidAt: null,
+              claimedAt: null,
+            },
+            data: {
+              status: GiftStatus.PAID,
+              paidAt: now,
+            },
+          });
+
+        if (giftClaimed.count !== 1) {
+          throw new Error('GIFT_ALREADY_PROCESSING');
+        }
+
+        const updatedPayment =
+          await tx.payment.findUniqueOrThrow({
+            where: {
+              id: payment.id,
+            },
+          });
+
+        return {
+          payment: updatedPayment,
+          applied: true,
+          subscriptionId: null,
+          mode: null as
+            | 'CREATED'
+            | 'RESTORED'
+            | 'EXTENDED'
+            | null,
+          giftId: gift.id,
+          giftPaid: true,
+        };
+      }
+
       if (
         payment.appliedAt ||
         payment.status === PaymentStatus.SUCCEEDED
@@ -299,6 +805,8 @@ async approveManualPayment(
             | 'RESTORED'
             | 'EXTENDED'
             | null,
+          giftId: null,
+          giftPaid: false,
         };
       }
 
@@ -504,6 +1012,8 @@ async approveManualPayment(
         applied: true,
         subscriptionId: subscription.id,
         mode,
+        giftId: null,
+        giftPaid: false,
       };
         },
         {
@@ -513,6 +1023,16 @@ async approveManualPayment(
         },
       ),
     );
+
+  if (
+    result.applied &&
+    result.giftId &&
+    result.giftPaid
+  ) {
+    this.logger.log(
+      `Manual gift payment ${paymentId} approved; gift ${result.giftId} is ready to claim`,
+    );
+  }
 
   if (
     result.applied &&

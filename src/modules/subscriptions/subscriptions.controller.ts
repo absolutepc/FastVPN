@@ -81,14 +81,19 @@ export class SubscriptionsController {
     @Param('token') token: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    if (!token || token.length < 16) {
+    const normalizedToken = token.endsWith('.txt')
+      ? token.slice(0, -4)
+      : token;
+
+    if (!normalizedToken || normalizedToken.length < 16) {
       throw new NotFoundException();
     }
 
-    const device = await this.subscriptions.getValidDeviceByToken(token);
+    const device =
+      await this.subscriptions.getValidDeviceByToken(normalizedToken);
     const legacySub = device
       ? null
-      : await this.subscriptions.getValidSubscriptionByToken(token);
+      : await this.subscriptions.getValidSubscriptionByToken(normalizedToken);
 
     if (!device && !legacySub) {
       throw new NotFoundException();

@@ -972,6 +972,67 @@ export class SubscriptionsService {
   }
 
 
+
+  async removeSecondDeviceAccess(deviceId: string) {
+    const device = await this.prisma.device.findUniqueOrThrow({
+      where: { id: deviceId },
+      include: {
+        subscription: true,
+        h1CloudClients: {
+          select: {
+            id: true,
+            nodeKey: true,
+            remoteName: true,
+          },
+        },
+      },
+    });
+
+    if (device.slot !== 2) {
+      throw new Error('PRIMARY_DEVICE_CANNOT_BE_REMOVED');
+    }
+
+    const removed = await this.xray.removeUserFromPlanNodes({
+      uuid: device.uuid,
+      plan: device.subscription.plan,
+    });
+
+    const failedNodeKeys: string[] = [];
+
+    for (const client of device.h1CloudClients) {
+      try {
+        const nodeKey = client.nodeKey as H1CloudNodeKey;
+        const existing = await this.h1cloud.getClientByName(
+          client.remoteName,
+          nodeKey,
+        );
+
+        if (existing) {
+          await this.h1cloud.deleteClient(client.remoteName, nodeKey);
+        }
+
+        await this.prisma.h1CloudClient.deleteMany({
+          where: { id: client.id },
+        });
+      } catch (error) {
+        failedNodeKeys.push(client.nodeKey);
+        this.logger.error(
+          `H1Cloud remove failed for device ${device.id} node ${client.nodeKey}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    if (removed.fail > 0 || failedNodeKeys.length > 0) {
+      throw new Error(
+        `DEVICE_REMOVE_INCOMPLETE:xray=${removed.fail},h1=${failedNodeKeys.join(',')}`,
+      );
+    }
+
+    return device;
+  }
+
   async syncPendingSubscriptionStates(
     limit = 50,
   ) {

@@ -40,12 +40,16 @@ export class XrayService {
   async countUsersOnNodeType(type: NodeType): Promise<number> {
     const plan = type === NodeType.PREMIUM ? PlanType.PREMIUM : PlanType.STANDARD;
     const now = new Date();
-    return this.prisma.subscription.count({
+    return this.prisma.device.count({
       where: {
-        plan,
-        status: { in: ['ACTIVE', 'TRIAL'] },
-        expiresAt: { gt: now },
-        user: { isBlocked: false },
+        isActive: true,
+        vpnSyncPending: false,
+        subscription: {
+          plan,
+          status: { in: ['ACTIVE', 'TRIAL'] },
+          expiresAt: { gt: now },
+          user: { isBlocked: false },
+        },
       },
     });
   }
@@ -230,18 +234,22 @@ export class XrayService {
 
   const now = new Date();
 
-  const subscriptions =
-    await this.prisma.subscription.findMany({
+  const devices =
+    await this.prisma.device.findMany({
       where: {
-        plan,
-        status: {
-          in: ['ACTIVE', 'TRIAL'],
-        },
-        expiresAt: {
-          gt: now,
-        },
-        user: {
-          isBlocked: false,
+        isActive: true,
+        vpnSyncPending: false,
+        subscription: {
+          plan,
+          status: {
+            in: ['ACTIVE', 'TRIAL'],
+          },
+          expiresAt: {
+            gt: now,
+          },
+          user: {
+            isBlocked: false,
+          },
         },
       },
       select: {
@@ -252,18 +260,18 @@ export class XrayService {
   let ok = 0;
   let fail = 0;
 
-  for (const sub of subscriptions) {
+  for (const device of devices) {
     // Делаем синхронизацию идемпотентной:
     // если пользователь уже был добавлен при прошлой попытке,
     // сначала удаляем его и создаём заново.
     await this.removeUserFromNode(
       node,
-      sub.uuid,
+      device.uuid,
     ).catch(() => false);
 
     const added = await this.addUserToNode(
       node,
-      sub.uuid,
+      device.uuid,
       'xtls-rprx-vision',
     );
 
@@ -275,11 +283,11 @@ export class XrayService {
   }
 
   this.logger.log(
-    `syncActiveUsersToNode ${node.name}: total=${subscriptions.length} ok=${ok} fail=${fail}`,
+    `syncActiveUsersToNode ${node.name}: total=${devices.length} ok=${ok} fail=${fail}`,
   );
 
   return {
-    total: subscriptions.length,
+    total: devices.length,
     ok,
     fail,
   };

@@ -136,7 +136,7 @@ model Subscription {
   expiresAt      DateTime
   isTrial        Boolean            @default(false)
   vpnSyncPending Boolean            @default(false)
-  device         Device?
+  devices        Device[]
   h1CloudClients H1CloudClient[]
   bonusClaims    BonusClaim[]
   createdAt      DateTime           @default(now())
@@ -152,6 +152,8 @@ model H1CloudClient {
   id             String       @id @default(cuid())
   subscriptionId String
   subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  deviceId       String
+  device         Device       @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   nodeKey      String
   remoteName   String
@@ -162,29 +164,36 @@ model H1CloudClient {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([subscriptionId, nodeKey])
+  @@unique([deviceId, nodeKey])
   @@unique([nodeKey, remoteName])
   @@unique([nodeKey, remoteUuid])
   @@index([subscriptionId])
+  @@index([deviceId])
   @@map("h1cloud_clients")
 }
 
 model Device {
-  id             String       @id @default(cuid())
+  id             String          @id @default(cuid())
   userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscriptionId String       @unique
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  uuid           String       @unique
-  name           String       @default("Устройство")
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  uuid           String          @unique
+  subToken       String          @unique
+  slot           Int
+  name           String          @default("Устройство")
   platform       String?
-  isActive       Boolean      @default(true)
+  isActive       Boolean         @default(true)
+  vpnSyncPending Boolean         @default(false)
   lastSeenAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  h1CloudClients H1CloudClient[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
+  @@unique([subscriptionId, slot])
   @@index([userId])
   @@index([isActive])
+  @@index([vpnSyncPending])
   @@map("devices")
 }
 

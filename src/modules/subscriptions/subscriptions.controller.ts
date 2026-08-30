@@ -85,11 +85,16 @@ export class SubscriptionsController {
       throw new NotFoundException();
     }
 
-    const sub = await this.subscriptions.getValidSubscriptionByToken(token);
+    const device = await this.subscriptions.getValidDeviceByToken(token);
+    const legacySub = device
+      ? null
+      : await this.subscriptions.getValidSubscriptionByToken(token);
 
-    if (!sub) {
+    if (!device && !legacySub) {
       throw new NotFoundException();
     }
+
+    const sub = device?.subscription ?? legacySub!;
 
     if (sub.user.isBlocked) {
       throw new ForbiddenException();
@@ -97,7 +102,8 @@ export class SubscriptionsController {
 
     const links = await this.subscriptions.buildSubscriptionLinks({
       id: sub.id,
-      uuid: sub.uuid,
+      deviceId: device?.id,
+      uuid: device?.uuid ?? sub.uuid,
       plan: sub.plan,
     });
 

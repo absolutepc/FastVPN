@@ -337,6 +337,7 @@ export class H1CloudService {
     name: string,
     days: number,
     nodeKey: H1CloudNodeKey = 'FI1',
+    deviceLimit = 1,
   ): Promise<H1Client> {
     const node = this.getNode(nodeKey);
 
@@ -353,7 +354,7 @@ export class H1CloudService {
         method: 'PATCH',
         body: JSON.stringify({
           traffic_limit_gb: 0,
-          device_limit: 2,
+          device_limit: deviceLimit,
           channels: this.getChannels(nodeKey),
           inbound_ids: this.getInboundIds(nodeKey, node),
           wg: false,
@@ -381,8 +382,12 @@ export class H1CloudService {
     return true;
   }
 
-  private nameForSubscription(subscriptionId: string) {
+  nameForSubscription(subscriptionId: string) {
     return `sub_${subscriptionId}`;
+  }
+
+  nameForDevice(deviceId: string) {
+    return `dev_${deviceId}`;
   }
 
   getPrimaryLink(client: H1Client): string {
@@ -416,7 +421,7 @@ export class H1CloudService {
       {
         name,
         days,
-        deviceLimit: 2,
+        deviceLimit: 1,
       },
       nodeKey,
     );
@@ -443,7 +448,52 @@ export class H1CloudService {
       );
     }
 
-    return this.extendClient(name, days, nodeKey);
+    return this.extendClient(name, days, nodeKey, 1);
+  }
+
+  async createForDevice(
+    deviceId: string,
+    days: number,
+    nodeKey: H1CloudNodeKey = 'FI1',
+  ): Promise<H1Client> {
+    const name = this.nameForDevice(deviceId);
+    const existing = await this.getClientByName(name, nodeKey);
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.createClient(
+      {
+        name,
+        days,
+        deviceLimit: 1,
+      },
+      nodeKey,
+    );
+  }
+
+  async extendForDevice(
+    deviceId: string,
+    days: number,
+    nodeKey: H1CloudNodeKey = 'FI1',
+    createDays: number = days,
+  ): Promise<H1Client> {
+    const name = this.nameForDevice(deviceId);
+    const existing = await this.getClientByName(name, nodeKey);
+
+    if (!existing) {
+      return this.createClient(
+        {
+          name,
+          days: createDays,
+          deviceLimit: 1,
+        },
+        nodeKey,
+      );
+    }
+
+    return this.extendClient(name, days, nodeKey, 1);
   }
 
   async deleteForSubscription(

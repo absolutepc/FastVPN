@@ -169,20 +169,26 @@ export class DeviceLimitService {
 
         const activeIps = [...data.ips];
 
-        const subscription =
-          await this.prisma.subscription.findUnique({
+        const device =
+          await this.prisma.device.findUnique({
             where: {
               uuid,
             },
             include: {
-              user: true,
+              subscription: {
+                include: {
+                  user: true,
+                },
+              },
             },
           });
 
-        if (!subscription) {
+        if (!device || !device.isActive) {
           this.states.delete(uuid);
           continue;
         }
+
+        const subscription = device.subscription;
 
         /*
          * Этот UUID реально появился в свежих Xray-логах,
@@ -191,16 +197,10 @@ export class DeviceLimitService {
          * DeviceLimitService уже выполняет SSH-проверку нод,
          * поэтому отдельный опрос для WebApp не нужен.
          */
-        await this.prisma.device.updateMany({
-          where: {
-            subscriptionId:
-              subscription.id,
-            isActive:
-              true,
-          },
+        await this.prisma.device.update({
+          where: { id: device.id },
           data: {
-            lastSeenAt:
-              new Date(),
+            lastSeenAt: new Date(),
           },
         });
 
@@ -210,7 +210,7 @@ export class DeviceLimitService {
          * Мы НЕ блокируем подписку автоматически.
          * IP не является надёжным идентификатором устройства.
          */
-        const violation = activeIps.length > 2;
+        const violation = activeIps.length > 1;
 
         if (violation) {
           state.violations += 1;
@@ -227,6 +227,7 @@ export class DeviceLimitService {
             `DEVICE LIMIT CONFIRMED: ` +
               `user=${subscription.user.username ?? '-'} ` +
               `telegram=${subscription.user.telegramId.toString()} ` +
+              `device=${device.id} slot=${device.slot} ` +
               `uuid=${uuid} ` +
               `plan=${subscription.plan} ` +
               `ips=${activeIps.join(',')} ` +
@@ -252,6 +253,7 @@ export class DeviceLimitService {
               `Пользователь: <b>${subscription.user.username ?? '-'}</b>\n` +
               `Telegram ID: <code>${subscription.user.telegramId.toString()}</code>\n` +
               `Тариф: <b>${subscription.plan}</b>\n\n` +
+              `Устройство: <b>${device.slot} из 2</b> (${device.name})\n` +
               `Одновременно обнаружено IP: <b>${activeIps.length}</b>\n` +
               `${activeIps
                 .map(
@@ -293,6 +295,7 @@ export class DeviceLimitService {
             `DEVICE LIMIT SUSPECT: ` +
               `user=${subscription.user.username ?? '-'} ` +
               `telegram=${subscription.user.telegramId.toString()} ` +
+              `device=${device.id} slot=${device.slot} ` +
               `uuid=${uuid} ` +
               `ips=${activeIps.join(',')} ` +
               `counter=${state.violations}/${this.requiredViolations} ` +

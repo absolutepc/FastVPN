@@ -592,8 +592,29 @@ body {
   margin-bottom: 8px;
 }
 .dev-item-ico { font-size: 1.3rem; }
+.dev-item-body {
+  min-width: 0;
+  flex: 1;
+}
 .dev-item-name { font-weight: 700; font-size: 0.92rem; }
 .dev-item-meta { font-size: 0.75rem; color: var(--muted); }
+.dev-device-action {
+  flex: 0 0 auto;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold-l);
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.dev-device-action.pending {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.1);
+}
 .dev-online {
   margin-left: auto;
   font-size: 0.72rem;

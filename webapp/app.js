@@ -777,36 +777,76 @@ function render(data) {
  $('dev-avail').textContent =
  `Доступно ещё ${Math.max(0, deviceLimit - deviceUsed)}`;
  $('dev-bar').style.width = `${Math.min(100, Math.round((deviceUsed / Math.max(1, deviceLimit)) * 100))}%`;
- const device = data.device;
+ const devices = Array.isArray(data.devices)
+ ? data.devices
+ : data.device?.isActive
+ ? [{ ...data.device, slot: 1, subUrl: sub.subUrl }]
+ : [];
+ const deviceList = $('dev-list');
+ deviceList.replaceChildren();
 
- if (device?.isActive) {
- $('btn-add-device').style.display = 'none';
+ for (const device of devices) {
+ const item = document.createElement('div');
+ item.className = 'dev-item';
 
- const deviceName = device.name || 'Моё устройство';
- const devicePlatform = device.platform
- ? ' · ' + device.platform
- : '';
+ const icon = document.createElement('div');
+ icon.className = 'dev-item-ico';
+ icon.textContent = device.slot === 2 ? '📲' : '📱';
 
- $('dev-list').innerHTML =
- '<div class="dev-item">' +
- '<div class="dev-item-ico">📱</div>' +
- '<div><div class="dev-item-name"></div>' +
- '<div class="dev-item-meta"></div></div>' +
- '<span class="dev-online">Активно</span></div>';
+ const body = document.createElement('div');
+ body.className = 'dev-item-body';
 
- const item = $('dev-list').querySelector('.dev-item');
- item.querySelector('.dev-item-name').textContent = deviceName;
- item.querySelector('.dev-item-meta').textContent =
- 'Привязано' + devicePlatform + ' · ' + planName;
- } else {
- $('btn-add-device').style.display = '';
+ const title = document.createElement('div');
+ title.className = 'dev-item-name';
+ title.textContent =
+ device.name ||
+ (device.slot === 2 ? 'Второе устройство' : 'Основное устройство');
 
- $('dev-list').innerHTML =
+ const meta = document.createElement('div');
+ meta.className = 'dev-item-meta';
+ meta.textContent =
+ (device.vpnSyncPending ? 'Ожидает синхронизации' : 'Отдельная ссылка') +
+ (device.platform ? ' · ' + device.platform : '') +
+ ' · ' +
+ planName;
+
+ body.append(title, meta);
+
+ const action = document.createElement('button');
+ action.type = 'button';
+ action.className = device.vpnSyncPending
+ ? 'dev-device-action pending'
+ : 'dev-device-action';
+ action.textContent = device.vpnSyncPending ? 'Повторить' : 'Копировать';
+ action.onclick = () => {
+ if (device.vpnSyncPending) {
+ $('btn-add-device').click();
+ return;
+ }
+
+ if (device.subUrl) copyText(device.subUrl);
+ };
+
+ item.append(icon, body, action);
+ deviceList.append(item);
+ }
+
+ if (devices.length === 0) {
+ deviceList.innerHTML =
  '<div class="dev-empty" id="dev-empty">' +
  'Устройство ещё не привязано.<br/>' +
  'Нажмите «Привязать устройство» ниже.' +
  '</div>';
  }
+
+ const pendingDevice = devices.some((device) => device.vpnSyncPending);
+ $('btn-add-device').style.display =
+ pendingDevice || devices.length < deviceLimit ? '' : 'none';
+ $('btn-add-device').innerHTML = pendingDevice
+ ? '↻ Завершить подключение<span>Повторить синхронизацию серверов</span>'
+ : devices.length === 0
+ ? '+ Привязать устройство<span>Получить отдельную subscription-ссылку</span>'
+ : '+ Добавить второе устройство<span>Получить отдельную subscription-ссылку</span>';
 
  return;
  }
@@ -2269,7 +2309,6 @@ async function startManualPayment(bank) {
  },
  body: JSON.stringify({
  initData,
- name: 'Моё устройство',
  platform: tg?.platform || null,
  }),
  });
@@ -2285,7 +2324,7 @@ async function startManualPayment(bank) {
  toast(
  data.created
  ? 'Устройство привязано'
- : 'Устройство уже привязано',
+ : 'Подключение устройства завершено',
  );
 
  await load();

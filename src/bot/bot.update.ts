@@ -215,6 +215,8 @@ export class BotUpdate implements OnModuleInit {
               parse_mode: 'HTML',
             },
           );
+
+          return;
         } catch (error) {
           delete ctx.session.pendingSubGiftToken;
 
@@ -331,6 +333,8 @@ export class BotUpdate implements OnModuleInit {
               parse_mode: 'HTML',
             },
           );
+
+          return;
         } catch (error) {
           delete ctx.session.pendingSubGiftToken;
 
@@ -404,6 +408,7 @@ export class BotUpdate implements OnModuleInit {
           reply_markup: {
             inline_keyboard: [
               [{ text: 'Выбрать срок подписки', callback_data: 'buy:standard' }],
+              [{ text: '🎁 Подарить подписку', callback_data: 'giftbuy:standard' }],
               [{ text: '« Назад', callback_data: 'back:main' }],
             ],
           },
@@ -555,6 +560,411 @@ export class BotUpdate implements OnModuleInit {
       await ctx.reply(
         'Напишите ваш вопрос — мы ответим как можно скорее.\n\nПоддержка: @dakaev21',
       );
+    });
+
+    bot.callbackQuery(
+      /^giftbuy:(standard|premium)$/,
+      async (ctx) => {
+        await ctx.answerCallbackQuery();
+
+        const planKey = ctx.match![1];
+
+        if (planKey === 'premium') {
+          return ctx.editMessageText(
+            '👑 Премиум пока недоступен для подарка.',
+            {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: '🎁 Подарить Стандарт',
+                      callback_data: 'giftbuy:standard',
+                    },
+                  ],
+                  [
+                    {
+                      text: '« Назад',
+                      callback_data: 'back:main',
+                    },
+                  ],
+                ],
+              },
+            },
+          );
+        }
+
+        const { user } =
+          await this.botService.findOrCreateUser(ctx);
+
+        if (user.isBlocked) {
+          return ctx.editMessageText(
+            'Доступ ограничен.',
+          );
+        }
+
+        await ctx.editMessageText(
+          `🎁 <b>Подарить 4StepsVPN</b>\n\n` +
+            `Тариф: <b>Стандарт</b>\n\n` +
+            `Выберите срок подарка:\n\n` +
+            `1 месяц — <b>300 ₽</b>\n` +
+            `3 месяца — <b>810 ₽</b> <i>−10%</i>\n` +
+            `6 месяцев — <b>1 440 ₽</b> <i>−20%</i>`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '1 мес. · 300 ₽',
+                    callback_data:
+                      'giftduration:1',
+                  },
+                  {
+                    text: '3 мес. · 810 ₽',
+                    callback_data:
+                      'giftduration:3',
+                  },
+                ],
+                [
+                  {
+                    text: '6 мес. · 1 440 ₽',
+                    callback_data:
+                      'giftduration:6',
+                  },
+                ],
+                [
+                  {
+                    text: '9 месяцев',
+                    callback_data:
+                      'giftduration:9',
+                  },
+                  {
+                    text: '12 месяцев',
+                    callback_data:
+                      'giftduration:12',
+                  },
+                ],
+                [
+                  {
+                    text: '« Назад',
+                    callback_data: 'back:main',
+                  },
+                ],
+              ],
+            },
+          },
+        );
+      },
+    );
+
+    bot.callbackQuery(
+      /^giftduration:(1|3|6|9|12)$/,
+      async (ctx) => {
+        await ctx.answerCallbackQuery();
+
+        const durationMonths =
+          Number(ctx.match![1]);
+
+        const amount =
+          this.payments.getPrice(
+            PlanType.STANDARD,
+            durationMonths,
+          );
+
+        const discount =
+          this.payments.getDiscountPercent(
+            durationMonths,
+          );
+
+        const amountRub =
+          Math.round(amount / 100);
+
+        await ctx.editMessageText(
+          `🎁 <b>Подарок 4StepsVPN</b>\n\n` +
+            `Тариф: <b>Стандарт</b>\n` +
+            `Срок: <b>${durationMonths} мес.</b>\n` +
+            `Скидка: <b>${discount}%</b>\n` +
+            `К оплате: <b>${amountRub.toLocaleString('ru-RU')} ₽</b>\n\n` +
+            `Выберите банк для оплаты:`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🟡 Т-Банк',
+                    callback_data:
+                      `giftmanualpay:tbank:${durationMonths}`,
+                  },
+                ],
+                [
+                  {
+                    text: '🟢 Сбербанк',
+                    callback_data:
+                      `giftmanualpay:sber:${durationMonths}`,
+                  },
+                ],
+                [
+                  {
+                    text: '« Назад',
+                    callback_data:
+                      'giftbuy:standard',
+                  },
+                ],
+              ],
+            },
+          },
+        );
+      },
+    );
+
+    bot.callbackQuery(
+      /^giftmanualpay:(tbank|sber):(1|3|6|9|12)$/,
+      async (ctx) => {
+        await ctx.answerCallbackQuery();
+
+        const bankKey =
+          ctx.match![1] as
+            | 'tbank'
+            | 'sber';
+
+        const durationMonths =
+          Number(ctx.match![2]);
+
+        const bank =
+          bankKey === 'tbank'
+            ? 'TBANK'
+            : 'SBER';
+
+        const bankName =
+          bankKey === 'tbank'
+            ? 'Т-Банк'
+            : 'Сбербанк';
+
+        const { user } =
+          await this.botService.findOrCreateUser(ctx);
+
+        if (user.isBlocked) {
+          return ctx.editMessageText(
+            'Доступ ограничен.',
+          );
+        }
+
+        try {
+          const created =
+            await this.payments
+              .createManualGiftPayment({
+                userId: user.id,
+                plan: PlanType.STANDARD,
+                bank,
+                durationMonths,
+              });
+
+          const payment =
+            created.payment;
+
+          const phone =
+            this.config.get<string>(
+              'PAYMENT_PHONE',
+            ) || '+79626542959';
+
+          const recipient =
+            this.config.get<string>(
+              'PAYMENT_RECIPIENT',
+            ) || 'Тамерлан Д.';
+
+          const amountRub =
+            Math.round(
+              payment.amount / 100,
+            );
+
+          const discount =
+            this.payments
+              .getDiscountPercent(
+                payment.durationMonths,
+              );
+
+          await ctx.editMessageText(
+            `🎁 <b>Оплата подарка 4StepsVPN</b>\n\n` +
+              `Тариф: <b>Стандарт</b>\n` +
+              `Срок: <b>${payment.durationMonths} мес.</b>\n` +
+              `Скидка: <b>${discount}%</b>\n` +
+              `Сумма: <b>${amountRub.toLocaleString('ru-RU')} ₽</b>\n` +
+              `Банк: <b>${bankName}</b>\n\n` +
+              `Переведите <b>${amountRub.toLocaleString('ru-RU')} ₽</b> по номеру телефона:\n` +
+              `<code>${phone}</code>\n` +
+              `Получатель: <b>${recipient}</b>\n\n` +
+              `После оплаты нажмите «✅ Я оплатил».`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: '✅ Я оплатил',
+                      callback_data:
+                        `manualpaid:${payment.id}`,
+                    },
+                  ],
+                  [
+                    {
+                      text: '« Назад',
+                      callback_data:
+                        `giftduration:${payment.durationMonths}`,
+                    },
+                  ],
+                ],
+              },
+            },
+          );
+        } catch (e) {
+          this.logger.error(
+            'Create manual gift payment error',
+            e,
+          );
+
+          await ctx.editMessageText(
+            'Не удалось создать заявку на оплату подарка. Попробуйте позже.',
+          );
+        }
+      },
+    );
+
+    bot.on('inline_query', async (ctx) => {
+      const query =
+        ctx.inlineQuery.query.trim();
+
+      this.logger.log(
+        `Inline query received: user=${ctx.from.id} query=${query.slice(0, 80)}`,
+      );
+
+      if (!query.startsWith('subgift_')) {
+        await ctx.answerInlineQuery(
+          [],
+          {
+            cache_time: 0,
+            is_personal: true,
+          },
+        );
+        return;
+      }
+
+      const token =
+        query.slice('subgift_'.length).trim();
+
+      if (!token) {
+        await ctx.answerInlineQuery(
+          [],
+          {
+            cache_time: 0,
+            is_personal: true,
+          },
+        );
+        return;
+      }
+
+      try {
+        const gift =
+          await this.botService.prismaService
+            .giftSubscription.findUnique({
+              where: {
+                token,
+              },
+            });
+
+        this.logger.log(
+          gift
+            ? `Inline gift found: id=${gift.id} status=${gift.status}`
+            : `Inline gift not found for token=${token.slice(0, 12)}...`,
+        );
+
+        if (
+          !gift ||
+          gift.status !== 'PAID' ||
+          gift.claimedAt ||
+          gift.recipientId
+        ) {
+          await ctx.answerInlineQuery(
+            [],
+            {
+              cache_time: 0,
+              is_personal: true,
+            },
+          );
+          return;
+        }
+
+        const planName =
+          gift.plan === PlanType.PREMIUM
+            ? 'Премиум'
+            : 'Стандарт';
+
+        const periodText =
+          gift.durationMonths === 1
+            ? '1 месяц'
+            : gift.durationMonths >= 2 &&
+                gift.durationMonths <= 4
+              ? `${gift.durationMonths} месяца`
+              : `${gift.durationMonths} месяцев`;
+
+        const botInfo =
+          await bot.api.getMe();
+
+        const giftLink =
+          `https://t.me/${botInfo.username}?start=subgift_${gift.token}`;
+
+        await ctx.answerInlineQuery(
+          [
+            {
+              type: 'article',
+              id: gift.id,
+              title:
+                `🎁 4StepsVPN на ${periodText}`,
+              description:
+                `${planName} · ${periodText}`,
+              input_message_content: {
+                message_text:
+                  `🎁 <b>Вам подарили 4StepsVPN на ${periodText}!</b>\n\n` +
+                  `🛡 Тариф: <b>${planName}</b>\n\n` +
+                  `Подарок активируется после получения.\n` +
+                  `Срок подписки начнётся с момента активации.`,
+                parse_mode: 'HTML',
+              },
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: '🎁 Получить подарок',
+                      url: giftLink,
+                    },
+                  ],
+                ],
+              },
+            },
+          ],
+          {
+            cache_time: 0,
+            is_personal: true,
+          },
+        );
+
+        this.logger.log(
+          `Inline gift result sent: gift=${gift.id}`,
+        );
+      } catch (error) {
+        this.logger.error(
+          'Inline gift query failed',
+          error,
+        );
+
+        await ctx.answerInlineQuery(
+          [],
+          {
+            cache_time: 0,
+            is_personal: true,
+          },
+        ).catch(() => {});
+      }
     });
 
     bot.callbackQuery(/^buy:(standard|premium)$/, async (ctx) => {
@@ -744,10 +1154,8 @@ export class BotUpdate implements OnModuleInit {
         return ctx.editMessageText('Эта заявка принадлежит другому пользователю.');
       }
 
-      ctx.session.adminData = {
-        ...(ctx.session.adminData || {}),
-        manualPaymentId: paymentId,
-      };
+      ctx.session.pendingManualPaymentId =
+        paymentId;
 
       await ctx.reply(
         '📎 <b>Отправьте чек или скриншот оплаты</b> следующим сообщением.\n\n' +
@@ -756,20 +1164,35 @@ export class BotUpdate implements OnModuleInit {
       );
     });
 
-    const processPaymentProof = async (ctx: BotContext, proofFileId: string) => {
-      const paymentId = ctx.session.adminData?.manualPaymentId;
+    const processPaymentProof = async (
+      ctx: BotContext,
+      proofFileId: string,
+    ) => {
+      const paymentId =
+        ctx.session.pendingManualPaymentId;
+
       if (!paymentId) return;
 
-      const payment = await this.botService.prismaService.payment.findUnique({
-        where: { id: paymentId },
-        include: { user: true },
-      });
+      const payment =
+        await this.botService.prismaService.payment.findUnique({
+          where: {
+            id: paymentId,
+          },
+          include: {
+            user: true,
+            gift: true,
+          },
+        });
 
-      if (!payment || payment.status !== PaymentStatus.PENDING) {
-        if (ctx.session.adminData) {
-          delete ctx.session.adminData.manualPaymentId;
-        }
-        await ctx.reply('Заявка уже обработана или не найдена.');
+      if (
+        !payment ||
+        payment.status !== PaymentStatus.PENDING
+      ) {
+        delete ctx.session.pendingManualPaymentId;
+
+        await ctx.reply(
+          'Заявка уже обработана или не найдена.',
+        );
         return;
       }
 
@@ -827,17 +1250,19 @@ export class BotUpdate implements OnModuleInit {
         }
       }
 
-      if (ctx.session.adminData) {
-        delete ctx.session.adminData.manualPaymentId;
-      }
+      delete ctx.session.pendingManualPaymentId;
 
       await ctx.reply(
-        '✅ Чек отправлен на проверку.\n\nПосле подтверждения подписка активируется автоматически.',
+        payment.gift
+          ? '✅ Чек отправлен на проверку.\n\nПосле подтверждения вы получите подарочную ссылку для отправки другу.'
+          : '✅ Чек отправлен на проверку.\n\nПосле подтверждения подписка активируется автоматически.',
       );
     };
 
     bot.on('message:photo', async (ctx, next) => {
-      if (!ctx.session.adminData?.manualPaymentId) return next();
+      if (!ctx.session.pendingManualPaymentId) {
+        return next();
+      }
 
       const photos = ctx.message.photo;
       const fileId = photos[photos.length - 1]?.file_id;
@@ -850,9 +1275,14 @@ export class BotUpdate implements OnModuleInit {
     });
 
     bot.on('message:document', async (ctx, next) => {
-      if (!ctx.session.adminData?.manualPaymentId) return next();
+      if (!ctx.session.pendingManualPaymentId) {
+        return next();
+      }
 
-      await processPaymentProof(ctx, ctx.message.document.file_id);
+      await processPaymentProof(
+        ctx,
+        ctx.message.document.file_id,
+      );
     });
 
     bot.callbackQuery(/^manualapprove:(.+)$/, async (ctx) => {
@@ -866,7 +1296,10 @@ export class BotUpdate implements OnModuleInit {
       try {
         const payment = await this.botService.prismaService.payment.findUnique({
           where: { id: paymentId },
-          include: { user: true },
+          include: {
+            user: true,
+            gift: true,
+          },
         });
 
         if (!payment) {
@@ -886,6 +1319,85 @@ export class BotUpdate implements OnModuleInit {
         if (!approval.applied) {
           return ctx.editMessageText(
             '✅ Эта заявка уже была подтверждена.',
+          );
+        }
+
+        /*
+         * Для подарка подписку покупателю НЕ ищем.
+         * После approve отправляем готовую deep-link ссылку.
+         */
+        if (
+          approval.giftId &&
+          approval.giftPaid
+        ) {
+          const gift =
+            await this.botService.prismaService
+              .giftSubscription.findUniqueOrThrow({
+                where: {
+                  id: approval.giftId,
+                },
+              });
+
+          const botInfo =
+            await bot.api.getMe();
+
+          const giftLink =
+            `https://t.me/${botInfo.username}?start=subgift_${gift.token}`;
+
+          const planName =
+            gift.plan === PlanType.PREMIUM
+              ? 'Премиум'
+              : 'Стандарт';
+
+          const amountRub =
+            Math.round(gift.amount / 100);
+
+          const periodText =
+            gift.durationMonths === 1
+              ? '1 месяц'
+              : gift.durationMonths >= 2 &&
+                  gift.durationMonths <= 4
+                ? `${gift.durationMonths} месяца`
+                : `${gift.durationMonths} месяцев`;
+
+          try {
+            await bot.api.sendMessage(
+              Number(payment.user.telegramId),
+              `🎁 <b>Оплата подарка подтверждена!</b>\n\n` +
+                `Тариф: <b>${planName}</b>\n` +
+                `Срок: <b>${periodText}</b>\n` +
+                `Сумма: <b>${amountRub.toLocaleString('ru-RU')} ₽</b>\n\n` +
+                `Нажмите <b>«📤 Отправить подарок»</b> и выберите друга.\n` +
+                `В чат будет отправлена готовая карточка с кнопкой «🎁 Получить подарок».`,
+              {
+                parse_mode: 'HTML',
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      {
+                        text: '📤 Отправить подарок',
+                        switch_inline_query:
+                          `subgift_${gift.token}`,
+                      },
+                    ],
+                  ],
+                },
+              },
+            );
+          } catch (e) {
+            this.logger.warn(
+              'Could not notify user about approved gift payment',
+              e,
+            );
+          }
+
+          return ctx.editMessageText(
+            `✅ <b>Оплата подарка подтверждена</b>\n\n` +
+              `Gift ID: <code>${gift.id}</code>\n` +
+              `Payment ID: <code>${paymentId}</code>`,
+            {
+              parse_mode: 'HTML',
+            },
           );
         }
 
@@ -930,7 +1442,10 @@ export class BotUpdate implements OnModuleInit {
       try {
         const payment = await this.botService.prismaService.payment.findUnique({
           where: { id: paymentId },
-          include: { user: true },
+          include: {
+            user: true,
+            gift: true,
+          },
         });
 
         if (!payment) {
@@ -965,7 +1480,9 @@ export class BotUpdate implements OnModuleInit {
         try {
           await bot.api.sendMessage(
             Number(payment.user.telegramId),
-            '❌ Оплата не подтверждена.\n\nПроверьте перевод и при необходимости создайте новую заявку.',
+            payment.gift
+              ? '❌ Оплата подарка не подтверждена.\n\nПодарочная заявка отменена. Проверьте перевод и при необходимости создайте новую.'
+              : '❌ Оплата не подтверждена.\n\nПроверьте перевод и при необходимости создайте новую заявку.',
           );
         } catch (e) {
           this.logger.warn('Could not notify user about rejected manual payment', e);

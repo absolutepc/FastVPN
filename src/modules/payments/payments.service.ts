@@ -599,62 +599,107 @@ async rejectManualPayment(
   paymentId: string,
   adminTelegramId: string,
 ) {
-  const payment = await this.prisma.payment.findUnique({
-    where: { id: paymentId },
-  });
+  return this.withSerializableRetry(() =>
+    this.prisma.$transaction(
+      async (tx) => {
+        const payment =
+          await tx.payment.findUnique({
+            where: {
+              id: paymentId,
+            },
+          });
 
-  if (!payment) {
-    throw new Error('PAYMENT_NOT_FOUND');
-  }
+        if (!payment) {
+          throw new Error('PAYMENT_NOT_FOUND');
+        }
 
-  if (
-    payment.paymentProvider !== 'MANUAL' ||
-    payment.paymentMethod !== 'MANUAL_SBP'
-  ) {
-    throw new Error('PAYMENT_NOT_MANUAL');
-  }
+        if (
+          payment.paymentProvider !== 'MANUAL' ||
+          payment.paymentMethod !== 'MANUAL_SBP'
+        ) {
+          throw new Error('PAYMENT_NOT_MANUAL');
+        }
 
-  const rejected =
-    await this.prisma.payment.updateMany({
-      where: {
-        id: paymentId,
-        status: PaymentStatus.PENDING,
-        appliedAt: null,
-        paymentProvider: 'MANUAL',
-        paymentMethod: 'MANUAL_SBP',
+        const gift =
+          await tx.giftSubscription.findUnique({
+            where: {
+              paymentId: payment.id,
+            },
+          });
+
+        const now = new Date();
+
+        const rejected =
+          await tx.payment.updateMany({
+            where: {
+              id: paymentId,
+              status: PaymentStatus.PENDING,
+              appliedAt: null,
+              paymentProvider: 'MANUAL',
+              paymentMethod: 'MANUAL_SBP',
+            },
+            data: {
+              status: PaymentStatus.CANCELLED,
+              reviewedAt: now,
+              reviewedBy: adminTelegramId,
+            },
+          });
+
+        if (rejected.count === 1) {
+          if (gift) {
+            await tx.giftSubscription.updateMany({
+              where: {
+                id: gift.id,
+                status: GiftStatus.PENDING_PAYMENT,
+                paidAt: null,
+                claimedAt: null,
+              },
+              data: {
+                status: GiftStatus.CANCELLED,
+              },
+            });
+          }
+
+          const updated =
+            await tx.payment.findUniqueOrThrow({
+              where: {
+                id: paymentId,
+              },
+            });
+
+          this.logger.log(
+            gift
+              ? `Manual gift payment ${paymentId} rejected; gift ${gift.id} cancelled`
+              : `Manual payment ${paymentId} rejected`,
+          );
+
+          return {
+            payment: updated,
+            rejected: true,
+            giftId: gift?.id ?? null,
+          };
+        }
+
+        const current =
+          await tx.payment.findUniqueOrThrow({
+            where: {
+              id: paymentId,
+            },
+          });
+
+        return {
+          payment: current,
+          rejected: false,
+          giftId: gift?.id ?? null,
+        };
       },
-      data: {
-        status: PaymentStatus.CANCELLED,
-        reviewedAt: new Date(),
-        reviewedBy: adminTelegramId,
+      {
+        isolationLevel:
+          Prisma.TransactionIsolationLevel
+            .Serializable,
       },
-    });
-
-  if (rejected.count === 1) {
-    const updated =
-      await this.prisma.payment.findUniqueOrThrow({
-        where: { id: paymentId },
-      });
-
-    this.logger.log(
-      `Manual payment ${paymentId} rejected`,
-    );
-
-    return {
-      payment: updated,
-      rejected: true,
-    };
-  }
-
-  const current =
-    await this.prisma.payment.findUniqueOrThrow({
-      where: { id: paymentId },
-    });
-
-  return {
-    payment: current,
-    rejected: false,
-  };
+    ),
+  );
 }
 
 async approveManualPayment(

@@ -21,6 +21,7 @@ export interface SessionData {
   adminStep?: number;
   adminData?: Record<string, string>;
   pendingSubGiftToken?: string;
+  pendingManualPaymentId?: string;
 }
 
 export type BotContext = Context & SessionFlavor<SessionData>;
@@ -57,6 +58,11 @@ export class BotService implements OnModuleInit {
 
   async onModuleInit() {
     this.bot.start({
+      allowed_updates: [
+        'message',
+        'callback_query',
+        'inline_query',
+      ],
       onStart: (info) => {
         this.logger.log(`Bot @${info.username} started`);
       },

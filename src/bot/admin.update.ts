@@ -855,10 +855,55 @@ private countryFlag(name: string): string {
 
       const plan = planStr === 'premium' ? PlanType.PREMIUM : PlanType.STANDARD;
       const userId = ctx.session.adminData!.userId;
-      const active = await this.subscriptions.getActiveSubscription(userId);
+      const active =
+        await this.subscriptions.getActiveSubscription(
+          userId,
+        );
+
+      /*
+       * Иногда истёкшая подписка ещё имеет
+       * статус ACTIVE/TRIAL, пока завершается
+       * cleanup/sync. getActiveSubscription()
+       * её намеренно не возвращает из-за
+       * expiresAt <= now.
+       *
+       * Для ручного начисления дней такую
+       * подписку нужно восстановить через
+       * extendSubscription(), а не пытаться
+       * создать конкурирующую запись.
+       */
+      const expiredPending =
+        !active
+          ? await this.prisma.subscription.findFirst({
+              where: {
+                userId,
+                plan,
+                status: {
+                  in: [
+                    SubscriptionStatus.ACTIVE,
+                    SubscriptionStatus.TRIAL,
+                  ],
+                },
+                expiresAt: {
+                  lte: new Date(),
+                },
+              },
+              orderBy: {
+                expiresAt: 'desc',
+              },
+            })
+          : null;
 
       if (active && active.plan === plan) {
-        await this.subscriptions.extendSubscription(active.id, days);
+        await this.subscriptions.extendSubscription(
+          active.id,
+          days,
+        );
+      } else if (expiredPending) {
+        await this.subscriptions.extendSubscription(
+          expiredPending.id,
+          days,
+        );
       } else {
         await this.subscriptions.createSubscription({
           userId,

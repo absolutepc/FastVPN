@@ -18,9 +18,26 @@
  let currentScreen = 'home';
 
  try {
-   currentScreen =
-     localStorage.getItem(SCREEN_STORAGE_KEY) ||
-     'home';
+   const navigationEntry =
+     performance.getEntriesByType('navigation')[0];
+
+   const isReload =
+     navigationEntry?.type === 'reload';
+
+   currentScreen = isReload
+     ? (
+         localStorage.getItem(
+           SCREEN_STORAGE_KEY,
+         ) || 'home'
+       )
+     : 'home';
+
+   if (!isReload) {
+     localStorage.setItem(
+       SCREEN_STORAGE_KEY,
+       'home',
+     );
+   }
  } catch (_) {
    currentScreen = 'home';
  }
@@ -1182,7 +1199,7 @@ function render(data) {
  CH1: { flag: '🇨🇭', name: 'Switzerland' },
  SE1: { flag: '🇸🇪', name: 'Sweden' },
  NL1: { flag: '🇳🇱', name: 'Netherlands' },
- NLBS1: { flag: '🇳🇱', name: 'Netherlands Обход' },
+ NLBS1: { flag: '🇳🇱', name: 'Netherlands БС' },
  };
 
  for (const h1 of h1Nodes) {
@@ -2106,6 +2123,7 @@ async function loadAdminDashboard() {
    'admin-servers',
    'admin-notification',
    'admin-tickets',
+   'admin-promo',
  ]);
 
  const screenToRestore =
@@ -2114,6 +2132,18 @@ async function loadAdminDashboard() {
      : 'home';
 
  showScreen(screenToRestore);
+
+ if (
+   screenToRestore === 'admin' ||
+   screenToRestore === 'admin-active' ||
+   screenToRestore === 'admin-servers'
+ ) {
+   await loadAdminDashboard();
+ } else if (screenToRestore === 'admin-tickets') {
+   await loadAdminTickets();
+ } else if (screenToRestore === 'admin-promo') {
+   await loadAdminPromoCodes();
+ }
 
  document.body.classList.remove('app-booting');
 

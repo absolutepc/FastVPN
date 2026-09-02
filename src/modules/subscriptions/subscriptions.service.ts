@@ -70,7 +70,7 @@ export class SubscriptionsService {
     { key: "FI1", name: "🇫🇮 Finland" },
     { key: "CH1", name: "🇨🇭 Switzerland" },
     { key: "NL1", name: "🇳🇱 Netherlands" },
-    { key: "NLBS1", name: "🇳🇱 Netherlands Обход" },
+    { key: "NLBS1", name: "🇳🇱 Netherlands БС" },
   ];
 
   private getMaintenanceH1Nodes(): Set<string> {
@@ -2626,12 +2626,6 @@ const inbound =
           xhttp: "ib_d0aac15723",
           label: "Switzerland",
         },
-        NL1: {
-          main: "ib_cfbd2a1e52",
-          ws: "ib_13a2493c1f",
-          xhttp: "ib_064e37e049",
-          label: "Netherlands",
-        },
       };
 
       const h1LinkGroups = await Promise.all(
@@ -2648,6 +2642,153 @@ const inbound =
 
           const inboundConfig =
             inboundMap[node.key];
+
+          if (
+            node.key === "NL1" &&
+            h1Client.remoteUuid
+          ) {
+            try {
+              let remoteClient = null;
+
+              for (let attempt = 1; attempt <= 2; attempt++) {
+                remoteClient =
+                  await this.h1cloud.getClientByName(
+                    h1Client.remoteName,
+                    node.key,
+                    10000,
+                  );
+
+                const customWs =
+                  remoteClient?.inbound_links?.find(
+                    (inbound) =>
+                      inbound.id === "ib_bd6bce0091" ||
+                      inbound.tag === "nl1-netherlands-ws",
+                  );
+
+                const customXhttp =
+                  remoteClient?.inbound_links?.find(
+                    (inbound) =>
+                      inbound.id === "ib_4e1b19c314" ||
+                      inbound.tag === "nl1-netherlands-xhttp",
+                  );
+
+                if (
+                  remoteClient?.links?.reality &&
+                  customWs?.link &&
+                  customXhttp?.link
+                ) {
+                  break;
+                }
+
+                if (attempt < 2) {
+                  await new Promise((resolve) =>
+                    setTimeout(resolve, 250),
+                  );
+                }
+              }
+
+              if (!remoteClient) {
+                throw new Error(
+                  "remote client not found",
+                );
+              }
+
+              const customWs =
+                remoteClient.inbound_links?.find(
+                  (inbound) =>
+                    inbound.id === "ib_bd6bce0091" ||
+                    inbound.tag === "nl1-netherlands-ws",
+                );
+
+              const customXhttp =
+                remoteClient.inbound_links?.find(
+                  (inbound) =>
+                    inbound.id === "ib_4e1b19c314" ||
+                    inbound.tag === "nl1-netherlands-xhttp",
+                );
+
+              if (
+                !remoteClient.links?.reality ||
+                !customWs?.link ||
+                !customXhttp?.link
+              ) {
+                throw new Error(
+                  "NL1 required links missing after retry",
+                );
+              }
+
+              const nodeLinks: string[] = [];
+
+              const appendLink = (
+                link: string | undefined,
+                suffix: string,
+              ) => {
+                if (!link) {
+                  return;
+                }
+
+                const linkName =
+                  encodeURIComponent(
+                    `${node.name} ${suffix}`,
+                  );
+
+                const base =
+                  link.split("#")[0];
+
+                nodeLinks.push(
+                  `${base}#${linkName}`,
+                );
+              };
+
+              appendLink(
+                remoteClient.links?.reality,
+                "MAIN",
+              );
+
+              appendLink(
+                customWs.link,
+                "WS",
+              );
+
+              appendLink(
+                customXhttp.link,
+                "XHTTP",
+              );
+
+              if (nodeLinks.length) {
+                return nodeLinks;
+              }
+
+              throw new Error(
+                "NL1 built-in links missing",
+              );
+            } catch (error) {
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : String(error);
+
+              this.logger.warn(
+                `Netherlands H1Cloud links unavailable for subscription ${sub.id}: ${message}`,
+              );
+
+              if (h1Client.remoteLink) {
+                const mainBase =
+                  h1Client.remoteLink.split("#")[0];
+
+                const mainName =
+                  encodeURIComponent(
+                    `${node.name} MAIN`,
+                  );
+
+                return [
+                  `${mainBase}#${mainName}`,
+                ];
+              }
+
+              return [];
+            }
+          }
 
           if (
             inboundConfig &&
@@ -2767,13 +2908,6 @@ const inbound =
                   wsPort: 25054,
                   xhttpHost: "xhttp-ch1.4stepsvpn.ru",
                   xhttpPort: 25059,
-                },
-                NL1: {
-                  host: "nl4.h1cloud.net",
-                  wsHost: "ws-nl1.4stepsvpn.ru",
-                  wsPort: 25127,
-                  xhttpHost: "xhttp-nl1.4stepsvpn.ru",
-                  xhttpPort: 25128,
                 },
               };
 

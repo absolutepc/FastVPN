@@ -105,7 +105,11 @@ export class H1CloudService {
   isConfigured(nodeKey: H1CloudNodeKey): boolean {
     const node = this.nodes[nodeKey];
 
-    return Boolean(node.baseUrl && node.token && node.inboundId);
+    return Boolean(
+      node.baseUrl &&
+      node.token &&
+      (nodeKey === 'NL1' || node.inboundId),
+    );
   }
 
   getConfiguredNodeKeys(): H1CloudNodeKey[] {
@@ -127,9 +131,9 @@ export class H1CloudService {
   }
 
   private getChannels(nodeKey: H1CloudNodeKey): string[] {
-    if (nodeKey === 'FI1') return ['bs'];
-    if (nodeKey === 'NLBS1') return ['bs'];
-    if (nodeKey === 'NL1') return ['wscdn'];
+    if (nodeKey === 'FI1' || nodeKey === 'NLBS1') {
+      return ['bs'];
+    }
 
     return [];
   }
@@ -144,6 +148,10 @@ export class H1CloudService {
       .split(',')
       .map((inboundId) => inboundId.trim())
       .filter(Boolean);
+
+    if (nodeKey === 'NL1') {
+      return [...new Set(extraInboundIds)];
+    }
 
     return [...new Set([node.inboundId, ...extraInboundIds])];
   }
@@ -307,7 +315,7 @@ export class H1CloudService {
   ): Promise<H1Client> {
     const node = this.getNode(nodeKey);
 
-    if (!node.inboundId) {
+    if (nodeKey !== 'NL1' && !node.inboundId) {
       throw new Error(`H1Cloud ${nodeKey} inbound ID missing`);
     }
 
@@ -318,17 +326,56 @@ export class H1CloudService {
       '/api/create',
       {
         method: 'POST',
-        body: JSON.stringify({
-          name: params.name,
-          days: params.days,
-          device_limit: params.deviceLimit ?? 2,
-          channels: this.getChannels(nodeKey),
-          inbound_ids: this.getInboundIds(nodeKey, node),
-          wg: false,
-        }),
+        body: JSON.stringify(
+          nodeKey === 'NL1'
+            ? {
+                name: params.name,
+                days: params.days,
+                device_limit: params.deviceLimit ?? 2,
+                inbound_ids: this.getInboundIds(nodeKey, node),
+              }
+            : {
+                name: params.name,
+                days: params.days,
+                device_limit: params.deviceLimit ?? 2,
+                channels: this.getChannels(nodeKey),
+                inbound_ids: this.getInboundIds(nodeKey, node),
+                wg: false,
+              },
+        ),
       },
       nodeKey,
     );
+
+    if (nodeKey === 'NLBS1') {
+      await this.request<{
+        ok: boolean;
+        client: H1Client;
+      }>(
+        '/api/edit',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: params.name,
+            channels: ['bs'],
+          }),
+        },
+        nodeKey,
+      );
+
+      const client = await this.getClientByName(
+        params.name,
+        nodeKey,
+      );
+
+      if (!client) {
+        throw new Error(
+          `H1Cloud ${nodeKey} client ${params.name} missing after BS activation`,
+        );
+      }
+
+      return client;
+    }
 
     return result.client;
   }
@@ -341,7 +388,7 @@ export class H1CloudService {
   ): Promise<H1Client> {
     const node = this.getNode(nodeKey);
 
-    if (!node.inboundId) {
+    if (nodeKey !== 'NL1' && !node.inboundId) {
       throw new Error(`H1Cloud ${nodeKey} inbound ID missing`);
     }
 
@@ -352,17 +399,70 @@ export class H1CloudService {
       `/api/clients/${encodeURIComponent(name)}`,
       {
         method: 'PATCH',
-        body: JSON.stringify({
-          traffic_limit_gb: 0,
-          device_limit: deviceLimit,
-          channels: this.getChannels(nodeKey),
-          inbound_ids: this.getInboundIds(nodeKey, node),
-          wg: false,
-          days,
-        }),
+        body: JSON.stringify(
+          nodeKey === 'NL1'
+            ? {
+                traffic_limit_gb: 0,
+                device_limit: deviceLimit,
+                inbound_ids: this.getInboundIds(nodeKey, node),
+                days,
+              }
+            : {
+                traffic_limit_gb: 0,
+                device_limit: deviceLimit,
+                channels: this.getChannels(nodeKey),
+                inbound_ids: this.getInboundIds(nodeKey, node),
+                wg: false,
+                days,
+              },
+        ),
       },
       nodeKey,
     );
+
+    if (nodeKey === 'NLBS1') {
+      await this.request(
+        '/api/edit',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name,
+            channels: ['bs'],
+          }),
+        },
+        nodeKey,
+      );
+
+      const refreshed = await this.getClientByName(
+        name,
+        nodeKey,
+        5000,
+      );
+
+      if (!refreshed) {
+        throw new Error(
+          `H1Cloud ${nodeKey} client ${name} missing after BS extend activation`,
+        );
+      }
+
+      return refreshed;
+    }
+
+    if (nodeKey === 'NL1') {
+      const refreshed = await this.getClientByName(
+        name,
+        nodeKey,
+        5000,
+      );
+
+      if (!refreshed) {
+        throw new Error(
+          `H1Cloud ${nodeKey} client ${name} missing after extend`,
+        );
+      }
+
+      return refreshed;
+    }
 
     return result.client;
   }
@@ -395,6 +495,8 @@ export class H1CloudService {
       client.inbound_links?.[0]?.link ||
       client.links?.xhttp_cdn ||
       client.links?.xhttp ||
+      client.links?.reality ||
+      client.links?.ws ||
       client.links?.main;
 
     if (!link) {

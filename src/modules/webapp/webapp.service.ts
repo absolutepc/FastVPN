@@ -274,7 +274,7 @@ export class WebappService {
       ES1: 'Испания',
       CH1: 'Швейцария',
       NL1: 'Нидерланды',
-      NLBS1: 'Netherlands Обход',
+      NLBS1: 'Нидерланды Обход',
     };
 
     const networkNodes: Array<{
